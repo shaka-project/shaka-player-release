@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/util/periods.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <script src="scripts/show-widget.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/tomorrow.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+
+    <h1 class="page-title">Source: lib/util/periods.js</h1>
+
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*! @license
+ * Shaka Player
+ * Copyright 2016 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+goog.provide('shaka.util.PeriodCombiner');
+
+goog.require('goog.asserts');
+goog.require('shaka.drm.DrmUtils');
+goog.require('shaka.log');
+goog.require('shaka.media.MetaSegmentIndex');
+goog.require('shaka.media.SegmentIndex');
+goog.require('shaka.util.Error');
+goog.require('shaka.util.IReleasable');
+goog.require('shaka.util.LanguageUtils');
+goog.require('shaka.util.ManifestParserUtils');
+goog.require('shaka.util.MimeUtils');
+
+/**
+ * A utility to combine streams across periods.
+ *
+ * @implements {shaka.util.IReleasable}
+ * @final
+ * @export
+ */
+shaka.util.PeriodCombiner = class {
+  constructor() {
+    /** @private {!Array&lt;shaka.extern.Variant>} */
+    this.variants_ = [];
+
+    /** @private {!Array&lt;shaka.extern.Stream>} */
+    this.audioStreams_ = [];
+
+    /** @private {!Array&lt;shaka.extern.Stream>} */
+    this.videoStreams_ = [];
+
+    /** @private {!Array&lt;shaka.extern.Stream>} */
+    this.textStreams_ = [];
+
+    /** @private {!Array&lt;shaka.extern.Stream>} */
+    this.imageStreams_ = [];
+
+    /** @private {boolean} */
+    this.useStreamOnce_ = false;
+
+    /**
+     * The IDs of the periods we have already used to generate streams.
+     * This helps us identify the periods which have been added when a live
+     * stream is updated.
+     *
+     * @private {!Set&lt;string>}
+     */
+    this.usedPeriodIds_ = new Set();
+
+    const ContentType = shaka.util.ManifestParserUtils.ContentType;
+
+    /** @private {Map&lt;string, !Array&lt;shaka.extern.Stream>>} */
+    this.streamCollections_ = new Map()
+        .set(ContentType.AUDIO, this.audioStreams_)
+        .set(ContentType.VIDEO, this.videoStreams_)
+        .set(ContentType.TEXT, this.textStreams_)
+        .set(ContentType.IMAGE, this.imageStreams_);
+  }
+
+  /** @override */
+  release() {
+    const allStreams =
+        this.audioStreams_.concat(this.videoStreams_, this.textStreams_,
+            this.imageStreams_);
+
+    for (const stream of allStreams) {
+      if (stream.segmentIndex) {
+        stream.segmentIndex.release();
+      }
+    }
+
+    this.audioStreams_ = [];
+    this.videoStreams_ = [];
+    this.textStreams_ = [];
+    this.imageStreams_ = [];
+    this.variants_ = [];
+    this.useStreamOnce_ = false;
+    this.usedPeriodIds_.clear();
+    this.streamCollections_.clear();
+  }
+
+  /**
+   * @return {!Array&lt;shaka.extern.Variant>}
+   *
+   * @export
+   */
+  getVariants() {
+    return this.variants_;
+  }
+
+  /**
+   * @return {!Array&lt;shaka.extern.Stream>}
+   *
+   * @export
+   */
+  getTextStreams() {
+    // Return a copy of the array because makeTextStreamsForClosedCaptions
+    // may make changes to the contents of the array. Those changes should not
+    // propagate back to the PeriodCombiner.
+    return this.textStreams_.slice();
+  }
+
+  /**
+   * @return {!Array&lt;shaka.extern.Stream>}
+   *
+   * @export
+   */
+  getImageStreams() {
+    return this.imageStreams_;
+  }
+
+  /**
+   * Deletes a stream from matchedStreams because it is no longer needed
+   *
+   * @param {?shaka.extern.Stream} stream
+   * @param {string} periodId
+   *
+   * @export
+   */
+  deleteStream(stream, periodId) {
+    if (!stream) {
+      return;
+    }
+
+    const streams = this.streamCollections_.get(stream.type) || [];
+    for (const parent of streams) {
+      shaka.util.PeriodCombiner.removeFromMatchedStreams_(parent, stream);
+      const optionalStreams =
+          shaka.util.PeriodCombiner.getOptionalStreams(parent);
+      for (const optional of optionalStreams) {
+        shaka.util.PeriodCombiner.removeFromMatchedStreams_(optional, stream);
+      }
+    }
+    if (stream.segmentIndex) {
+      stream.closeSegmentIndex();
+    }
+    this.usedPeriodIds_.delete(periodId);
+  }
+
+  /**
+   * Removes a stream from the matchedStreams array, if present.
+   *
+   * @param {!shaka.extern.Stream} target
+   * @param {!shaka.extern.Stream} stream
+   * @private
+   */
+  static removeFromMatchedStreams_(target, stream) {
+    target.matchedStreams = target.matchedStreams?.filter((s) => s !== stream);
+  }
+
+  /**
+   * Returns an object that contains arrays of streams by type
+   * @param {!Array&lt;shaka.extern.Period>} periods
+   * @param {boolean} addDummy
+   * @return {{
+   *   audioStreamsPerPeriod: !Array&lt;!Map&lt;string, shaka.extern.Stream>>,
+   *   videoStreamsPerPeriod: !Array&lt;!Map&lt;string, shaka.extern.Stream>>,
+   *   textStreamsPerPeriod: !Array&lt;!Map&lt;string, shaka.extern.Stream>>,
+   *   imageStreamsPerPeriod: !Array&lt;!Map&lt;string, shaka.extern.Stream>>,
+   * }}
+   * @private
+   */
+  getStreamsPerPeriod_(periods, addDummy) {
+    const ContentType = shaka.util.ManifestParserUtils.ContentType;
+    const PeriodCombiner = shaka.util.PeriodCombiner;
+
+    const audioStreamsPerPeriod = [];
+    const videoStreamsPerPeriod = [];
+    const textStreamsPerPeriod = [];
+    const imageStreamsPerPeriod = [];
+
+    for (const period of periods) {
+      const audioMap = new Map(period.audioStreams.map((s) =>
+        [PeriodCombiner.generateAudioKey_(s), s]));
+      const videoMap = new Map(period.videoStreams.map((s) =>
+        [PeriodCombiner.generateVideoKey_(s), s]));
+      const textMap = new Map(period.textStreams.map((s) =>
+        [PeriodCombiner.generateTextKey_(s), s]));
+      const imageMap = new Map(period.imageStreams.map((s) =>
+        [PeriodCombiner.generateImageKey_(s), s]));
+
+      // It's okay to have a period with no text or images, but our algorithm
+      // fails on any period without matching streams.  So we add dummy streams
+      // to each period.  Since we combine text streams by language and image
+      // streams by resolution, we might need a dummy even in periods with these
+      // streams already.
+      if (addDummy) {
+        const dummyText = PeriodCombiner.dummyStream_(ContentType.TEXT);
+        textMap.set(PeriodCombiner.generateTextKey_(dummyText), dummyText);
+        const dummyImage = PeriodCombiner.dummyStream_(ContentType.IMAGE);
+        imageMap.set(PeriodCombiner.generateImageKey_(dummyImage), dummyImage);
+      }
+
+      audioStreamsPerPeriod.push(audioMap);
+      videoStreamsPerPeriod.push(videoMap);
+      textStreamsPerPeriod.push(textMap);
+      imageStreamsPerPeriod.push(imageMap);
+    }
+    return {
+      audioStreamsPerPeriod,
+      videoStreamsPerPeriod,
+      textStreamsPerPeriod,
+      imageStreamsPerPeriod,
+    };
+  }
+
+  /**
+   * @param {!Array&lt;shaka.extern.Period>} periods
+   * @param {boolean} isDynamic
+   * @param {boolean=} isPatchUpdate
+   * @return {!Promise}
+   *
+   * @export
+   */
+  async combinePeriods(periods, isDynamic, isPatchUpdate = false) {
+    const ContentType = shaka.util.ManifestParserUtils.ContentType;
+
+    // Optimization: for single-period VOD, do nothing.  This makes sure
+    // single-period DASH content will be 100% accurately represented in the
+    // output.
+    if (!isDynamic &amp;&amp; periods.length == 1) {
+      // We need to filter out duplicates, so call getStreamsPerPeriod()
+      // so it will do that by usage of Map.
+      const {
+        audioStreamsPerPeriod,
+        videoStreamsPerPeriod,
+        textStreamsPerPeriod,
+        imageStreamsPerPeriod,
+      } = this.getStreamsPerPeriod_(periods, /* addDummy= */ false);
+      this.audioStreams_ = Array.from(audioStreamsPerPeriod[0].values());
+      this.videoStreams_ = Array.from(videoStreamsPerPeriod[0].values());
+      this.textStreams_ = Array.from(textStreamsPerPeriod[0].values());
+      this.imageStreams_ = Array.from(imageStreamsPerPeriod[0].values());
+    } else {
+      // How many periods we've seen before which are not included in this call.
+      const periodsMissing = isPatchUpdate ? this.usedPeriodIds_.size : 0;
+      // Find the first period we haven't seen before.  Tag all the periods we
+      // see now as "used".
+      let firstNewPeriodIndex = -1;
+      for (let i = 0; i &lt; periods.length; i++) {
+        const period = periods[i];
+        if (this.usedPeriodIds_.has(period.id)) {
+          // This isn't new.
+        } else {
+          // This one _is_ new.
+          this.usedPeriodIds_.add(period.id);
+
+          if (firstNewPeriodIndex == -1) {
+            // And it's the _first_ new one.
+            firstNewPeriodIndex = i;
+          }
+        }
+      }
+
+      if (firstNewPeriodIndex == -1) {
+        // Nothing new? Nothing to do.
+        return;
+      }
+
+      const {
+        audioStreamsPerPeriod,
+        videoStreamsPerPeriod,
+        textStreamsPerPeriod,
+        imageStreamsPerPeriod,
+      } = this.getStreamsPerPeriod_(periods, /* addDummy= */ true);
+
+      await Promise.all([
+        this.combine_(
+            this.audioStreams_,
+            audioStreamsPerPeriod,
+            firstNewPeriodIndex,
+            shaka.util.PeriodCombiner.cloneStream_,
+            shaka.util.PeriodCombiner.concatenateStreams_,
+            periodsMissing),
+        this.combine_(
+            this.videoStreams_,
+            videoStreamsPerPeriod,
+            firstNewPeriodIndex,
+            shaka.util.PeriodCombiner.cloneStream_,
+            shaka.util.PeriodCombiner.concatenateStreams_,
+            periodsMissing),
+        this.combine_(
+            this.textStreams_,
+            textStreamsPerPeriod,
+            firstNewPeriodIndex,
+            shaka.util.PeriodCombiner.cloneStream_,
+            shaka.util.PeriodCombiner.concatenateStreams_,
+            periodsMissing),
+        this.combine_(
+            this.imageStreams_,
+            imageStreamsPerPeriod,
+            firstNewPeriodIndex,
+            shaka.util.PeriodCombiner.cloneStream_,
+            shaka.util.PeriodCombiner.concatenateStreams_,
+            periodsMissing),
+      ]);
+    }
+
+    // Create variants for all audio/video combinations.
+    let nextVariantId = 0;
+    const variants = [];
+    if (!this.videoStreams_.length || !this.audioStreams_.length) {
+      // For audio-only or video-only content, just give each stream its own
+      // variant.
+      const streams = this.videoStreams_.length ? this.videoStreams_ :
+        this.audioStreams_;
+      for (const stream of streams) {
+        const id = nextVariantId++;
+        let bandwidth = stream.bandwidth || 0;
+        if (stream.dependencyStream) {
+          bandwidth += stream.dependencyStream.bandwidth || 0;
+        }
+        variants.push({
+          id,
+          language: stream.language,
+          disabledUntilTime: 0,
+          primary: stream.primary,
+          audio: stream.type == ContentType.AUDIO ? stream : null,
+          video: stream.type == ContentType.VIDEO ? stream : null,
+          bandwidth,
+          drmInfos: stream.drmInfos,
+          allowedByApplication: true,
+          allowedByKeySystem: true,
+          decodingInfos: [],
+        });
+      }
+    } else {
+      for (const audio of this.audioStreams_) {
+        for (const video of this.videoStreams_) {
+          const commonDrmInfos = shaka.drm.DrmUtils.getCommonDrmInfos(
+              audio.drmInfos, video.drmInfos);
+
+          if (audio.drmInfos.length &amp;&amp; video.drmInfos.length &amp;&amp;
+              !commonDrmInfos.length) {
+            shaka.log.warning(
+                'Incompatible DRM in audio &amp; video, skipping variant creation.',
+                audio, video);
+            continue;
+          }
+
+          let bandwidth = (audio.bandwidth || 0) + (video.bandwidth || 0);
+          if (audio.dependencyStream) {
+            bandwidth += audio.dependencyStream.bandwidth || 0;
+          }
+          if (video.dependencyStream) {
+            bandwidth += video.dependencyStream.bandwidth || 0;
+          }
+
+          const id = nextVariantId++;
+          variants.push({
+            id,
+            language: audio.language,
+            disabledUntilTime: 0,
+            primary: audio.primary,
+            audio,
+            video,
+            bandwidth,
+            drmInfos: commonDrmInfos,
+            allowedByApplication: true,
+            allowedByKeySystem: true,
+            decodingInfos: [],
+          });
+        }
+      }
+    }
+
+    this.variants_ = variants;
+  }
+
+
+  /**
+   * Stitch together DB streams across periods, taking a mix of stream types.
+   * The offline database does not separate these by type.
+   *
+   * Unlike the DASH case, this does not need to maintain any state for manifest
+   * updates.
+   *
+   * @param {!Array&lt;!Array&lt;shaka.extern.StreamDB>>} streamDbsPerPeriod
+   * @return {!Promise&lt;!Array&lt;shaka.extern.StreamDB>>}
+   */
+  static async combineDbStreams(streamDbsPerPeriod) {
+    const ContentType = shaka.util.ManifestParserUtils.ContentType;
+    const PeriodCombiner = shaka.util.PeriodCombiner;
+
+    // Optimization: for single-period content, do nothing.  This makes sure
+    // single-period DASH or any HLS content stored offline will be 100%
+    // accurately represented in the output.
+    if (streamDbsPerPeriod.length == 1) {
+      return streamDbsPerPeriod[0];
+    }
+
+    const audioStreamDbsPerPeriod = streamDbsPerPeriod.map(
+        (streams) => new Map(streams
+            .filter((s) => s.type === ContentType.AUDIO)
+            .map((s) => [PeriodCombiner.generateAudioKey_(s), s])));
+    const videoStreamDbsPerPeriod = streamDbsPerPeriod.map(
+        (streams) => new Map(streams
+            .filter((s) => s.type === ContentType.VIDEO)
+            .map((s) => [PeriodCombiner.generateVideoKey_(s), s])));
+    const textStreamDbsPerPeriod = streamDbsPerPeriod.map(
+        (streams) => new Map(streams
+            .filter((s) => s.type === ContentType.TEXT)
+            .map((s) => [PeriodCombiner.generateTextKey_(s), s])));
+    const imageStreamDbsPerPeriod = streamDbsPerPeriod.map(
+        (streams) => new Map(streams
+            .filter((s) => s.type === ContentType.IMAGE)
+            .map((s) => [PeriodCombiner.generateImageKey_(s), s])));
+
+    // It's okay to have a period with no text or images, but our algorithm
+    // fails on any period without matching streams.  So we add dummy streams to
+    // each period.  Since we combine text streams by language and image streams
+    // by resolution, we might need a dummy even in periods with these streams
+    // already.
+    for (const textStreams of textStreamDbsPerPeriod) {
+      const dummy = PeriodCombiner.dummyStreamDB_(ContentType.TEXT);
+      textStreams.set(PeriodCombiner.generateTextKey_(dummy), dummy);
+    }
+    for (const imageStreams of imageStreamDbsPerPeriod) {
+      const dummy = PeriodCombiner.dummyStreamDB_(ContentType.IMAGE);
+      imageStreams.set(PeriodCombiner.generateImageKey_(dummy), dummy);
+    }
+
+    const periodCombiner = new shaka.util.PeriodCombiner();
+
+    const combinedAudioStreamDbs = await periodCombiner.combine_(
+        /* outputStreams= */ [],
+        audioStreamDbsPerPeriod,
+        /* firstNewPeriodIndex= */ 0,
+        shaka.util.PeriodCombiner.cloneStreamDB_,
+        shaka.util.PeriodCombiner.concatenateStreamDBs_,
+        /* periodsMissing= */ 0);
+
+    const combinedVideoStreamDbs = await periodCombiner.combine_(
+        /* outputStreams= */ [],
+        videoStreamDbsPerPeriod,
+        /* firstNewPeriodIndex= */ 0,
+        shaka.util.PeriodCombiner.cloneStreamDB_,
+        shaka.util.PeriodCombiner.concatenateStreamDBs_,
+        /* periodsMissing= */ 0);
+
+    const combinedTextStreamDbs = await periodCombiner.combine_(
+        /* outputStreams= */ [],
+        textStreamDbsPerPeriod,
+        /* firstNewPeriodIndex= */ 0,
+        shaka.util.PeriodCombiner.cloneStreamDB_,
+        shaka.util.PeriodCombiner.concatenateStreamDBs_,
+        /* periodsMissing= */ 0);
+
+    const combinedImageStreamDbs = await periodCombiner.combine_(
+        /* outputStreams= */ [],
+        imageStreamDbsPerPeriod,
+        /* firstNewPeriodIndex= */ 0,
+        shaka.util.PeriodCombiner.cloneStreamDB_,
+        shaka.util.PeriodCombiner.concatenateStreamDBs_,
+        /* periodsMissing= */ 0);
+
+    // Recreate variantIds from scratch in the output.
+    // HLS content is always single-period, so the early return at the top of
+    // this method would catch all HLS content.  DASH content stored with v3.0
+    // will already be flattened before storage.  Therefore the only content
+    // that reaches this point is multi-period DASH content stored before v3.0.
+    // Such content always had variants generated from all combinations of audio
+    // and video, so we can simply do that now without loss of correctness.
+    let nextVariantId = 0;
+    if (!combinedVideoStreamDbs.length || !combinedAudioStreamDbs.length) {
+      // For audio-only or video-only content, just give each stream its own
+      // variant ID.
+      const combinedStreamDbs =
+          combinedVideoStreamDbs.concat(combinedAudioStreamDbs);
+      for (const stream of combinedStreamDbs) {
+        stream.variantIds = [nextVariantId++];
+      }
+    } else {
+      for (const audio of combinedAudioStreamDbs) {
+        for (const video of combinedVideoStreamDbs) {
+          const id = nextVariantId++;
+          video.variantIds.push(id);
+          audio.variantIds.push(id);
+        }
+      }
+    }
+
+    return combinedVideoStreamDbs
+        .concat(combinedAudioStreamDbs)
+        .concat(combinedTextStreamDbs)
+        .concat(combinedImageStreamDbs);
+  }
+
+  /**
+   * Combine input Streams per period into flat output Streams.
+   * Templatized to handle both DASH Streams and offline StreamDBs.
+   *
+   * @param {!Array&lt;T>} outputStreams A list of existing output streams, to
+   *   facilitate updates for live DASH content.  Will be modified and returned.
+   * @param {!Array&lt;!Map&lt;string, T>>} streamsPerPeriod A list of maps of Streams
+   *   from each period.
+   * @param {number} firstNewPeriodIndex An index into streamsPerPeriod which
+   *   represents the first new period that hasn't been processed yet.
+   * @param {function(T):T} clone Make a clone of an input stream.
+   * @param {function(T, T)} concat Concatenate the second stream onto the end
+   *   of the first.
+   * @param {number} periodsMissing The number of periods missing
+   *
+   * @return {!Promise&lt;!Array&lt;T>>} The same array passed to outputStreams,
+   *   modified to include any newly-created streams.
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  async combine_(
+      outputStreams, streamsPerPeriod, firstNewPeriodIndex, clone, concat,
+      periodsMissing) {
+    const unusedStreamsPerPeriod = [];
+
+    for (let i = 0; i &lt; streamsPerPeriod.length; i++) {
+      if (i >= firstNewPeriodIndex) {
+        // This periods streams are all new.
+        unusedStreamsPerPeriod.push(new Set(streamsPerPeriod[i].values()));
+      } else {
+        // This period's streams have all been used already.
+        unusedStreamsPerPeriod.push(new Set());
+      }
+    }
+
+    // First, extend all existing output Streams into the new periods.
+    for (const outputStream of outputStreams) {
+      // eslint-disable-next-line no-await-in-loop
+      const ok = await this.extendExistingOutputStream_(
+          outputStream, streamsPerPeriod, firstNewPeriodIndex, concat,
+          unusedStreamsPerPeriod, periodsMissing);
+      if (!ok) {
+        // This output Stream was not properly extended to include streams from
+        // the new period.  This is likely a bug in our algorithm, so throw an
+        // error.
+        throw new shaka.util.Error(
+            shaka.util.Error.Severity.CRITICAL,
+            shaka.util.Error.Category.MANIFEST,
+            shaka.util.Error.Code.PERIOD_FLATTENING_FAILED);
+      }
+
+      // This output stream is now complete with content from all known
+      // periods.
+    }  // for (const outputStream of outputStreams)
+
+    for (const unusedStreams of unusedStreamsPerPeriod) {
+      for (const stream of unusedStreams) {
+        // Create a new output stream which includes this input stream.
+        const outputStream = this.createNewOutputStream_(outputStreams,
+            stream, streamsPerPeriod, clone, concat,
+            unusedStreamsPerPeriod);
+        if (outputStream) {
+          outputStreams.push(outputStream);
+        } else {
+          // This is not a stream we can build output from, but it may become
+          // part of another output based on another period's stream.
+        }
+      }  // for (const stream of unusedStreams)
+    }  // for (const unusedStreams of unusedStreamsPerPeriod)
+
+    for (const unusedStreams of unusedStreamsPerPeriod) {
+      for (const stream of unusedStreams) {
+        if (shaka.util.PeriodCombiner.isDummy_(stream)) {
+          // This is one of our dummy streams, so ignore it.  We may not use
+          // them all, and that's fine.
+          continue;
+        }
+        // If this stream has a different codec/MIME than any other stream,
+        // then we can't play it.
+        const hasCodec = outputStreams.some((s) => {
+          return this.areAVStreamsCompatible_(stream, s);
+        });
+        if (!hasCodec) {
+          continue;
+        }
+
+        // Any other unused stream is likely a bug in our algorithm, so throw
+        // an error.
+        shaka.log.error('Unused stream in period-flattening!',
+            stream, outputStreams);
+        throw new shaka.util.Error(
+            shaka.util.Error.Severity.CRITICAL,
+            shaka.util.Error.Category.MANIFEST,
+            shaka.util.Error.Code.PERIOD_FLATTENING_FAILED);
+      }
+    }
+
+    return outputStreams;
+  }
+
+  /**
+   * @param {T} outputStream An existing output stream which needs to be
+   *   extended into new periods.
+   * @param {!Array&lt;!Map&lt;string, T>>} streamsPerPeriod A list of maps of Streams
+   *   from each period.
+   * @param {number} firstNewPeriodIndex An index into streamsPerPeriod which
+   *   represents the first new period that hasn't been processed yet.
+   * @param {function(T, T)} concat Concatenate the second stream onto the end
+   *   of the first.
+   * @param {!Array&lt;!Set&lt;T>>} unusedStreamsPerPeriod An array of sets of
+   *   unused streams from each period.
+   * @param {number} periodsMissing How many periods are missing in this update.
+   *
+   * @return {!Promise&lt;boolean>}
+   *
+   * @template T
+   * Should only be called with a Stream type in practice, but has call sites
+   * from other templated functions that also accept a StreamDB.
+   *
+   * @private
+   */
+  async extendExistingOutputStream_(
+      outputStream, streamsPerPeriod, firstNewPeriodIndex, concat,
+      unusedStreamsPerPeriod, periodsMissing) {
+    this.findMatchesInAllPeriods_(streamsPerPeriod,
+        outputStream, periodsMissing > 0);
+
+    // This only exists where T == Stream, and this should only ever be called
+    // on Stream types.  StreamDB should not have pre-existing output streams.
+    goog.asserts.assert(outputStream.createSegmentIndex,
+        'outputStream should be a Stream type!');
+
+    if (!outputStream.matchedStreams) {
+      // We were unable to extend this output stream.
+      shaka.log.error('No matches extending output stream!',
+          outputStream, streamsPerPeriod);
+      return false;
+    }
+    // We need to create all the per-period segment indexes and append them to
+    // the output's MetaSegmentIndex.
+    if (outputStream.segmentIndex) {
+      await shaka.util.PeriodCombiner.extendOutputSegmentIndex_(outputStream,
+          firstNewPeriodIndex + periodsMissing);
+    }
+
+    shaka.util.PeriodCombiner.extendOutputStream_(outputStream,
+        firstNewPeriodIndex, concat, unusedStreamsPerPeriod, periodsMissing);
+    return true;
+  }
+
+  /**
+   * Creates the segment indexes for an array of input streams, and append them
+   * to the output stream's segment index.
+   *
+   * @param {shaka.extern.Stream} outputStream
+   * @param {number} firstNewPeriodIndex An index into streamsPerPeriod which
+   *   represents the first new period that hasn't been processed yet.
+   * @private
+   */
+  static async extendOutputSegmentIndex_(outputStream, firstNewPeriodIndex) {
+    const operations = [];
+    const streams = outputStream.matchedStreams;
+    goog.asserts.assert(streams, 'matched streams should be valid');
+
+    for (let i = firstNewPeriodIndex; i &lt; streams.length; i++) {
+      const stream = streams[i];
+      operations.push(stream.createSegmentIndex());
+      const optionalStreams =
+          shaka.util.PeriodCombiner.getOptionalStreams(stream);
+      for (const optional of optionalStreams) {
+        if (!optional.segmentIndex) {
+          operations.push(optional.createSegmentIndex());
+        }
+      }
+    }
+    await Promise.all(operations);
+
+    // Concatenate the new matches onto the stream, starting at the first new
+    // period.
+    // Satisfy the compiler about the type.
+    // Also checks if the segmentIndex is still valid after the async
+    // operations, to make sure we stop if the active stream has changed.
+    if (outputStream.segmentIndex instanceof shaka.media.MetaSegmentIndex) {
+      for (let i = firstNewPeriodIndex; i &lt; streams.length; i++) {
+        const match = streams[i];
+        goog.asserts.assert(match.segmentIndex,
+            'stream should have a segmentIndex.');
+        if (match.segmentIndex) {
+          outputStream.segmentIndex.appendSegmentIndex(match.segmentIndex);
+        }
+      }
+    }
+  }
+
+  /**
+   * Create a new output Stream based on a particular input Stream.  Locates
+   * matching Streams in all other periods and combines them into an output
+   * Stream.
+   * Templatized to handle both DASH Streams and offline StreamDBs.
+   *
+   * @param {!Array&lt;T>} outputStreams A list of existing output streams.
+   * @param {T} stream An input stream on which to base the output stream.
+   * @param {!Array&lt;!Map&lt;string, T>>} streamsPerPeriod A list of maps of Streams
+   *   from each period.
+   * @param {function(T):T} clone Make a clone of an input stream.
+   * @param {function(T, T)} concat Concatenate the second stream onto the end
+   *   of the first.
+   * @param {!Array&lt;!Set&lt;T>>} unusedStreamsPerPeriod An array of sets of
+   *   unused streams from each period.
+   *
+   * @return {?T} A newly-created output Stream, or null if matches
+   *   could not be found.`
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  createNewOutputStream_(outputStreams,
+      stream, streamsPerPeriod, clone, concat, unusedStreamsPerPeriod) {
+    // Check do we want to create output stream from dummy stream
+    // and if so, return quickly.
+    if (shaka.util.PeriodCombiner.isDummy_(stream)) {
+      return null;
+    }
+    // Start by cloning the stream without segments, key IDs, etc.
+    const outputStream = clone(stream);
+
+    // Find best-matching streams in all periods.
+    this.findMatchesInAllPeriods_(streamsPerPeriod, outputStream);
+
+    // This only exists where T == Stream.
+    if (outputStream.createSegmentIndex) {
+      // Override the createSegmentIndex &amp; closeSegmentIndex functions
+      // of the outputStream.
+      outputStream.createSegmentIndex = async () => {
+        if (!outputStream.segmentIndex) {
+          outputStream.segmentIndex = new shaka.media.MetaSegmentIndex();
+          await shaka.util.PeriodCombiner.extendOutputSegmentIndex_(
+              outputStream, /* firstNewPeriodIndex= */ 0);
+        }
+      };
+      outputStream.closeSegmentIndex = () => {
+        if (outputStream.segmentIndex) {
+          outputStream.segmentIndex.release();
+          outputStream.segmentIndex = null;
+        }
+        // Close the segment index of the matched streams.
+        if (outputStream.matchedStreams) {
+          for (const match of outputStream.matchedStreams) {
+            if (match.segmentIndex &amp;&amp;
+                !shaka.util.PeriodCombiner.isStreamActivelyUsed_(
+                    match, outputStream, outputStreams)) {
+              match.segmentIndex.release();
+              match.segmentIndex = null;
+            }
+          }
+        }
+      };
+      // For T == Stream, we need to create all the per-period segment indexes
+      // in advance.  concat() will add them to the output's MetaSegmentIndex.
+    }
+
+    if (!outputStream.matchedStreams || !outputStream.matchedStreams.length) {
+      // This is not a stream we can build output from, but it may become part
+      // of another output based on another period's stream.
+      return null;
+    }
+    shaka.util.PeriodCombiner.extendOutputStream_(outputStream,
+        /* firstNewPeriodIndex= */ 0, concat, unusedStreamsPerPeriod,
+        /* periodsMissing= */ 0);
+
+    return outputStream;
+  }
+
+  /**
+   * @param {T} outputStream An existing output stream which needs to be
+   *   extended into new periods.
+   * @param {number} firstNewPeriodIndex An index into streamsPerPeriod which
+   *   represents the first new period that hasn't been processed yet.
+   * @param {function(T, T)} concat Concatenate the second stream onto the end
+   *   of the first.
+   * @param {!Array&lt;!Set&lt;T>>} unusedStreamsPerPeriod An array of sets of
+   *   unused streams from each period.
+   * @param {number} periodsMissing How many periods are missing in this update
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static extendOutputStream_(
+      outputStream, firstNewPeriodIndex, concat, unusedStreamsPerPeriod,
+      periodsMissing) {
+    const ContentType = shaka.util.ManifestParserUtils.ContentType;
+    const LanguageUtils = shaka.util.LanguageUtils;
+    const matches = outputStream.matchedStreams;
+
+    // Assure the compiler that matches didn't become null during the async
+    // operation before.
+    goog.asserts.assert(outputStream.matchedStreams,
+        'matchedStreams should be non-null');
+
+    // Concatenate the new matches onto the stream, starting at the first new
+    // period.
+    const start = firstNewPeriodIndex + periodsMissing;
+    for (let i = start; i &lt; matches.length; i++) {
+      const match = matches[i];
+      concat(outputStream, match);
+
+      // We only consider an audio stream "used" if its language is related to
+      // the output language.  There are scenarios where we want to generate
+      // separate tracks for each language, even when we are forced to connect
+      // unrelated languages across periods.
+      let used = true;
+      if (outputStream.type == ContentType.AUDIO) {
+        const relatedness = LanguageUtils.relatedness(
+            outputStream.language, match.language);
+        if (relatedness == 0) {
+          used = false;
+        }
+      }
+
+      if (used) {
+        const unusedStreams = unusedStreamsPerPeriod[i - periodsMissing];
+        if (unusedStreams) {
+          unusedStreams.delete(match);
+        }
+        // Add the full mimetypes to the stream.
+        if (match.fullMimeTypes) {
+          for (const fullMimeType of match.fullMimeTypes.values()) {
+            outputStream.fullMimeTypes.add(fullMimeType);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Clone a Stream to make an output Stream for combining others across
+   * periods.
+   *
+   * @param {shaka.extern.Stream} stream
+   * @return {shaka.extern.Stream}
+   * @private
+   */
+  static cloneStream_(stream) {
+    const clone = /** @type {shaka.extern.Stream} */(Object.assign({}, stream));
+
+    // These are wiped out now and rebuilt later from the various per-period
+    // streams that match this output.
+    clone.originalId = null;
+    clone.createSegmentIndex = () => Promise.resolve();
+    clone.closeSegmentIndex = () => {};
+
+    // Clone roles array so this output stream can own it.
+    clone.roles = clone.roles.slice();
+    clone.segmentIndex = null;
+    clone.emsgSchemeIdUris = [];
+    clone.keyIds = new Set(stream.keyIds);
+    clone.closedCaptions = stream.closedCaptions ?
+      new Map(stream.closedCaptions) : null;
+    clone.trickModeVideo = null;
+    clone.dependencyStream = null;
+
+    return clone;
+  }
+
+  /**
+   * Clone a StreamDB to make an output stream for combining others across
+   * periods.
+   *
+   * @param {shaka.extern.StreamDB} streamDb
+   * @return {shaka.extern.StreamDB}
+   * @private
+   */
+  static cloneStreamDB_(streamDb) {
+    const clone = /** @type {shaka.extern.StreamDB} */(Object.assign(
+        {}, streamDb));
+
+    // Clone roles array so this output stream can own it.
+    clone.roles = clone.roles.slice();
+    // These are wiped out now and rebuilt later from the various per-period
+    // streams that match this output.
+    clone.keyIds = new Set(streamDb.keyIds);
+    clone.segments = [];
+    clone.variantIds = [];
+    clone.closedCaptions = streamDb.closedCaptions ?
+      new Map(streamDb.closedCaptions) : null;
+
+    return clone;
+  }
+
+  /**
+   * Combine the various fields of the input Stream into the output.
+   *
+   * @param {shaka.extern.Stream} output
+   * @param {shaka.extern.Stream} input
+   * @private
+   */
+  static concatenateStreams_(output, input) {
+    // We keep the original stream's resolution, frame rate,
+    // sample rate, and channel count to ensure that it's properly
+    // matched with similar content in other periods further down
+    // the line.
+
+    // Combine arrays, keeping only the unique elements
+    const combineArrays = (output, input) => {
+      if (!output) {
+        output = [];
+      }
+      for (const item of input) {
+        if (!output.includes(item)) {
+          output.push(item);
+        }
+      }
+      return output;
+    };
+    output.roles = combineArrays(output.roles, input.roles);
+
+    if (input.emsgSchemeIdUris) {
+      output.emsgSchemeIdUris = combineArrays(
+          output.emsgSchemeIdUris, input.emsgSchemeIdUris);
+    }
+
+    for (const keyId of input.keyIds) {
+      output.keyIds.add(keyId);
+    }
+
+    if (output.originalId == null) {
+      output.originalId = input.originalId;
+    } else {
+      const newOriginalId = (input.originalId || '');
+      if (newOriginalId &amp;&amp; !output.originalId.endsWith(newOriginalId)) {
+        output.originalId += ',' + newOriginalId;
+      }
+    }
+
+    const commonDrmInfos = shaka.drm.DrmUtils.getCommonDrmInfos(
+        output.drmInfos, input.drmInfos);
+    if (input.drmInfos.length &amp;&amp; output.drmInfos.length &amp;&amp;
+        !commonDrmInfos.length) {
+      throw new shaka.util.Error(
+          shaka.util.Error.Severity.CRITICAL,
+          shaka.util.Error.Category.MANIFEST,
+          shaka.util.Error.Code.INCONSISTENT_DRM_ACROSS_PERIODS);
+    }
+    output.drmInfos = commonDrmInfos;
+
+    // The output is encrypted if any input was encrypted.
+    output.encrypted = output.encrypted || input.encrypted;
+
+    // Combine the closed captions maps.
+    if (input.closedCaptions) {
+      if (!output.closedCaptions) {
+        output.closedCaptions = new Map();
+      }
+      for (const [key, value] of input.closedCaptions) {
+        output.closedCaptions.set(key, value);
+      }
+    }
+
+    // Prioritize the highest bandwidth
+    if (output.bandwidth &amp;&amp; input.bandwidth) {
+      output.bandwidth = Math.max(output.bandwidth, input.bandwidth);
+    }
+
+    for (const type of shaka.util.PeriodCombiner.OptionalStreamTypes_) {
+      shaka.util.PeriodCombiner.combineOptionalStream_(output, input, type);
+    }
+  }
+
+  /**
+   * Combines an optional stream type (e.g. trickModeVideo or dependencyStream)
+   * across Periods into a single output stream.
+   *
+   * @param {shaka.extern.Stream} output
+   * @param {shaka.extern.Stream} input
+   * @param {string} type
+   * @private
+   */
+  static combineOptionalStream_(output, input, type) {
+    /** @type {?shaka.extern.Stream} */
+    const inputStream = input[type] || null;
+
+    /** @type {?shaka.extern.Stream} */
+    let outputStream = output[type] || null;
+
+    if (inputStream) {
+      if (!outputStream) {
+        // Create a new output stream based on the input stream
+        outputStream = shaka.util.PeriodCombiner.cloneStream_(inputStream);
+        outputStream.matchedStreams = [];
+
+        // Lazily build a combined segment index from all matched streams
+        outputStream.createSegmentIndex = async () => {
+          if (outputStream.segmentIndex) {
+            return;
+          }
+          const segmentIndex = new shaka.media.MetaSegmentIndex();
+          goog.asserts.assert(outputStream.matchedStreams,
+              `${type} matched streams should exist`);
+          for (const stream of outputStream.matchedStreams) {
+            if (!stream.segmentIndex) {
+              // eslint-disable-next-line no-await-in-loop
+              await stream.createSegmentIndex();
+            }
+            goog.asserts.assert(stream.segmentIndex,
+                `${type} segment index should exist`);
+            segmentIndex.appendSegmentIndex(stream.segmentIndex);
+          }
+          outputStream.segmentIndex = segmentIndex;
+        };
+
+        output[type] = outputStream;
+      }
+
+      // Append the input stream into the output stream
+      outputStream.matchedStreams.push(inputStream);
+      shaka.util.PeriodCombiner.concatenateStreams_(
+          outputStream, inputStream);
+    } else if (outputStream) {
+      // No input stream of this type in the current Period.
+      // Fallback to the main input stream to keep continuity.
+      outputStream.matchedStreams.push(input);
+      shaka.util.PeriodCombiner.concatenateStreams_(
+          outputStream, input);
+    }
+  }
+
+  /**
+   * Combine the various fields of the input StreamDB into the output.
+   *
+   * @param {shaka.extern.StreamDB} output
+   * @param {shaka.extern.StreamDB} input
+   * @private
+   */
+  static concatenateStreamDBs_(output, input) {
+    // Combine arrays, keeping only the unique elements
+    const combineArrays = (output, input) => {
+      if (!output) {
+        output = [];
+      }
+      for (const item of input) {
+        if (!output.includes(item)) {
+          output.push(item);
+        }
+      }
+      return output;
+    };
+    output.roles = combineArrays(output.roles, input.roles);
+
+    for (const keyId of input.keyIds) {
+      output.keyIds.add(keyId);
+    }
+
+    // The output is encrypted if any input was encrypted.
+    output.encrypted = output.encrypted &amp;&amp; input.encrypted;
+
+    // Concatenate segments without de-duping.
+    output.segments.push(...input.segments);
+
+    // Combine the closed captions maps.
+    if (input.closedCaptions) {
+      if (!output.closedCaptions) {
+        output.closedCaptions = new Map();
+      }
+      for (const [key, value] of input.closedCaptions) {
+        output.closedCaptions.set(key, value);
+      }
+    }
+  }
+
+  /**
+   * Finds streams in all periods which match the output stream.
+   *
+   * @param {!Array&lt;!Map&lt;string, T>>} streamsPerPeriod
+   * @param {T} outputStream
+   * @param {boolean=} shouldAppend
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  findMatchesInAllPeriods_(streamsPerPeriod, outputStream,
+      shouldAppend = false) {
+    const matches = shouldAppend ? outputStream.matchedStreams : [];
+    for (const streams of streamsPerPeriod) {
+      const match = this.findBestMatchInPeriod_(streams, outputStream);
+      if (!match) {
+        return;
+      }
+      matches.push(match);
+    }
+    outputStream.matchedStreams = matches;
+  }
+
+  /**
+   * Find the best match for the output stream.
+   *
+   * @param {!Map&lt;string, T>} streams
+   * @param {T} outputStream
+   * @return {?T}  Returns null if no match can be found.
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  findBestMatchInPeriod_(streams, outputStream) {
+    const getKey = {
+      'audio': shaka.util.PeriodCombiner.generateAudioKey_,
+      'video': shaka.util.PeriodCombiner.generateVideoKey_,
+      'text': shaka.util.PeriodCombiner.generateTextKey_,
+      'image': shaka.util.PeriodCombiner.generateImageKey_,
+    }[outputStream.type];
+
+    let best = null;
+    const key = getKey(outputStream);
+    if (streams.has(key)) {
+      // We've found exact match by hashing.
+      best = streams.get(key);
+    } else {
+      // We haven't found exact match, try to find the best one via
+      // linear search.
+      const areCompatible = {
+        'audio': (os, s) => this.areAVStreamsCompatible_(os, s),
+        'video': (os, s) => this.areAVStreamsCompatible_(os, s),
+        'text': shaka.util.PeriodCombiner.areTextStreamsCompatible_,
+        'image': shaka.util.PeriodCombiner.areImageStreamsCompatible_,
+      }[outputStream.type];
+      const isBetterMatch = {
+        'audio': shaka.util.PeriodCombiner.isAudioStreamBetterMatch_,
+        'video': shaka.util.PeriodCombiner.isVideoStreamBetterMatch_,
+        'text': shaka.util.PeriodCombiner.isTextStreamBetterMatch_,
+        'image': shaka.util.PeriodCombiner.isImageStreamBetterMatch_,
+      }[outputStream.type];
+
+      for (const stream of streams.values()) {
+        if (!areCompatible(outputStream, stream)) {
+          continue;
+        }
+
+        if (outputStream.fastSwitching != stream.fastSwitching) {
+          continue;
+        }
+
+        if (!best || isBetterMatch(outputStream, best, stream)) {
+          best = stream;
+        }
+      }
+    }
+
+    // Remove just found stream if configured to, so possible future linear
+    // searches can be faster.
+    if (this.useStreamOnce_ &amp;&amp; !shaka.util.PeriodCombiner.isDummy_(best)) {
+      streams.delete(getKey(best));
+    }
+
+    return best;
+  }
+
+  /**
+   * @param {T} a
+   * @param {T} b
+   * @return {boolean}
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static areAVStreamsExactMatch_(a, b) {
+    return a.mimeType === b.mimeType &amp;&amp; a.codecs === b.codecs;
+  }
+
+  /**
+   * @param {T} a
+   * @param {T} b
+   * @return {boolean}
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static areAVStreamsCodecsCompatible_(a, b) {
+    if (a.mimeType != b.mimeType) {
+      return false;
+    }
+    return shaka.util.PeriodCombiner.getCodec_(a.codecs) ===
+        shaka.util.PeriodCombiner.getCodec_(b.codecs);
+  }
+
+  /**
+   * @param {boolean} useOnce if true, stream will be used only once in period
+   *   flattening algorithm.
+   * @export
+   */
+  setUseStreamOnce(useOnce) {
+    this.useStreamOnce_ = useOnce;
+  }
+
+  /**
+   * @param {T} outputStream An audio or video output stream
+   * @param {T} candidate A candidate stream to be combined with the output
+   * @return {boolean} True if the candidate could be combined with the
+   *   output stream
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  areAVStreamsCompatible_(outputStream, candidate) {
+    // This field is only available on Stream, not StreamDB.
+    if (outputStream.drmInfos) {
+      // Check for compatible DRM systems.  Note that clear streams are
+      // implicitly compatible with any DRM and with each other.
+      if (!shaka.drm.DrmUtils.areDrmCompatible(outputStream.drmInfos,
+          candidate.drmInfos)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * @param {T} outputStream A text output stream
+   * @param {T} candidate A candidate stream to be combined with the output
+   * @return {boolean} True if the candidate could be combined with the
+   *   output
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static areTextStreamsCompatible_(outputStream, candidate) {
+    const LanguageUtils = shaka.util.LanguageUtils;
+
+    // For text, we don't care about MIME type or codec.  We can always switch
+    // between text types.
+
+    // If the candidate is a dummy, then it is compatible, and we could use it
+    // if nothing else matches.
+    if (!candidate.language) {
+      return true;
+    }
+
+    // Forced subtitles should be treated as unique streams
+    if (outputStream.forced !== candidate.forced) {
+      return false;
+    }
+
+    const languageRelatedness = LanguageUtils.relatedness(
+        outputStream.language, candidate.language);
+
+    // We will strictly avoid combining text across languages or "kinds"
+    // (caption vs subtitle).
+    if (languageRelatedness == 0 ||
+        candidate.kind != outputStream.kind) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * @param {T} outputStream A image output stream
+   * @param {T} candidate A candidate stream to be combined with the output
+   * @return {boolean} True if the candidate could be combined with the
+   *   output
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static areImageStreamsCompatible_(outputStream, candidate) {
+    // For image, we don't care about MIME type.  We can always switch
+    // between image types.
+
+    return true;
+  }
+
+  /**
+   * @param {T} outputStream An audio output stream
+   * @param {T} best The best match so far for this period
+   * @param {T} candidate A candidate stream which might be better
+   * @return {boolean} True if the candidate is a better match
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static isAudioStreamBetterMatch_(outputStream, best, candidate) {
+    const LanguageUtils = shaka.util.LanguageUtils;
+    const {BETTER, EQUAL, WORSE} = shaka.util.PeriodCombiner.BetterOrWorse;
+
+    const codecsBetterOrWorse = shaka.util.PeriodCombiner.compareCodecs_(
+        outputStream, best, candidate);
+    if (codecsBetterOrWorse === BETTER) {
+      return true;
+    }
+    if (codecsBetterOrWorse === WORSE) {
+      return false;
+    }
+
+    // The most important thing is language.  In some cases, we will accept a
+    // different language across periods when we must.
+    const bestRelatedness = LanguageUtils.relatedness(
+        outputStream.language, best.language);
+    const candidateRelatedness = LanguageUtils.relatedness(
+        outputStream.language, candidate.language);
+
+    if (candidateRelatedness > bestRelatedness) {
+      return true;
+    }
+    if (candidateRelatedness &lt; bestRelatedness) {
+      return false;
+    }
+
+    // If language-based differences haven't decided this, look at labels.
+    // If available options differ, look does any matches with output stream.
+    if (best.label !== candidate.label) {
+      if (outputStream.label === best.label) {
+        return false;
+      }
+      if (outputStream.label === candidate.label) {
+        return true;
+      }
+    }
+
+    // If label-based differences haven't decided this, look at roles.  If
+    // the candidate has more roles in common with the output, upgrade to the
+    // candidate.
+    if (outputStream.roles.length) {
+      const bestRoleMatches =
+          best.roles.filter((role) => outputStream.roles.includes(role));
+      const candidateRoleMatches =
+          candidate.roles.filter((role) => outputStream.roles.includes(role));
+      if (candidateRoleMatches.length > bestRoleMatches.length) {
+        return true;
+      } else if (candidateRoleMatches.length &lt; bestRoleMatches.length) {
+        return false;
+      } else if (candidate.roles.length !== best.roles.length) {
+        // Both streams have the same role overlap with the outputStream
+        // If this is the case, choose the stream with the fewer roles overall.
+        // Streams that match best together tend to be streams with the same
+        // roles, e g stream1 with roles [r1, r2] is likely a better match
+        // for stream2 with roles [r1, r2] vs stream3 with roles
+        // [r1, r2, r3, r4].
+        // If we match stream1 with stream3 due to the same role overlap,
+        // stream2 is likely to be left unmatched and error out later.
+        // See https://github.com/shaka-project/shaka-player/issues/2542 for
+        // more details.
+        return candidate.roles.length &lt; best.roles.length;
+      }
+    } else if (!candidate.roles.length &amp;&amp; best.roles.length) {
+      // If outputStream has no roles, and only one of the streams has no roles,
+      // choose the one with no roles.
+      return true;
+    } else if (candidate.roles.length &amp;&amp; !best.roles.length) {
+      return false;
+    }
+
+    // If the language doesn't match, but the candidate is the "primary"
+    // language, then that should be preferred as a fallback.
+    if (!best.primary &amp;&amp; candidate.primary) {
+      return true;
+    }
+    if (best.primary &amp;&amp; !candidate.primary) {
+      return false;
+    }
+
+    // If language-based and role-based features are equivalent, take the audio
+    // with the closes channel count to the output.
+    const channelsBetterOrWorse =
+        shaka.util.PeriodCombiner.compareClosestPreferLower(
+            outputStream.channelsCount,
+            best.channelsCount,
+            candidate.channelsCount);
+    if (channelsBetterOrWorse == BETTER) {
+      return true;
+    } else if (channelsBetterOrWorse == WORSE) {
+      return false;
+    }
+
+    // If channels are equal, take the closest sample rate to the output.
+    const sampleRateBetterOrWorse =
+        shaka.util.PeriodCombiner.compareClosestPreferLower(
+            outputStream.audioSamplingRate,
+            best.audioSamplingRate,
+            candidate.audioSamplingRate);
+    if (sampleRateBetterOrWorse == BETTER) {
+      return true;
+    } else if (sampleRateBetterOrWorse == WORSE) {
+      return false;
+    }
+
+    if (outputStream.bandwidth) {
+      // Take the audio with the closest bandwidth to the output.
+      const bandwidthBetterOrWorse =
+          shaka.util.PeriodCombiner.compareClosestPreferMinimalAbsDiff_(
+              outputStream.bandwidth,
+              best.bandwidth,
+              candidate.bandwidth);
+      if (bandwidthBetterOrWorse == BETTER) {
+        return true;
+      } else if (bandwidthBetterOrWorse == WORSE) {
+        return false;
+      }
+    }
+
+    // If the result of each comparison was inconclusive, default to false.
+    return false;
+  }
+
+  /**
+   * @param {T} outputStream A video output stream
+   * @param {T} best The best match so far for this period
+   * @param {T} candidate A candidate stream which might be better
+   * @return {boolean} True if the candidate is a better match
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static isVideoStreamBetterMatch_(outputStream, best, candidate) {
+    const {BETTER, EQUAL, WORSE} = shaka.util.PeriodCombiner.BetterOrWorse;
+
+    const codecsBetterOrWorse = shaka.util.PeriodCombiner.compareCodecs_(
+        outputStream, best, candidate);
+    if (codecsBetterOrWorse === BETTER) {
+      return true;
+    }
+    if (codecsBetterOrWorse === WORSE) {
+      return false;
+    }
+
+    // Take the video with the closest resolution to the output.
+    const resolutionBetterOrWorse =
+        shaka.util.PeriodCombiner.compareClosestPreferLower(
+            outputStream.width * outputStream.height,
+            best.width * best.height,
+            candidate.width * candidate.height);
+    if (resolutionBetterOrWorse == BETTER) {
+      return true;
+    } else if (resolutionBetterOrWorse == WORSE) {
+      return false;
+    }
+
+    // We may not know the frame rate for the content, in which case this gets
+    // skipped.
+    if (outputStream.frameRate) {
+      // Take the video with the closest frame rate to the output.
+      const frameRateBetterOrWorse =
+          shaka.util.PeriodCombiner.compareClosestPreferLower(
+              outputStream.frameRate,
+              best.frameRate,
+              candidate.frameRate);
+      if (frameRateBetterOrWorse == BETTER) {
+        return true;
+      } else if (frameRateBetterOrWorse == WORSE) {
+        return false;
+      }
+    }
+
+
+    if (outputStream.bandwidth) {
+      // Take the video with the closest bandwidth to the output.
+      const bandwidthBetterOrWorse =
+          shaka.util.PeriodCombiner.compareClosestPreferMinimalAbsDiff_(
+              outputStream.bandwidth,
+              best.bandwidth,
+              candidate.bandwidth);
+      if (bandwidthBetterOrWorse == BETTER) {
+        return true;
+      } else if (bandwidthBetterOrWorse == WORSE) {
+        return false;
+      }
+    }
+
+    // If the result of each comparison was inconclusive, default to false.
+    return false;
+  }
+
+  /**
+   * @param {T} outputStream A text output stream
+   * @param {T} best The best match so far for this period
+   * @param {T} candidate A candidate stream which might be better
+   * @return {boolean} True if the candidate is a better match
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static isTextStreamBetterMatch_(outputStream, best, candidate) {
+    const LanguageUtils = shaka.util.LanguageUtils;
+
+    // The most important thing is language.  In some cases, we will accept a
+    // different language across periods when we must.
+    const bestRelatedness = LanguageUtils.relatedness(
+        outputStream.language, best.language);
+    const candidateRelatedness = LanguageUtils.relatedness(
+        outputStream.language, candidate.language);
+
+    if (candidateRelatedness > bestRelatedness) {
+      return true;
+    }
+    if (candidateRelatedness &lt; bestRelatedness) {
+      return false;
+    }
+
+    // If the language doesn't match, but the candidate is the "primary"
+    // language, then that should be preferred as a fallback.
+    if (!best.primary &amp;&amp; candidate.primary) {
+      return true;
+    }
+    if (best.primary &amp;&amp; !candidate.primary) {
+      return false;
+    }
+
+    // If language-based differences haven't decided this, look at labels.
+    // If available options differ, look does any matches with output stream.
+    if (best.label !== candidate.label) {
+      if (outputStream.label === best.label) {
+        return false;
+      }
+      if (outputStream.label === candidate.label) {
+        return true;
+      }
+    }
+
+    // If the candidate has more roles in common with the output, upgrade to the
+    // candidate.
+    if (outputStream.roles.length) {
+      const bestRoleMatches =
+          best.roles.filter((role) => outputStream.roles.includes(role));
+      const candidateRoleMatches =
+          candidate.roles.filter((role) => outputStream.roles.includes(role));
+      if (candidateRoleMatches.length > bestRoleMatches.length) {
+        return true;
+      }
+      if (candidateRoleMatches.length &lt; bestRoleMatches.length) {
+        return false;
+      }
+    } else if (!candidate.roles.length &amp;&amp; best.roles.length) {
+      // If outputStream has no roles, and only one of the streams has no roles,
+      // choose the one with no roles.
+      return true;
+    } else if (candidate.roles.length &amp;&amp; !best.roles.length) {
+      return false;
+    }
+
+    // If the candidate has the same MIME type and codec, upgrade to the
+    // candidate.  It's not required that text streams use the same format
+    // across periods, but it's a helpful signal.  Some content in our demo app
+    // contains the same languages repeated with two different text formats in
+    // each period.  This condition ensures that all text streams are used.
+    // Otherwise, we wind up with some one stream of each language left unused,
+    // triggering a failure.
+    if (candidate.mimeType == outputStream.mimeType &amp;&amp;
+        candidate.codecs == outputStream.codecs &amp;&amp;
+        (best.mimeType != outputStream.mimeType ||
+         best.codecs != outputStream.codecs)) {
+      return true;
+    }
+
+    // If the result of each comparison was inconclusive, default to false.
+    return false;
+  }
+
+  /**
+   * @param {T} outputStream A image output stream
+   * @param {T} best The best match so far for this period
+   * @param {T} candidate A candidate stream which might be better
+   * @return {boolean} True if the candidate is a better match
+   *
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   *
+   * @private
+   */
+  static isImageStreamBetterMatch_(outputStream, best, candidate) {
+    const {BETTER, EQUAL, WORSE} = shaka.util.PeriodCombiner.BetterOrWorse;
+
+    // Take the image with the closest resolution to the output.
+    const resolutionBetterOrWorse =
+        shaka.util.PeriodCombiner.compareClosestPreferLower(
+            outputStream.width * outputStream.height,
+            best.width * best.height,
+            candidate.width * candidate.height);
+    if (resolutionBetterOrWorse == BETTER) {
+      return true;
+    } else if (resolutionBetterOrWorse == WORSE) {
+      return false;
+    }
+
+    // If the result of each comparison was inconclusive, default to false.
+    return false;
+  }
+
+  /**
+   * Create a dummy StreamDB to fill in periods that are missing a certain type,
+   * to avoid failing the general flattening algorithm.  This won't be used for
+   * audio or video, since those are strictly required in all periods if they
+   * exist in any period.
+   *
+   * @param {shaka.util.ManifestParserUtils.ContentType} type
+   * @return {shaka.extern.StreamDB}
+   * @private
+   */
+  static dummyStreamDB_(type) {
+    return {
+      id: 0,
+      originalId: '',
+      groupId: null,
+      primary: false,
+      type,
+      mimeType: '',
+      codecs: '',
+      supplementalCodecs: '',
+      language: '',
+      originalLanguage: null,
+      label: null,
+      width: null,
+      height: null,
+      encrypted: false,
+      keyIds: new Set(),
+      segments: [],
+      variantIds: [],
+      roles: [],
+      forced: false,
+      channelsCount: null,
+      audioSamplingRate: null,
+      spatialAudio: false,
+      closedCaptions: null,
+      external: false,
+      fastSwitching: false,
+      isAudioMuxedInVideo: false,
+      baseOriginalId: null,
+    };
+  }
+
+  /**
+   * Create a dummy Stream to fill in periods that are missing a certain type,
+   * to avoid failing the general flattening algorithm.  This won't be used for
+   * audio or video, since those are strictly required in all periods if they
+   * exist in any period.
+   *
+   * @param {shaka.util.ManifestParserUtils.ContentType} type
+   * @return {shaka.extern.Stream}
+   * @private
+   */
+  static dummyStream_(type) {
+    return {
+      id: 0,
+      originalId: '',
+      groupId: null,
+      createSegmentIndex: () => Promise.resolve(),
+      segmentIndex: new shaka.media.SegmentIndex([]),
+      mimeType: '',
+      codecs: '',
+      supplementalCodecs: '',
+      encrypted: false,
+      drmInfos: [],
+      keyIds: new Set(),
+      language: '',
+      originalLanguage: null,
+      label: null,
+      type,
+      primary: false,
+      trickModeVideo: null,
+      dependencyStream: null,
+      emsgSchemeIdUris: null,
+      roles: [],
+      forced: false,
+      channelsCount: null,
+      audioSamplingRate: null,
+      spatialAudio: false,
+      closedCaptions: null,
+      accessibilityPurpose: null,
+      external: false,
+      fastSwitching: false,
+      fullMimeTypes: new Set(),
+      isAudioMuxedInVideo: false,
+      baseOriginalId: null,
+    };
+  }
+
+  /**
+   * Compare the best value so far with the candidate value and the output
+   * value.  Decide if the candidate is better, equal, or worse than the best
+   * so far.  Any value less than or equal to the output is preferred over a
+   * larger value, and closer to the output is better than farther.
+   *
+   * This provides us a generic way to choose things that should match as
+   * closely as possible, like resolution, frame rate, audio channels, or
+   * sample rate.  If we have to go higher to make a match, we will.  But if
+   * the user selects 480p, for example, we don't want to surprise them with
+   * 720p and waste bandwidth if there's another choice available to us.
+   *
+   * @param {number} outputValue
+   * @param {number} bestValue
+   * @param {number} candidateValue
+   * @return {shaka.util.PeriodCombiner.BetterOrWorse}
+   */
+  static compareClosestPreferLower(outputValue, bestValue, candidateValue) {
+    const {BETTER, EQUAL, WORSE} = shaka.util.PeriodCombiner.BetterOrWorse;
+
+    // If one is the exact match for the output value, and the other isn't,
+    // prefer the one that is the exact match.
+    if (bestValue == outputValue &amp;&amp; outputValue != candidateValue) {
+      return WORSE;
+    } else if (candidateValue == outputValue &amp;&amp; outputValue != bestValue) {
+      return BETTER;
+    }
+
+    if (bestValue > outputValue) {
+      if (candidateValue &lt;= outputValue) {
+        // Any smaller-or-equal-to-output value is preferable to a
+        // bigger-than-output value.
+        return BETTER;
+      }
+
+      // Both "best" and "candidate" are greater than the output.  Take
+      // whichever is closer.
+      if (candidateValue - outputValue &lt; bestValue - outputValue) {
+        return BETTER;
+      } else if (candidateValue - outputValue > bestValue - outputValue) {
+        return WORSE;
+      }
+    } else {
+      // The "best" so far is less than or equal to the output.  If the
+      // candidate is bigger than the output, we don't want it.
+      if (candidateValue > outputValue) {
+        return WORSE;
+      }
+
+      // Both "best" and "candidate" are less than or equal to the output.
+      // Take whichever is closer.
+      if (outputValue - candidateValue &lt; outputValue - bestValue) {
+        return BETTER;
+      } else if (outputValue - candidateValue > outputValue - bestValue) {
+        return WORSE;
+      }
+    }
+
+    return EQUAL;
+  }
+
+  /**
+   * @param {T} outputValue
+   * @param {T} bestValue
+   * @param {T} candidateValue
+   * @return {shaka.util.PeriodCombiner.BetterOrWorse}
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   * @private
+   */
+  static compareCodecs_(outputValue, bestValue, candidateValue) {
+    const {BETTER, EQUAL, WORSE} = shaka.util.PeriodCombiner.BetterOrWorse;
+    // An exact match is better than a non-exact match.
+    const bestIsExact = shaka.util.PeriodCombiner.areAVStreamsExactMatch_(
+        outputValue, bestValue);
+    const candidateIsExact = shaka.util.PeriodCombiner.areAVStreamsExactMatch_(
+        outputValue, candidateValue);
+    if (bestIsExact &amp;&amp; !candidateIsExact) {
+      return WORSE;
+    }
+    if (!bestIsExact &amp;&amp; candidateIsExact) {
+      return BETTER;
+    }
+
+    // A compatible match is better than a non-compatible match.
+    const bestIsCompatible =
+        shaka.util.PeriodCombiner.areAVStreamsCodecsCompatible_(
+            outputValue, bestValue);
+    const candidateIsCompatible =
+        shaka.util.PeriodCombiner.areAVStreamsCodecsCompatible_(
+            outputValue, candidateValue);
+    if (bestIsCompatible &amp;&amp; !candidateIsCompatible) {
+      return WORSE;
+    }
+    if (!bestIsCompatible &amp;&amp; candidateIsCompatible) {
+      return BETTER;
+    }
+
+    return EQUAL;
+  }
+
+  /**
+   * @param {number} outputValue
+   * @param {number} bestValue
+   * @param {number} candidateValue
+   * @return {shaka.util.PeriodCombiner.BetterOrWorse}
+   * @private
+   */
+  static compareClosestPreferMinimalAbsDiff_(
+      outputValue, bestValue, candidateValue) {
+    const {BETTER, EQUAL, WORSE} = shaka.util.PeriodCombiner.BetterOrWorse;
+
+    const absDiffBest = Math.abs(outputValue - bestValue);
+    const absDiffCandidate = Math.abs(outputValue - candidateValue);
+    if (absDiffCandidate &lt; absDiffBest) {
+      return BETTER;
+    } else if (absDiffBest &lt; absDiffCandidate) {
+      return WORSE;
+    }
+
+    return EQUAL;
+  }
+
+  /**
+   * @param {T} stream
+   * @return {boolean}
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   * @private
+   */
+  static isDummy_(stream) {
+    const ContentType = shaka.util.ManifestParserUtils.ContentType;
+    switch (stream.type) {
+      case ContentType.TEXT:
+        return !stream.language;
+      case ContentType.IMAGE:
+        return !stream.tilesLayout;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * @param {T} v
+   * @return {string}
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   * @private
+   */
+  static generateVideoKey_(v) {
+    return shaka.util.PeriodCombiner.generateKey_([
+      v.fastSwitching,
+      v.width,
+      v.frameRate,
+      v.codecs,
+      v.mimeType,
+      v.label,
+      v.roles,
+      v.closedCaptions ? Array.from(v.closedCaptions.entries()) : null,
+      v.bandwidth,
+      v.dependencyStream?.baseOriginalId ?? v.baseOriginalId,
+      Array.from(v.keyIds),
+    ]);
+  }
+
+  /**
+   * @param {T} a
+   * @return {string}
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   * @private
+   */
+  static generateAudioKey_(a) {
+    return shaka.util.PeriodCombiner.generateKey_([
+      a.fastSwitching,
+      a.channelsCount,
+      a.language,
+      a.bandwidth,
+      a.label,
+      a.codecs,
+      a.mimeType,
+      a.roles,
+      a.audioSamplingRate,
+      a.primary,
+      a.dependencyStream?.baseOriginalId ?? a.baseOriginalId,
+      Array.from(a.keyIds),
+    ]);
+  }
+
+  /**
+   * @param {T} t
+   * @return {string}
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   * @private
+   */
+  static generateTextKey_(t) {
+    return shaka.util.PeriodCombiner.generateKey_([
+      t.language,
+      t.label,
+      t.codecs,
+      t.mimeType,
+      t.bandwidth,
+      t.roles,
+    ]);
+  }
+
+  /**
+   * @param {T} i
+   * @return {string}
+   * @template T
+   * Accepts either a StreamDB or Stream type.
+   * @private
+   */
+  static generateImageKey_(i) {
+    return shaka.util.PeriodCombiner.generateKey_([
+      i.width,
+      i.codecs,
+      i.mimeType,
+    ]);
+  }
+
+  /**
+   * @param {!Array&lt;*>} values
+   * @return {string}
+   * @private
+   */
+  static generateKey_(values) {
+    return JSON.stringify(values);
+  }
+
+  /**
+   * @param {string} codecs
+   * @return {string}
+   * @private
+   */
+  static getCodec_(codecs) {
+    return shaka.util.PeriodCombiner.memoizedCodecs.getOrInsertComputed(
+        codecs, () => shaka.util.MimeUtils.getNormalizedCodec(codecs));
+  }
+
+  /**
+   * Checks if the given stream is actively used by any of output streams.
+   * @param {T} stream stream to check
+   * @param {T} parentStream output stream to which the stream belongs
+   * @param {!Array&lt;T>} outputStreams
+   * @return {boolean}
+   * @template T
+   * @private
+   * Accepts either a StreamDB or Stream type.
+   */
+  static isStreamActivelyUsed_(stream, parentStream, outputStreams) {
+    for (const outputStream of outputStreams) {
+      if (outputStream !== parentStream &amp;&amp;
+          outputStream.segmentIndex &amp;&amp;
+          outputStream.matchedStreams &amp;&amp;
+          outputStream.matchedStreams.includes(stream)) {
+        shaka.log.v2(`Stream ${stream.id} is already used in output stream ` +
+            `${outputStream.id}, cannot close it now.`);
+        return true;
+      }
+    }
+    shaka.log.v2(`Stream ${stream.id} not used anywhere else besides ` +
+        `${parentStream.id}, good to close.`);
+    return false;
+  }
+
+  /**
+   * @param {!shaka.extern.Stream} stream
+   * @return {!Array&lt;shaka.extern.Stream>}
+   */
+  static getOptionalStreams(stream) {
+    const optionalStreams = [];
+    for (const type of shaka.util.PeriodCombiner.OptionalStreamTypes_) {
+      const optional = stream[type];
+      if (optional) {
+        optionalStreams.push(optional);
+      }
+    }
+    return optionalStreams;
+  }
+};
+
+/**
+ * @private {!Array&lt;string>}
+ */
+shaka.util.PeriodCombiner.OptionalStreamTypes_ = [
+  'trickModeVideo',
+  'dependencyStream',
+];
+
+/**
+ * @enum {number}
+ */
+shaka.util.PeriodCombiner.BetterOrWorse = {
+  BETTER: 1,
+  EQUAL: 0,
+  WORSE: -1,
+};
+
+/**
+ * @private {Map&lt;string, string>}
+ */
+shaka.util.PeriodCombiner.memoizedCodecs = new Map();
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <div id="showWidget">Show:
+        <select id="show" onchange="onShowChange()">
+            <option value="exported">exported</option>
+            <option value="public">public</option>
+            <option value="private">everything</option>
+        </select>
+    </div>
+
+    <h2><a href="index.html">Home</a></h2><h3>Tutorials</h3><ul><li class=""><a href="tutorial-welcome.html">Welcome to Shaka Player</a></li><li class=""><a href="tutorial-basic-usage.html">Basic Usage</a></li><li class=""><a href="tutorial-debugging.html">Debugging</a></li><li class=""><a href="tutorial-config.html">Configuration</a></li><li class=""><a href="tutorial-network-and-buffering-config.html">Network and Buffering Configuration</a></li><li class=""><a href="tutorial-drm-config.html">DRM Configuration</a></li><li class=""><a href="tutorial-license-server-auth.html">License Server Authentication</a></li><li class=""><a href="tutorial-license-wrapping.html">License Wrapping</a></li><li class=""><a href="tutorial-preload.html">Preloading</a></li><li class=""><a href="tutorial-ui.html">UI Library</a></li><li class=""><a href="tutorial-ui-customization.html">Configuring the UI</a></li><li class=""><a href="tutorial-text-displayer.html">Configuring text displayer</a></li><li class=""><a href="tutorial-screen-resolution-detection.html">Screen resolution detection</a></li><li class=""><a href="tutorial-errors.html">Error Handling</a></li><li class=""><a href="tutorial-a11y.html">Creating accessible buttons</a></li><li class=""><a href="tutorial-ad_monetization.html">Monetization with Ads</a></li><li class=""><a href="tutorial-plugins.html">Plugins and Customizing the Build</a></li><li class=""><a href="tutorial-manifest-parser.html">Manifest Parser Plugins</a></li><li class=""><a href="tutorial-architecture.html">Architecture Diagrams</a></li><li class=""><a href="tutorial-service-worker.html">Service Worker Caching</a></li><li class=""><a href="tutorial-offline.html">Offline Storage and Playback</a></li><li class=""><a href="tutorial-widevine-service-certs.html">Widevine Service Certificates</a></li><li class=""><a href="tutorial-fairplay.html">FairPlay support</a></li><li class=""><a href="tutorial-application-level-redirects.html">Application-Level Redirects</a></li><li class=""><a href="tutorial-blob-url.html">Blob URL</a></li><li class=""><a href="tutorial-selenium-grid-config.html">Selenium Grid Config</a></li><li class=""><a href="tutorial-faq.html">Frequently Asked Questions</a></li><li class=""><a href="tutorial-upgrade.html">Upgrade Guide</a></li><li class=""><a href="tutorial-upgrade-manifest.html">ManifestParser Upgrade Guide</a></li><li class=""><a href="tutorial-lcevc.html">LCEVC Quick Start</a></li><li class=""><a href="tutorial-accessibility.html">Accessibility</a></li></ul><h3>Classes</h3><ul><li class="access-public"><a href="goog.asserts.html">goog.asserts</a></li><li class="access-public"><a href="shaka.html">shaka</a></li><li class="access-public"><a href="shaka.abr.Ewma.html">shaka.abr.Ewma</a></li><li class="access-public"><a href="shaka.abr.EwmaBandwidthEstimator.html">shaka.abr.EwmaBandwidthEstimator</a></li><li class="access-export"><a href="shaka.abr.SimpleAbrManager.html">shaka.abr.SimpleAbrManager</a></li><li class="access-export"><a href="shaka.ads.AbstractAd.html">shaka.ads.AbstractAd</a></li><li class="access-export"><a href="shaka.ads.AdManager.html">shaka.ads.AdManager</a></li><li class="access-public"><a href="shaka.ads.AdsStats.html">shaka.ads.AdsStats</a></li><li class="access-export"><a href="shaka.ads.ClientSideAd.html">shaka.ads.ClientSideAd</a></li><li class="access-public"><a href="shaka.ads.ClientSideAdManager.html">shaka.ads.ClientSideAdManager</a></li><li class="access-export"><a href="shaka.ads.InterstitialAd.html">shaka.ads.InterstitialAd</a></li><li class="access-public"><a href="shaka.ads.InterstitialAdManager.html">shaka.ads.InterstitialAdManager</a></li><li class="access-public"><a href="shaka.ads.InterstitialPreloadTask.html">shaka.ads.InterstitialPreloadTask</a></li><li class="access-export"><a href="shaka.ads.InterstitialStaticAd.html">shaka.ads.InterstitialStaticAd</a></li><li class="access-export"><a href="shaka.ads.MediaTailorAd.html">shaka.ads.MediaTailorAd</a></li><li class="access-public"><a href="shaka.ads.MediaTailorAdManager.html">shaka.ads.MediaTailorAdManager</a></li><li class="access-export"><a href="shaka.ads.ServerSideAd.html">shaka.ads.ServerSideAd</a></li><li class="access-public"><a href="shaka.ads.ServerSideAdManager.html">shaka.ads.ServerSideAdManager</a></li><li class="access-export"><a href="shaka.ads.SvtaAd.html">shaka.ads.SvtaAd</a></li><li class="access-public"><a href="shaka.ads.SvtaAdManager.html">shaka.ads.SvtaAdManager</a></li><li class="access-export"><a href="shaka.ads.Utils.html">shaka.ads.Utils</a></li><li class="access-export"><a href="shaka.cast.CastProxy.html">shaka.cast.CastProxy</a></li><li class="access-export"><a href="shaka.cast.CastReceiver.html">shaka.cast.CastReceiver</a></li><li class="access-public"><a href="shaka.cast.CastSender.html">shaka.cast.CastSender</a></li><li class="access-public"><a href="shaka.cast.CastUtils.html">shaka.cast.CastUtils</a></li><li class="access-public"><a href="shaka.cea.Cea608DataChannel.html">shaka.cea.Cea608DataChannel</a></li><li class="access-public"><a href="shaka.cea.Cea608Memory.html">shaka.cea.Cea608Memory</a></li><li class="access-public"><a href="shaka.cea.Cea708Service.html">shaka.cea.Cea708Service</a></li><li class="access-public"><a href="shaka.cea.Cea708Window.html">shaka.cea.Cea708Window</a></li><li class="access-export"><a href="shaka.cea.CeaDecoder.html">shaka.cea.CeaDecoder</a></li><li class="access-public"><a href="shaka.cea.CeaUtils-shaka.cea.CeaUtils.StyledChar.html">shaka.cea.CeaUtils~shaka.cea.CeaUtils.StyledChar</a></li><li class="access-public"><a href="shaka.cea.DtvccPacketBuilder.html">shaka.cea.DtvccPacketBuilder</a></li><li class="access-public"><a href="shaka.cea.DummyCaptionDecoder.html">shaka.cea.DummyCaptionDecoder</a></li><li class="access-public"><a href="shaka.cea.DummyCeaParser.html">shaka.cea.DummyCeaParser</a></li><li class="access-export"><a href="shaka.cea.Mp4CeaParser.html">shaka.cea.Mp4CeaParser</a></li><li class="access-public"><a href="shaka.cea.SeiProcessor.html">shaka.cea.SeiProcessor</a></li><li class="access-export"><a href="shaka.cea.TsCeaParser.html">shaka.cea.TsCeaParser</a></li><li class="access-public"><a href="shaka.cea-shaka.cea.DtvccPacket.html">shaka.cea~shaka.cea.DtvccPacket</a></li><li class="access-public"><a href="shaka.dash.ContentProtection.html">shaka.dash.ContentProtection</a></li><li class="access-export"><a href="shaka.dash.DashJsonParser.html">shaka.dash.DashJsonParser</a></li><li class="access-export"><a href="shaka.dash.DashParser.html">shaka.dash.DashParser</a></li><li class="access-public"><a href="shaka.dash.EbmlParser.html">shaka.dash.EbmlParser</a></li><li class="access-public"><a href="shaka.dash.JsonUtils.html">shaka.dash.JsonUtils</a></li><li class="access-public"><a href="shaka.dash.MpdUtils.html">shaka.dash.MpdUtils</a></li><li class="access-public"><a href="shaka.dash.SegmentBase.html">shaka.dash.SegmentBase</a></li><li class="access-public"><a href="shaka.dash.SegmentList.html">shaka.dash.SegmentList</a></li><li class="access-public"><a href="shaka.dash.SegmentTemplate.html">shaka.dash.SegmentTemplate</a></li><li class="access-private"><a href="shaka.dash.SegmentTemplate.FixedDurationSegmentIndex_.html">shaka.dash.SegmentTemplate.FixedDurationSegmentIndex_</a></li><li class="access-private"><a href="shaka.dash.TimelineSegmentIndex.html">shaka.dash.TimelineSegmentIndex</a></li><li class="access-public"><a href="shaka.Deprecate.html">shaka.Deprecate</a></li><li class="access-public"><a href="shaka.deprecate.Enforcer.html">shaka.deprecate.Enforcer</a></li><li class="access-public"><a href="shaka.deprecate.Version.html">shaka.deprecate.Version</a></li><li class="access-public"><a href="shaka.device.AbstractDevice.html">shaka.device.AbstractDevice</a></li><li class="access-public"><a href="shaka.device.AppleBrowser.html">shaka.device.AppleBrowser</a></li><li class="access-public"><a href="shaka.device.Chromecast.html">shaka.device.Chromecast</a></li><li class="access-public"><a href="shaka.device.DefaultBrowser.html">shaka.device.DefaultBrowser</a></li><li class="access-public"><a href="shaka.device.Hisense.html">shaka.device.Hisense</a></li><li class="access-public"><a href="shaka.device.PlayStation.html">shaka.device.PlayStation</a></li><li class="access-public"><a href="shaka.device.TitanOS.html">shaka.device.TitanOS</a></li><li class="access-public"><a href="shaka.device.TiVoOS.html">shaka.device.TiVoOS</a></li><li class="access-public"><a href="shaka.device.Tizen.html">shaka.device.Tizen</a></li><li class="access-public"><a href="shaka.device.Vizio.html">shaka.device.Vizio</a></li><li class="access-public"><a href="shaka.device.WebKitSTB.html">shaka.device.WebKitSTB</a></li><li class="access-public"><a href="shaka.device.WebOS.html">shaka.device.WebOS</a></li><li class="access-public"><a href="shaka.device.Xbox.html">shaka.device.Xbox</a></li><li class="access-public"><a href="shaka.drm.DrmEngine.html">shaka.drm.DrmEngine</a></li><li class="access-export"><a href="shaka.drm.FairPlay.html">shaka.drm.FairPlay</a></li><li class="access-public"><a href="shaka.drm.PlayReady.html">shaka.drm.PlayReady</a></li><li class="access-public"><a href="shaka.extern.html">shaka.extern</a></li><li class="access-public"><a href="shaka.hls.Attribute.html">shaka.hls.Attribute</a></li><li class="access-export"><a href="shaka.hls.HlsParser.html">shaka.hls.HlsParser</a></li><li class="access-public"><a href="shaka.hls.ManifestTextParser.html">shaka.hls.ManifestTextParser</a></li><li class="access-public"><a href="shaka.hls.Playlist.html">shaka.hls.Playlist</a></li><li class="access-public"><a href="shaka.hls.Segment.html">shaka.hls.Segment</a></li><li class="access-public"><a href="shaka.hls.Tag.html">shaka.hls.Tag</a></li><li class="access-export"><a href="shaka.lcevc.Dec.html">shaka.lcevc.Dec</a></li><li class="access-export"><a href="shaka.log.html">shaka.log</a></li><li class="access-export"><a href="shaka.media.AdaptationSet.html">shaka.media.AdaptationSet</a></li><li class="access-public"><a href="shaka.media.BufferingObserver.html">shaka.media.BufferingObserver</a></li><li class="access-public"><a href="shaka.media.Capabilities.html">shaka.media.Capabilities</a></li><li class="access-export"><a href="shaka.media.ClosedCaptionParser.html">shaka.media.ClosedCaptionParser</a></li><li class="access-public"><a href="shaka.media.ContentWorkarounds.html">shaka.media.ContentWorkarounds</a></li><li class="access-public"><a href="shaka.media.GapJumpingController.html">shaka.media.GapJumpingController</a></li><li class="access-export"><a href="shaka.media.InitSegmentReference.html">shaka.media.InitSegmentReference</a></li><li class="access-public"><a href="shaka.media.ManifestFilterer.html">shaka.media.ManifestFilterer</a></li><li class="access-export"><a href="shaka.media.ManifestParser.html">shaka.media.ManifestParser</a></li><li class="access-public"><a href="shaka.media.MediaSourceEngine.html">shaka.media.MediaSourceEngine</a></li><li class="access-public"><a href="shaka.media.MediaSourcePlayhead.html">shaka.media.MediaSourcePlayhead</a></li><li class="access-export"><a href="shaka.media.MetaSegmentIndex.html">shaka.media.MetaSegmentIndex</a></li><li class="access-public"><a href="shaka.media.PlayheadObserverManager.html">shaka.media.PlayheadObserverManager</a></li><li class="access-public"><a href="shaka.media.PlayRateController.html">shaka.media.PlayRateController</a></li><li class="access-public"><a href="shaka.media.PreferenceBasedCriteria.html">shaka.media.PreferenceBasedCriteria</a></li><li class="access-export"><a href="shaka.media.PreloadManager.html">shaka.media.PreloadManager</a></li><li class="access-export"><a href="shaka.media.PresentationTimeline.html">shaka.media.PresentationTimeline</a></li><li class="access-public"><a href="shaka.media.QualityObserver.html">shaka.media.QualityObserver</a></li><li class="access-public"><a href="shaka.media.RegionObserver.html">shaka.media.RegionObserver</a></li><li class="access-public"><a href="shaka.media.RegionTimeline.html">shaka.media.RegionTimeline</a></li><li class="access-export"><a href="shaka.media.SegmentIndex.html">shaka.media.SegmentIndex</a></li><li class="access-export"><a href="shaka.media.SegmentIterator.html">shaka.media.SegmentIterator</a></li><li class="access-public"><a href="shaka.media.SegmentPrefetch.html">shaka.media.SegmentPrefetch</a></li><li class="access-public"><a href="shaka.media.SegmentPrefetchOperation.html">shaka.media.SegmentPrefetchOperation</a></li><li class="access-export"><a href="shaka.media.SegmentReference.html">shaka.media.SegmentReference</a></li><li class="access-public"><a href="shaka.media.SegmentUtils.html">shaka.media.SegmentUtils</a></li><li class="access-public"><a href="shaka.media.SrcEqualsPlayhead.html">shaka.media.SrcEqualsPlayhead</a></li><li class="access-public"><a href="shaka.media.StallDetector.html">shaka.media.StallDetector</a></li><li class="access-public"><a href="shaka.media.StallDetector.MediaElementImplementation.html">shaka.media.StallDetector.MediaElementImplementation</a></li><li class="access-public"><a href="shaka.media.StreamingEngine.html">shaka.media.StreamingEngine</a></li><li class="access-public"><a href="shaka.media.TimeRangesUtils.html">shaka.media.TimeRangesUtils</a></li><li class="access-public"><a href="shaka.media.VideoWrapper.html">shaka.media.VideoWrapper</a></li><li class="access-public"><a href="shaka.media.VideoWrapper.PlayheadMover.html">shaka.media.VideoWrapper.PlayheadMover</a></li><li class="access-public"><a href="shaka.msf.BufferControlWriter.html">shaka.msf.BufferControlWriter</a></li><li class="access-export"><a href="shaka.msf.MSFParser.html">shaka.msf.MSFParser</a></li><li class="access-export"><a href="shaka.msf.MSFPresentationTimeline.html">shaka.msf.MSFPresentationTimeline</a></li><li class="access-export"><a href="shaka.msf.MSFTransport.html">shaka.msf.MSFTransport</a></li><li class="access-public"><a href="shaka.msf.Reader.html">shaka.msf.Reader</a></li><li class="access-public"><a href="shaka.msf.TrackAliasRegistry.html">shaka.msf.TrackAliasRegistry</a></li><li class="access-public"><a href="shaka.msf.TracksManager.html">shaka.msf.TracksManager</a></li><li class="access-public"><a href="shaka.msf.Writer.html">shaka.msf.Writer</a></li><li class="access-public"><a href="shaka.msf-shaka.msf.ControlStream.html">shaka.msf~shaka.msf.ControlStream</a></li><li class="access-public"><a href="shaka.msf-shaka.msf.ControlStreamDecoder.html">shaka.msf~shaka.msf.ControlStreamDecoder</a></li><li class="access-public"><a href="shaka.msf-shaka.msf.ControlStreamEncoder.html">shaka.msf~shaka.msf.ControlStreamEncoder</a></li><li class="access-public"><a href="shaka.msf-shaka.msf.MSFConnection.html">shaka.msf~shaka.msf.MSFConnection</a></li><li class="access-public"><a href="shaka.msf-shaka.msf.Receiver.html">shaka.msf~shaka.msf.Receiver</a></li><li class="access-public"><a href="shaka.msf-shaka.msf.Sender.html">shaka.msf~shaka.msf.Sender</a></li><li class="access-public"><a href="shaka.net.Backoff.html">shaka.net.Backoff</a></li><li class="access-export"><a href="shaka.net.DataUriPlugin.html">shaka.net.DataUriPlugin</a></li><li class="access-export"><a href="shaka.net.HttpFetchPlugin.html">shaka.net.HttpFetchPlugin</a></li><li class="access-export"><a href="shaka.net.HttpPluginUtils.html">shaka.net.HttpPluginUtils</a></li><li class="access-export"><a href="shaka.net.HttpXHRPlugin.html">shaka.net.HttpXHRPlugin</a></li><li class="access-export"><a href="shaka.net.NetworkingEngine.html">shaka.net.NetworkingEngine</a></li><li class="access-export"><a href="shaka.net.NetworkingEngine.NumBytesRemainingClass.html">shaka.net.NetworkingEngine.NumBytesRemainingClass</a></li><li class="access-export"><a href="shaka.net.NetworkingEngine.PendingRequest.html">shaka.net.NetworkingEngine.PendingRequest</a></li><li class="access-public"><a href="shaka.net.NetworkingUtils.html">shaka.net.NetworkingUtils</a></li><li class="access-public"><a href="shaka.offline.DownloadInfo.html">shaka.offline.DownloadInfo</a></li><li class="access-public"><a href="shaka.offline.DownloadManager.html">shaka.offline.DownloadManager</a></li><li class="access-public"><a href="shaka.offline.DownloadProgressEstimator.html">shaka.offline.DownloadProgressEstimator</a></li><li class="access-public"><a href="shaka.offline.indexeddb.BaseStorageCell.html">shaka.offline.indexeddb.BaseStorageCell</a></li><li class="access-public"><a href="shaka.offline.indexeddb.DBConnection.html">shaka.offline.indexeddb.DBConnection</a></li><li class="access-public"><a href="shaka.offline.indexeddb.DBOperation.html">shaka.offline.indexeddb.DBOperation</a></li><li class="access-public"><a href="shaka.offline.indexeddb.EmeSessionStorageCell.html">shaka.offline.indexeddb.EmeSessionStorageCell</a></li><li class="access-public"><a href="shaka.offline.indexeddb.StorageMechanism.html">shaka.offline.indexeddb.StorageMechanism</a></li><li class="access-public"><a href="shaka.offline.indexeddb.V1StorageCell.html">shaka.offline.indexeddb.V1StorageCell</a></li><li class="access-public"><a href="shaka.offline.indexeddb.V2StorageCell.html">shaka.offline.indexeddb.V2StorageCell</a></li><li class="access-public"><a href="shaka.offline.indexeddb.V5StorageCell.html">shaka.offline.indexeddb.V5StorageCell</a></li><li class="access-public"><a href="shaka.offline.ManifestConverter.html">shaka.offline.ManifestConverter</a></li><li class="access-public"><a href="shaka.offline.OfflineManifestParser.html">shaka.offline.OfflineManifestParser</a></li><li class="access-export"><a href="shaka.offline.OfflineScheme.html">shaka.offline.OfflineScheme</a></li><li class="access-public"><a href="shaka.offline.OfflineUri.html">shaka.offline.OfflineUri</a></li><li class="access-public"><a href="shaka.offline.SessionDeleter.html">shaka.offline.SessionDeleter</a></li><li class="access-export"><a href="shaka.offline.Storage.html">shaka.offline.Storage</a></li><li class="access-export"><a href="shaka.offline.StorageMuxer.html">shaka.offline.StorageMuxer</a></li><li class="access-public"><a href="shaka.offline.StoredContentUtils.html">shaka.offline.StoredContentUtils</a></li><li class="access-public"><a href="shaka.offline.StreamBandwidthEstimator.html">shaka.offline.StreamBandwidthEstimator</a></li><li class="access-export"><a href="shaka.Player.html">shaka.Player</a></li><li class="access-export"><a href="shaka.polyfill.html">shaka.polyfill</a></li><li class="access-export"><a href="shaka.polyfill.Aria.html">shaka.polyfill.Aria</a></li><li class="access-export"><a href="shaka.polyfill.EmeEncryptionScheme.html">shaka.polyfill.EmeEncryptionScheme</a></li><li class="access-public"><a href="shaka.polyfill.EmeEncryptionSchemePolyfillMediaKeySystemAccess.html">shaka.polyfill.EmeEncryptionSchemePolyfillMediaKeySystemAccess</a></li><li class="access-export"><a href="shaka.polyfill.Fullscreen.html">shaka.polyfill.Fullscreen</a></li><li class="access-export"><a href="shaka.polyfill.Map.html">shaka.polyfill.Map</a></li><li class="access-export"><a href="shaka.polyfill.MCapEncryptionScheme.html">shaka.polyfill.MCapEncryptionScheme</a></li><li class="access-export"><a href="shaka.polyfill.MediaCapabilities.html">shaka.polyfill.MediaCapabilities</a></li><li class="access-export"><a href="shaka.polyfill.MediaSource.html">shaka.polyfill.MediaSource</a></li><li class="access-export"><a href="shaka.polyfill.Orientation.html">shaka.polyfill.Orientation</a></li><li class="access-export"><a href="shaka.polyfill.PatchedMediaKeysApple.html">shaka.polyfill.PatchedMediaKeysApple</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysApple.MediaKeys.html">shaka.polyfill.PatchedMediaKeysApple.MediaKeys</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysApple.MediaKeySession.html">shaka.polyfill.PatchedMediaKeysApple.MediaKeySession</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysApple.MediaKeyStatusMap.html">shaka.polyfill.PatchedMediaKeysApple.MediaKeyStatusMap</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysApple.MediaKeySystemAccess.html">shaka.polyfill.PatchedMediaKeysApple.MediaKeySystemAccess</a></li><li class="access-export"><a href="shaka.polyfill.PatchedMediaKeysCert.html">shaka.polyfill.PatchedMediaKeysCert</a></li><li class="access-export"><a href="shaka.polyfill.PatchedMediaKeysWebkit.html">shaka.polyfill.PatchedMediaKeysWebkit</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysWebkit.MediaKeys.html">shaka.polyfill.PatchedMediaKeysWebkit.MediaKeys</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysWebkit.MediaKeySession.html">shaka.polyfill.PatchedMediaKeysWebkit.MediaKeySession</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysWebkit.MediaKeyStatusMap.html">shaka.polyfill.PatchedMediaKeysWebkit.MediaKeyStatusMap</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysWebkit.MediaKeySystemAccess.html">shaka.polyfill.PatchedMediaKeysWebkit.MediaKeySystemAccess</a></li><li class="access-export"><a href="shaka.polyfill.PiPWebkit.html">shaka.polyfill.PiPWebkit</a></li><li class="access-export"><a href="shaka.polyfill.RandomUUID.html">shaka.polyfill.RandomUUID</a></li><li class="access-export"><a href="shaka.polyfill.Symbol.html">shaka.polyfill.Symbol</a></li><li class="access-export"><a href="shaka.polyfill.TypedArray.html">shaka.polyfill.TypedArray</a></li><li class="access-export"><a href="shaka.polyfill.VideoPlaybackQuality.html">shaka.polyfill.VideoPlaybackQuality</a></li><li class="access-export"><a href="shaka.polyfill.VideoPlayPromise.html">shaka.polyfill.VideoPlayPromise</a></li><li class="access-export"><a href="shaka.polyfill.VTTCue.html">shaka.polyfill.VTTCue</a></li><li class="access-export"><a href="shaka.queue.QueueManager.html">shaka.queue.QueueManager</a></li><li class="access-export"><a href="shaka.text.Cue.html">shaka.text.Cue</a></li><li class="access-export"><a href="shaka.text.CueRegion.html">shaka.text.CueRegion</a></li><li class="access-export"><a href="shaka.text.Mp4TtmlParser.html">shaka.text.Mp4TtmlParser</a></li><li class="access-export"><a href="shaka.text.Mp4VttParser.html">shaka.text.Mp4VttParser</a></li><li class="access-export"><a href="shaka.text.NativeTextDisplayer.html">shaka.text.NativeTextDisplayer</a></li><li class="access-public"><a href="shaka.text.SpeechRecognitionController.html">shaka.text.SpeechRecognitionController</a></li><li class="access-public"><a href="shaka.text.SpeechRenderer.html">shaka.text.SpeechRenderer</a></li><li class="access-public"><a href="shaka.text.SpeechToText.html">shaka.text.SpeechToText</a></li><li class="access-public"><a href="shaka.text.SpeechTranslatorController.html">shaka.text.SpeechTranslatorController</a></li><li class="access-export"><a href="shaka.text.SrtTextParser.html">shaka.text.SrtTextParser</a></li><li class="access-export"><a href="shaka.text.StubTextDisplayer.html">shaka.text.StubTextDisplayer</a></li><li class="access-export"><a href="shaka.text.TextEngine.html">shaka.text.TextEngine</a></li><li class="access-export"><a href="shaka.text.TtmlTextParser.html">shaka.text.TtmlTextParser</a></li><li class="access-private"><a href="shaka.text.TtmlTextParser.RateInfo_.html">shaka.text.TtmlTextParser.RateInfo_</a></li><li class="access-export"><a href="shaka.text.UITextDisplayer.html">shaka.text.UITextDisplayer</a></li><li class="access-export"><a href="shaka.text.VttTextParser.html">shaka.text.VttTextParser</a></li><li class="access-export"><a href="shaka.text.WebVttGenerator.html">shaka.text.WebVttGenerator</a></li><li class="access-export"><a href="shaka.transmuxer.AacTransmuxer.html">shaka.transmuxer.AacTransmuxer</a></li><li class="access-public"><a href="shaka.transmuxer.Ac3.html">shaka.transmuxer.Ac3</a></li><li class="access-export"><a href="shaka.transmuxer.Ac3Transmuxer.html">shaka.transmuxer.Ac3Transmuxer</a></li><li class="access-public"><a href="shaka.transmuxer.ADTS.html">shaka.transmuxer.ADTS</a></li><li class="access-public"><a href="shaka.transmuxer.Ec3.html">shaka.transmuxer.Ec3</a></li><li class="access-export"><a href="shaka.transmuxer.Ec3Transmuxer.html">shaka.transmuxer.Ec3Transmuxer</a></li><li class="access-public"><a href="shaka.transmuxer.H264.html">shaka.transmuxer.H264</a></li><li class="access-public"><a href="shaka.transmuxer.H265.html">shaka.transmuxer.H265</a></li><li class="access-export"><a href="shaka.transmuxer.Mp3Transmuxer.html">shaka.transmuxer.Mp3Transmuxer</a></li><li class="access-public"><a href="shaka.transmuxer.MpegAudio.html">shaka.transmuxer.MpegAudio</a></li><li class="access-export"><a href="shaka.transmuxer.MpegTsTransmuxer.html">shaka.transmuxer.MpegTsTransmuxer</a></li><li class="access-public"><a href="shaka.transmuxer.Opus.html">shaka.transmuxer.Opus</a></li><li class="access-export"><a href="shaka.transmuxer.TransmuxerEngine.html">shaka.transmuxer.TransmuxerEngine</a></li><li class="access-public"><a href="shaka.transmuxer.TransmuxerUtils.html">shaka.transmuxer.TransmuxerUtils</a></li><li class="access-export"><a href="shaka.transmuxer.TsTransmuxer.html">shaka.transmuxer.TsTransmuxer</a></li><li class="access-export"><a href="shaka.ui.AdInfo.html">shaka.ui.AdInfo</a></li><li class="access-export"><a href="shaka.ui.AdStatisticsButton.html">shaka.ui.AdStatisticsButton</a></li><li class="access-public"><a href="shaka.ui.AdStatisticsButton.Factory.html">shaka.ui.AdStatisticsButton.Factory</a></li><li class="access-export"><a href="shaka.ui.AudioLanguageSelection.html">shaka.ui.AudioLanguageSelection</a></li><li class="access-public"><a href="shaka.ui.AudioLanguageSelection.Factory.html">shaka.ui.AudioLanguageSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.CastButton.html">shaka.ui.CastButton</a></li><li class="access-public"><a href="shaka.ui.CastButton.Factory.html">shaka.ui.CastButton.Factory</a></li><li class="access-export"><a href="shaka.ui.ChapterSelection.html">shaka.ui.ChapterSelection</a></li><li class="access-public"><a href="shaka.ui.ChapterSelection.Factory.html">shaka.ui.ChapterSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.ContentTitle.html">shaka.ui.ContentTitle</a></li><li class="access-public"><a href="shaka.ui.ContentTitle.Factory.html">shaka.ui.ContentTitle.Factory</a></li><li class="access-export"><a href="shaka.ui.ContextMenu.html">shaka.ui.ContextMenu</a></li><li class="access-export"><a href="shaka.ui.Controls.html">shaka.ui.Controls</a></li><li class="access-export"><a href="shaka.ui.CopyVideoFrameButton.html">shaka.ui.CopyVideoFrameButton</a></li><li class="access-public"><a href="shaka.ui.CopyVideoFrameButton.Factory.html">shaka.ui.CopyVideoFrameButton.Factory</a></li><li class="access-export"><a href="shaka.ui.Element.html">shaka.ui.Element</a></li><li class="access-export"><a href="shaka.ui.FastForwardButton.html">shaka.ui.FastForwardButton</a></li><li class="access-public"><a href="shaka.ui.FastForwardButton.Factory.html">shaka.ui.FastForwardButton.Factory</a></li><li class="access-export"><a href="shaka.ui.FullscreenButton.html">shaka.ui.FullscreenButton</a></li><li class="access-public"><a href="shaka.ui.FullscreenButton.Factory.html">shaka.ui.FullscreenButton.Factory</a></li><li class="access-export"><a href="shaka.ui.HiddenFastForwardButton.html">shaka.ui.HiddenFastForwardButton</a></li><li class="access-export"><a href="shaka.ui.HiddenRewindButton.html">shaka.ui.HiddenRewindButton</a></li><li class="access-export"><a href="shaka.ui.HiddenSeekButton.html">shaka.ui.HiddenSeekButton</a></li><li class="access-export"><a href="shaka.ui.Icon.html">shaka.ui.Icon</a></li><li class="access-export"><a href="shaka.ui.IconRegistry.html">shaka.ui.IconRegistry</a></li><li class="access-export"><a href="shaka.ui.Localization.html">shaka.ui.Localization</a></li><li class="access-export"><a href="shaka.ui.LoopButton.html">shaka.ui.LoopButton</a></li><li class="access-public"><a href="shaka.ui.LoopButton.Factory.html">shaka.ui.LoopButton.Factory</a></li><li class="access-public"><a href="shaka.ui.Matrix4x4.html">shaka.ui.Matrix4x4</a></li><li class="access-public"><a href="shaka.ui.MatrixQuaternion.html">shaka.ui.MatrixQuaternion</a></li><li class="access-export"><a href="shaka.ui.MediaSession.html">shaka.ui.MediaSession</a></li><li class="access-export"><a href="shaka.ui.MuteButton.html">shaka.ui.MuteButton</a></li><li class="access-public"><a href="shaka.ui.MuteButton.Factory.html">shaka.ui.MuteButton.Factory</a></li><li class="access-export"><a href="shaka.ui.OverflowMenu.html">shaka.ui.OverflowMenu</a></li><li class="access-public"><a href="shaka.ui.OverflowMenu.Factory.html">shaka.ui.OverflowMenu.Factory</a></li><li class="access-export"><a href="shaka.ui.Overlay.html">shaka.ui.Overlay</a></li><li class="access-export"><a href="shaka.ui.PipButton.html">shaka.ui.PipButton</a></li><li class="access-public"><a href="shaka.ui.PipButton.Factory.html">shaka.ui.PipButton.Factory</a></li><li class="access-export"><a href="shaka.ui.PlaybackRateSelection.html">shaka.ui.PlaybackRateSelection</a></li><li class="access-public"><a href="shaka.ui.PlaybackRateSelection.Factory.html">shaka.ui.PlaybackRateSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.PlayButton.html">shaka.ui.PlayButton</a></li><li class="access-public"><a href="shaka.ui.PlayButton.Factory.html">shaka.ui.PlayButton.Factory</a></li><li class="access-export"><a href="shaka.ui.PresentationTimeTracker.html">shaka.ui.PresentationTimeTracker</a></li><li class="access-public"><a href="shaka.ui.PresentationTimeTracker.Factory.html">shaka.ui.PresentationTimeTracker.Factory</a></li><li class="access-export"><a href="shaka.ui.RangeElement.html">shaka.ui.RangeElement</a></li><li class="access-export"><a href="shaka.ui.RecenterVRButton.html">shaka.ui.RecenterVRButton</a></li><li class="access-public"><a href="shaka.ui.RecenterVRButton.Factory.html">shaka.ui.RecenterVRButton.Factory</a></li><li class="access-export"><a href="shaka.ui.RemoteButton.html">shaka.ui.RemoteButton</a></li><li class="access-public"><a href="shaka.ui.RemoteButton.Factory.html">shaka.ui.RemoteButton.Factory</a></li><li class="access-export"><a href="shaka.ui.ResolutionSelection.html">shaka.ui.ResolutionSelection</a></li><li class="access-public"><a href="shaka.ui.ResolutionSelection.Factory.html">shaka.ui.ResolutionSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.RewindButton.html">shaka.ui.RewindButton</a></li><li class="access-public"><a href="shaka.ui.RewindButton.Factory.html">shaka.ui.RewindButton.Factory</a></li><li class="access-export"><a href="shaka.ui.SaveVideoFrameButton.html">shaka.ui.SaveVideoFrameButton</a></li><li class="access-public"><a href="shaka.ui.SaveVideoFrameButton.Factory.html">shaka.ui.SaveVideoFrameButton.Factory</a></li><li class="access-export"><a href="shaka.ui.SeekBar.html">shaka.ui.SeekBar</a></li><li class="access-export"><a href="shaka.ui.SeekBar.Factory.html">shaka.ui.SeekBar.Factory</a></li><li class="access-export"><a href="shaka.ui.SettingsMenu.html">shaka.ui.SettingsMenu</a></li><li class="access-export"><a href="shaka.ui.SkipAdButton.html">shaka.ui.SkipAdButton</a></li><li class="access-export"><a href="shaka.ui.SkipNextButton.html">shaka.ui.SkipNextButton</a></li><li class="access-public"><a href="shaka.ui.SkipNextButton.Factory.html">shaka.ui.SkipNextButton.Factory</a></li><li class="access-export"><a href="shaka.ui.SkipPreviousButton.html">shaka.ui.SkipPreviousButton</a></li><li class="access-public"><a href="shaka.ui.SkipPreviousButton.Factory.html">shaka.ui.SkipPreviousButton.Factory</a></li><li class="access-export"><a href="shaka.ui.Spacer.html">shaka.ui.Spacer</a></li><li class="access-public"><a href="shaka.ui.Spacer.Factory.html">shaka.ui.Spacer.Factory</a></li><li class="access-export"><a href="shaka.ui.StatisticsButton.html">shaka.ui.StatisticsButton</a></li><li class="access-public"><a href="shaka.ui.StatisticsButton.Factory.html">shaka.ui.StatisticsButton.Factory</a></li><li class="access-export"><a href="shaka.ui.TextPosition.html">shaka.ui.TextPosition</a></li><li class="access-public"><a href="shaka.ui.TextPosition.Factory.html">shaka.ui.TextPosition.Factory</a></li><li class="access-export"><a href="shaka.ui.TextSelection.html">shaka.ui.TextSelection</a></li><li class="access-public"><a href="shaka.ui.TextSelection.Factory.html">shaka.ui.TextSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.TextSize.html">shaka.ui.TextSize</a></li><li class="access-public"><a href="shaka.ui.TextSize.Factory.html">shaka.ui.TextSize.Factory</a></li><li class="access-export"><a href="shaka.ui.ToggleStereoscopicButton.html">shaka.ui.ToggleStereoscopicButton</a></li><li class="access-public"><a href="shaka.ui.ToggleStereoscopicButton.Factory.html">shaka.ui.ToggleStereoscopicButton.Factory</a></li><li class="access-export"><a href="shaka.ui.VideoTypeSelection.html">shaka.ui.VideoTypeSelection</a></li><li class="access-public"><a href="shaka.ui.VideoTypeSelection.Factory.html">shaka.ui.VideoTypeSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.VolumeBar.html">shaka.ui.VolumeBar</a></li><li class="access-public"><a href="shaka.ui.VolumeBar.Factory.html">shaka.ui.VolumeBar.Factory</a></li><li class="access-public"><a href="shaka.ui.VRManager.html">shaka.ui.VRManager</a></li><li class="access-public"><a href="shaka.ui.VRWebgl.html">shaka.ui.VRWebgl</a></li><li class="access-export"><a href="shaka.ui.Watermark.html">shaka.ui.Watermark</a></li><li class="access-export"><a href="shaka.util.AbortableOperation.html">shaka.util.AbortableOperation</a></li><li class="access-public"><a href="shaka.util.ArrayUtils.html">shaka.util.ArrayUtils</a></li><li class="access-export"><a href="shaka.util.BufferUtils.html">shaka.util.BufferUtils</a></li><li class="access-public"><a href="shaka.util.CmcdManager.html">shaka.util.CmcdManager</a></li><li class="access-export"><a href="shaka.util.CmsdManager.html">shaka.util.CmsdManager</a></li><li class="access-export"><a href="shaka.util.ConfigUtils.html">shaka.util.ConfigUtils</a></li><li class="access-public"><a href="shaka.util.ContentSteeringManager.html">shaka.util.ContentSteeringManager</a></li><li class="access-export"><a href="shaka.util.DataViewReader.html">shaka.util.DataViewReader</a></li><li class="access-export"><a href="shaka.util.DataViewWriter.html">shaka.util.DataViewWriter</a></li><li class="access-public"><a href="shaka.util.Destroyer.html">shaka.util.Destroyer</a></li><li class="access-export"><a href="shaka.util.Dom.html">shaka.util.Dom</a></li><li class="access-export"><a href="shaka.util.Error.html">shaka.util.Error</a></li><li class="access-export"><a href="shaka.util.EventManager.html">shaka.util.EventManager</a></li><li class="access-private"><a href="shaka.util.EventManager.Binding_.html">shaka.util.EventManager.Binding_</a></li><li class="access-export"><a href="shaka.util.ExpGolomb.html">shaka.util.ExpGolomb</a></li><li class="access-export"><a href="shaka.util.FakeEvent.html">shaka.util.FakeEvent</a></li><li class="access-export"><a href="shaka.util.FakeEventTarget.html">shaka.util.FakeEventTarget</a></li><li class="access-public"><a href="shaka.util.Functional.html">shaka.util.Functional</a></li><li class="access-export"><a href="shaka.util.Id3Utils.html">shaka.util.Id3Utils</a></li><li class="access-public"><a href="shaka.util.Iterables.html">shaka.util.Iterables</a></li><li class="access-export"><a href="shaka.util.LanguageUtils.html">shaka.util.LanguageUtils</a></li><li class="access-public"><a href="shaka.util.Lazy.html">shaka.util.Lazy</a></li><li class="access-public"><a href="shaka.util.ManifestParserUtils.html">shaka.util.ManifestParserUtils</a></li><li class="access-public"><a href="shaka.util.MapUtils.html">shaka.util.MapUtils</a></li><li class="access-export"><a href="shaka.util.MimeUtils.html">shaka.util.MimeUtils</a></li><li class="access-export"><a href="shaka.util.Mp4Parser.html">shaka.util.Mp4Parser</a></li><li class="access-public"><a href="shaka.util.MultiMap.html">shaka.util.MultiMap</a></li><li class="access-public"><a href="shaka.util.Mutex.html">shaka.util.Mutex</a></li><li class="access-export"><a href="shaka.util.ObjectUtils.html">shaka.util.ObjectUtils</a></li><li class="access-public"><a href="shaka.util.OperationManager.html">shaka.util.OperationManager</a></li><li class="access-export"><a href="shaka.util.PeriodCombiner.html">shaka.util.PeriodCombiner</a></li><li class="access-export"><a href="shaka.util.PlayerConfiguration.html">shaka.util.PlayerConfiguration</a></li><li class="access-public"><a href="shaka.util.Pssh.html">shaka.util.Pssh</a></li><li class="access-public"><a href="shaka.util.StateHistory.html">shaka.util.StateHistory</a></li><li class="access-public"><a href="shaka.util.Stats.html">shaka.util.Stats</a></li><li class="access-export"><a href="shaka.util.StreamUtils.html">shaka.util.StreamUtils</a></li><li class="access-export"><a href="shaka.util.StringUtils.html">shaka.util.StringUtils</a></li><li class="access-public"><a href="shaka.util.SwitchHistory.html">shaka.util.SwitchHistory</a></li><li class="access-public"><a href="shaka.util.TextParser.html">shaka.util.TextParser</a></li><li class="access-export"><a href="shaka.util.Timer.html">shaka.util.Timer</a></li><li class="access-export"><a href="shaka.util.TsParser.html">shaka.util.TsParser</a></li><li class="access-public"><a href="shaka.util.TXml.html">shaka.util.TXml</a></li><li class="access-export"><a href="shaka.util.Uint8ArrayUtils.html">shaka.util.Uint8ArrayUtils</a></li><li class="access-public"><a href="shaka.util.VideoFrameCallbackHandler.html">shaka.util.VideoFrameCallbackHandler</a></li><li class="access-public"><a href="shaka.util-shaka.util.EbmlElement.html">shaka.util~shaka.util.EbmlElement</a></li><li class="access-public"><a href="shaka.util-shaka.util.Mp4Generator.html">shaka.util~shaka.util.Mp4Generator</a></li></ul><h3>Enums</h3><ul><li class="access-export"><a href="shaka.config.CodecSwitchingStrategy.html">shaka.config.CodecSwitchingStrategy</a></li><li class="access-export"><a href="shaka.config.CrossBoundaryStrategy.html">shaka.config.CrossBoundaryStrategy</a></li><li class="access-export"><a href="shaka.config.MsfFilterType.html">shaka.config.MsfFilterType</a></li><li class="access-export"><a href="shaka.config.MsfVersion.html">shaka.config.MsfVersion</a></li><li class="access-export"><a href="shaka.config.PositionArea.html">shaka.config.PositionArea</a></li><li class="access-export"><a href="shaka.config.RepeatMode.html">shaka.config.RepeatMode</a></li><li class="access-public"><a href="shaka.hls.PlaylistType.html">shaka.hls.PlaylistType</a></li><li class="access-public"><a href="shaka.msf.Utils.FetchType.html">shaka.msf.Utils.FetchType</a></li><li class="access-public"><a href="shaka.msf.Utils.FilterType.html">shaka.msf.Utils.FilterType</a></li><li class="access-public"><a href="shaka.msf.Utils.GroupOrder.html">shaka.msf.Utils.GroupOrder</a></li><li class="access-public"><a href="shaka.msf.Utils.MessageType.html">shaka.msf.Utils.MessageType</a></li><li class="access-public"><a href="shaka.msf.Utils.MessageTypeId.html">shaka.msf.Utils.MessageTypeId</a></li><li class="access-public"><a href="shaka.msf.Utils.SetupOption.html">shaka.msf.Utils.SetupOption</a></li><li class="access-public"><a href="shaka.msf.Utils.Version.html">shaka.msf.Utils.Version</a></li><li class="access-public"><a href="shaka.util.MediaElementEvent.html">shaka.util.MediaElementEvent</a></li></ul><h3>Interfaces</h3><ul><li class="access-public"><a href="shaka.device.IDevice.html">shaka.device.IDevice</a></li><li class="access-export"><a href="shaka.extern.AbrManager.html">shaka.extern.AbrManager</a></li><li class="access-export"><a href="shaka.extern.AdaptationSetCriteria.html">shaka.extern.AdaptationSetCriteria</a></li><li class="access-public"><a href="shaka.extern.EmeSessionStorageCell.html">shaka.extern.EmeSessionStorageCell</a></li><li class="access-export"><a href="shaka.extern.Error.html">shaka.extern.Error</a></li><li class="access-export"><a href="shaka.extern.IAbortableOperation.html">shaka.extern.IAbortableOperation</a></li><li class="access-export"><a href="shaka.extern.IAd.html">shaka.extern.IAd</a></li><li class="access-export"><a href="shaka.extern.IAdManager.html">shaka.extern.IAdManager</a></li><li class="access-export"><a href="shaka.extern.ICaptionDecoder.html">shaka.extern.ICaptionDecoder</a></li><li class="access-export"><a href="shaka.extern.ICeaParser.html">shaka.extern.ICeaParser</a></li><li class="access-export"><a href="shaka.extern.IQueueManager.html">shaka.extern.IQueueManager</a></li><li class="access-export"><a href="shaka.extern.IUIElement.html">shaka.extern.IUIElement</a></li><li class="access-export"><a href="shaka.extern.IUIElement.Factory.html">shaka.extern.IUIElement.Factory</a></li><li class="access-export"><a href="shaka.extern.IUIRangeElement.html">shaka.extern.IUIRangeElement</a></li><li class="access-export"><a href="shaka.extern.IUISeekBar.html">shaka.extern.IUISeekBar</a></li><li class="access-export"><a href="shaka.extern.IUISeekBar.Factory.html">shaka.extern.IUISeekBar.Factory</a></li><li class="access-export"><a href="shaka.extern.IUISettingsMenu.html">shaka.extern.IUISettingsMenu</a></li><li class="access-export"><a href="shaka.extern.ManifestParser.html">shaka.extern.ManifestParser</a></li><li class="access-export"><a href="shaka.extern.SegmentIndex.html">shaka.extern.SegmentIndex</a></li><li class="access-public"><a href="shaka.extern.StorageCell.html">shaka.extern.StorageCell</a></li><li class="access-public"><a href="shaka.extern.StorageMechanism.html">shaka.extern.StorageMechanism</a></li><li class="access-export"><a href="shaka.extern.TextDisplayer.html">shaka.extern.TextDisplayer</a></li><li class="access-export"><a href="shaka.extern.TextParser.html">shaka.extern.TextParser</a></li><li class="access-export"><a href="shaka.extern.Transmuxer.html">shaka.extern.Transmuxer</a></li><li class="access-public"><a href="shaka.media.IPlayheadObserver.html">shaka.media.IPlayheadObserver</a></li><li class="access-public"><a href="shaka.media.Playhead.html">shaka.media.Playhead</a></li><li class="access-public"><a href="shaka.media.StallDetector.Implementation.html">shaka.media.StallDetector.Implementation</a></li><li class="access-export"><a href="shaka.util.IDestroyable.html">shaka.util.IDestroyable</a></li><li class="access-export"><a href="shaka.util.IReleasable.html">shaka.util.IReleasable</a></li></ul><h3>Events</h3><ul><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdBufferingEvent">shaka.ads.AdManager.AdBufferingEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdClickedEvent">shaka.ads.AdManager.AdClickedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdClickEvent">shaka.ads.AdManager.AdClickEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdClosedEvent">shaka.ads.AdManager.AdClosedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdCompleteEvent">shaka.ads.AdManager.AdCompleteEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdContentPauseRequestedEvent">shaka.ads.AdManager.AdContentPauseRequestedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdContentResumeRequestedEvent">shaka.ads.AdManager.AdContentResumeRequestedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdCuePointsChangedEvent">shaka.ads.AdManager.AdCuePointsChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdDurationChangedEvent">shaka.ads.AdManager.AdDurationChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdFirstQuartileEvent">shaka.ads.AdManager.AdFirstQuartileEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdImpressionEvent">shaka.ads.AdManager.AdImpressionEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdInteractionEvent">shaka.ads.AdManager.AdInteractionEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdLinearChangedEvent">shaka.ads.AdManager.AdLinearChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdLoadedEvent">shaka.ads.AdManager.AdLoadedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdMetadataEvent">shaka.ads.AdManager.AdMetadataEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdMidpointEvent">shaka.ads.AdManager.AdMidpointEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdMutedEvent">shaka.ads.AdManager.AdMutedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdPausedEvent">shaka.ads.AdManager.AdPausedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdPlayingEvent">shaka.ads.AdManager.AdPlayingEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdProgressEvent">shaka.ads.AdManager.AdProgressEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdRecoverableErrorEvent">shaka.ads.AdManager.AdRecoverableErrorEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdResumedEvent">shaka.ads.AdManager.AdResumedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdSkippedEvent">shaka.ads.AdManager.AdSkippedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdSkipStateChangedEvent">shaka.ads.AdManager.AdSkipStateChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdsLoadedEvent">shaka.ads.AdManager.AdsLoadedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdStartedEvent">shaka.ads.AdManager.AdStartedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdStoppedEvent">shaka.ads.AdManager.AdStoppedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdThirdQuartileEvent">shaka.ads.AdManager.AdThirdQuartileEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdVolumeChangedEvent">shaka.ads.AdManager.AdVolumeChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AllAdsCompletedEvent">shaka.ads.AdManager.AllAdsCompletedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdBreakEndedEvent">shaka.ads.AdManager#AdBreakEndedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdBreakReadyEvent">shaka.ads.AdManager#AdBreakReadyEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdBreakStartedEvent">shaka.ads.AdManager#AdBreakStartedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdInterstitialPreloadedEvent">shaka.ads.AdManager#AdInterstitialPreloadedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdInterstitialPreloadEvent">shaka.ads.AdManager#AdInterstitialPreloadEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:ImaAdManagerLoadedEvent">shaka.ads.AdManager#ImaAdManagerLoadedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:ImaStreamManagerLoadedEvent">shaka.ads.AdManager#ImaStreamManagerLoadedEvent</a></li><li class="access-export"><a href="shaka.ads.Utils.html#.event:AD_ERROR">shaka.ads.Utils.AD_ERROR</a></li><li class="access-export"><a href="shaka.cast.CastProxy.html#.event:CastStatusChangedEvent">shaka.cast.CastProxy.CastStatusChangedEvent</a></li><li class="access-export"><a href="shaka.net.NetworkingEngine.html#.event:RetryEvent">shaka.net.NetworkingEngine.RetryEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:AbrStatusChangedEvent">shaka.Player.AbrStatusChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:AdaptationEvent">shaka.Player.AdaptationEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:AudioTrackChangedEvent">shaka.Player.AudioTrackChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:AudioTracksChangedEvent">shaka.Player.AudioTracksChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:BoundaryCrossedEvent">shaka.Player.BoundaryCrossedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:BufferAppending">shaka.Player.BufferAppending</a></li><li class="access-export"><a href="shaka.Player.html#.event:BufferingEvent">shaka.Player.BufferingEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:CanUpdateStartTimeEvent">shaka.Player.CanUpdateStartTimeEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Complete">shaka.Player.Complete</a></li><li class="access-export"><a href="shaka.Player.html#.event:ConfigurationChangedEvent">shaka.Player.ConfigurationChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:DownloadCompleted">shaka.Player.DownloadCompleted</a></li><li class="access-export"><a href="shaka.Player.html#.event:DownloadFailed">shaka.Player.DownloadFailed</a></li><li class="access-export"><a href="shaka.Player.html#.event:DownloadHeadersReceived">shaka.Player.DownloadHeadersReceived</a></li><li class="access-export"><a href="shaka.Player.html#.event:DrmSessionUpdateEvent">shaka.Player.DrmSessionUpdateEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:EmsgEvent">shaka.Player.EmsgEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ErrorEvent">shaka.Player.ErrorEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ExpirationUpdatedEvent">shaka.Player.ExpirationUpdatedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:FirstQuartile">shaka.Player.FirstQuartile</a></li><li class="access-export"><a href="shaka.Player.html#.event:GapJumpedEvent">shaka.Player.GapJumpedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:KeyStatusChanged">shaka.Player.KeyStatusChanged</a></li><li class="access-export"><a href="shaka.Player.html#.event:LicenseRenewalEvent">shaka.Player.LicenseRenewalEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:LoadedEvent">shaka.Player.LoadedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:LoadingEvent">shaka.Player.LoadingEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ManifestParsedEvent">shaka.Player.ManifestParsedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ManifestUpdatedEvent">shaka.Player.ManifestUpdatedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:MediaQualityChangedEvent">shaka.Player.MediaQualityChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:MediaSourceRecoveredEvent">shaka.Player.MediaSourceRecoveredEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:MetadataAddedEvent">shaka.Player.MetadataAddedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:MetadataEvent">shaka.Player.MetadataEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Midpoint">shaka.Player.Midpoint</a></li><li class="access-export"><a href="shaka.Player.html#.event:NoSpatialVideoInfoEvent">shaka.Player.NoSpatialVideoInfoEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ProducerReferenceTimeEvent">shaka.Player.ProducerReferenceTimeEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ProgramInformationEvent">shaka.Player.ProgramInformationEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:RateChangeEvent">shaka.Player.RateChangeEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:SegmentAppended">shaka.Player.SegmentAppended</a></li><li class="access-export"><a href="shaka.Player.html#.event:SessionDataEvent">shaka.Player.SessionDataEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:SpatialVideoInfoEvent">shaka.Player.SpatialVideoInfoEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:StallDetectedEvent">shaka.Player.StallDetectedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Started">shaka.Player.Started</a></li><li class="access-export"><a href="shaka.Player.html#.event:StateChanged">shaka.Player.StateChanged</a></li><li class="access-export"><a href="shaka.Player.html#.event:StateChangeEvent">shaka.Player.StateChangeEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:StreamingEvent">shaka.Player.StreamingEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TextChangedEvent">shaka.Player.TextChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ThirdQuartile">shaka.Player.ThirdQuartile</a></li><li class="access-export"><a href="shaka.Player.html#.event:TimelineRegionAddedEvent">shaka.Player.TimelineRegionAddedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TimelineRegionEnterEvent">shaka.Player.TimelineRegionEnterEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TimelineRegionExitEvent">shaka.Player.TimelineRegionExitEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TracksChangedEvent">shaka.Player.TracksChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:UnloadingEvent">shaka.Player.UnloadingEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:VariantChangedEvent">shaka.Player.VariantChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:CaptionSelectionUpdatedEvent">shaka.ui.Controls.CaptionSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:CastStatusChangedEvent">shaka.ui.Controls.CastStatusChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:ChaptersUpdatedEvent">shaka.ui.Controls.ChaptersUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:ErrorEvent">shaka.ui.Controls.ErrorEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:LanguageSelectionUpdatedEvent">shaka.ui.Controls.LanguageSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:ResolutionSelectionUpdatedEvent">shaka.ui.Controls.ResolutionSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:SubMenuCloseEvent">shaka.ui.Controls.SubMenuCloseEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:SubMenuOpenEvent">shaka.ui.Controls.SubMenuOpenEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:TimeAndSeekRangeUpdatedEvent">shaka.ui.Controls.TimeAndSeekRangeUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:UIUpdatedEvent">shaka.ui.Controls.UIUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:CaptionSelectionUpdatedEvent">shaka.ui.Controls#CaptionSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:CastStatusChangedEvent">shaka.ui.Controls#CastStatusChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:ChaptersUpdatedEvent">shaka.ui.Controls#ChaptersUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:ErrorEvent">shaka.ui.Controls#ErrorEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:LanguageSelectionUpdatedEvent">shaka.ui.Controls#LanguageSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:ResolutionSelectionUpdatedEvent">shaka.ui.Controls#ResolutionSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:SubMenuOpenEvent">shaka.ui.Controls#SubMenuOpenEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:TimeAndSeekRangeUpdatedEvent">shaka.ui.Controls#TimeAndSeekRangeUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:UIUpdatedEvent">shaka.ui.Controls#UIUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:VRStatusChangedEvent">shaka.ui.Controls#VRStatusChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Localization.html#.event:LocaleChangedEvent">shaka.ui.Localization.LocaleChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Localization.html#.event:MissingLocalizationsEvent">shaka.ui.Localization.MissingLocalizationsEvent</a></li><li class="access-export"><a href="shaka.ui.Localization.html#.event:UnknownLocalesEvent">shaka.ui.Localization.UnknownLocalesEvent</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon May 04 2026 12:06:34 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> initShowWidget(); </script>
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
