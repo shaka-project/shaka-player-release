@@ -3681,6 +3681,10 @@ declare namespace shaka.util {
      */
     box (type : string , definition : shaka.util.Mp4Parser.CallbackType ) : shaka.util.Mp4Parser ;
     /**
+     * Declare multiple box types as Basic Boxes.
+     */
+    boxes (types : string [] , definition : shaka.util.Mp4Parser.CallbackType ) : shaka.util.Mp4Parser ;
+    /**
      * Declare a box type as a Full Box.
      */
     fullBox (type : string , definition : shaka.util.Mp4Parser.CallbackType ) : shaka.util.Mp4Parser ;

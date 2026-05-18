@@ -2070,6 +2070,13 @@ shaka.util.Mp4Parser = class {
    */
   box(type, definition) {}
   /**
+   * Declare multiple box types as Basic Boxes.
+   * @param {!Array<string>} types
+   * @param {!shaka.util.Mp4Parser.CallbackType} definition
+   * @return {!shaka.util.Mp4Parser}
+   */
+  boxes(types, definition) {}
+  /**
    * Declare a box type as a Full Box.
    * @param {string} type
    * @param {!shaka.util.Mp4Parser.CallbackType} definition
