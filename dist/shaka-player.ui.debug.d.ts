@@ -2788,12 +2788,22 @@ declare namespace shaka.text {
      * A text displayer plugin using the browser's native VTTCue interface.
      */
     constructor (player : shaka.Player | null ) ;
+    /**
+     * Appends cues to the active track, applying the subtitle delay if set.
+     */
     append (cues : any ) : any ;
     configure (config : any ) : any ;
     destroy ( ) : any ;
     isTextVisible ( ) : any ;
+    /**
+     * Removes cues whose time range overlaps with [start, end).
+     * Returns false only if this instance has already been destroyed.
+     */
     remove (start : any , end : any ) : any ;
-    setTextLanguage (language : any ) : any ;
+    setTextLanguage (_language : any ) : any ;
+    /**
+     * Shows or hides subtitles. Handles both MSE and SRC_EQUALS playback modes.
+     */
     setTextVisibility (on : any ) : any ;
   }
 }

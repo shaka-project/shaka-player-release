@@ -212,6 +212,185 @@
 
         
             
+<div class="access-container access-public">
+
+<h4 class="name" id=".LoadMode"><span class="type-signature"></span>LoadMode<span class="type-signature"> :number</span></h4>
+
+
+
+
+<div class="description">
+    Named constants mirroring shaka.Player.LoadMode to avoid magic numbers.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">number</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        
+        <th>Value</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        
+        <tr class="enum" id="value:2">
+        
+
+            
+                <td class="name"><code>MEDIA_SOURCE</code></td>
+            
+
+            
+                <td class="default">
+                
+                    2
+                
+                </td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        
+        <tr class="enum" id="value:3">
+        
+
+            
+                <td class="name"><code>SRC_EQUALS</code></td>
+            
+
+            
+                <td class="default">
+                
+                    3
+                
+                </td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line625">line 625</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
 <div class="access-container access-private">
 
 <h4 class="name" id="config_"><span class="type-signature"></span>config_<span class="type-signature"> :<a href="shaka.extern.html#.TextDisplayerConfiguration">shaka.extern.TextDisplayerConfiguration</a></span></h4>
@@ -266,7 +445,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line42">line 42</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line45">line 45</a>
     </li></ul></dd>
     
 
@@ -341,6 +520,80 @@
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
         <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line39">line 39</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="loadEventManager_"><span class="type-signature"></span>loadEventManager_<span class="type-signature"> :<a href="shaka.util.EventManager.html">shaka.util.EventManager</a></span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="shaka.util.EventManager.html">shaka.util.EventManager</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line42">line 42</a>
     </li></ul></dd>
     
 
@@ -441,6 +694,10 @@
 
 
 
+<div class="description">
+    Timer used to debounce the textTracks 'change' event.
+</div>
+
 
 
     <h5>Type:</h5>
@@ -488,7 +745,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line57">line 57</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line66">line 66</a>
     </li></ul></dd>
     
 
@@ -514,6 +771,10 @@
 
 
 
+
+<div class="description">
+    ID of the currently active text track. -1 means no track is active.
+</div>
 
 
 
@@ -562,7 +823,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line51">line 51</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line57">line 57</a>
     </li></ul></dd>
     
 
@@ -636,155 +897,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line48">line 48</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-</div>
-
-        
-            
-<div class="access-container access-public">
-
-<h4 class="name" id="trackNodes_"><span class="type-signature"></span>trackNodes_<span class="type-signature"> :Map</span></h4>
-
-
-
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Map</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line167">line 167</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-</div>
-
-        
-            
-<div class="access-container access-public">
-
-<h4 class="name" id="trackNodes_"><span class="type-signature"></span>trackNodes_<span class="type-signature"> :Map</span></h4>
-
-
-
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Map</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line180">line 180</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line51">line 51</a>
     </li></ul></dd>
     
 
@@ -858,7 +971,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line45">line 45</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line48">line 48</a>
     </li></ul></dd>
     
 
@@ -932,7 +1045,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line54">line 54</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line60">line 60</a>
     </li></ul></dd>
     
 
@@ -964,225 +1077,24 @@
     
 
     
-    <h4 class="name" id=".getTrackKind_"><span class="type-signature"></span>getTrackKind_<span class="signature">(track<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    <h4 class="name" id="activateCurrentTrack_"><span class="type-signature"></span>activateCurrentTrack_<span class="signature">()</span><span class="type-signature"></span></h4>
     
 
     
 
 
 
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>track</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="shaka.extern.html#.TextTrack">shaka.extern.TextTrack</a></span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line349">line 349</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">string</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
+<div class="description">
+    Activates the track identified by this.trackId_ among the newly built
+nodes, respecting the current mode if it was changed manually by the user.
 </div>
 
-        
-            
-<div class="access-container access-private">
-
-
-    
-
-    
-    <h4 class="name" id=".getTrackLabel_"><span class="type-signature"></span>getTrackLabel_<span class="signature">(track<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {string}</span></h4>
-    
-
-    
 
 
 
 
 
 
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>track</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="shaka.extern.html#.TextTrack">shaka.extern.TextTrack</a></span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -1220,7 +1132,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line367">line 367</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line414">line 414</a>
     </li></ul></dd>
     
 
@@ -1245,24 +1157,6 @@
 
 
 
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">string</span>
-
-
-    </dd>
-</dl>
-
-    
 
 
 
@@ -1286,7 +1180,7 @@
 
 
 <div class="description">
-    Append given text cues to the list of cues to be displayed.
+    Appends cues to the active track, applying the subtitle delay if set.
 </div>
 
 
@@ -1388,7 +1282,318 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line233">line 233</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line109">line 109</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="applyVisibilityToSrcEqualsTracks_"><span class="type-signature"></span>applyVisibilityToSrcEqualsTracks_<span class="signature">(on)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Manages subtitle visibility in SRC_EQUALS mode, where tracks are controlled
+directly by the HTMLMediaElement rather than MSE.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>on</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line322">line 322</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="applyVisibilityToTrack_"><span class="type-signature"></span>applyVisibilityToTrack_<span class="signature">(track, visible)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Applies the visibility mode to a specific track without touching tracks
+that are already 'disabled' (e.g. manually turned off by the user).
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>track</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">TextTrack</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>visible</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line291">line 291</a>
     </li></ul></dd>
     
 
@@ -1435,6 +1640,11 @@
 
 
 
+<div class="description">
+    Initialises MSE integration if the player is already in MEDIA_SOURCE mode.
+Called from the constructor and again on each 'Loaded' event.
+</div>
+
 
 
 
@@ -1478,7 +1688,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line330">line 330</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line511">line 511</a>
     </li></ul></dd>
     
 
@@ -1628,7 +1838,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line208">line 208</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line78">line 78</a>
     </li></ul></dd>
     
 
@@ -1653,6 +1863,865 @@
 
 
 
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="createTrackNode_"><span class="type-signature"></span>createTrackNode_<span class="signature">(track<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {HTMLTrackElement}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Creates a new <track> DOM element for the given track and appends it to
+the video element.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>track</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.TextTrack">shaka.extern.TextTrack</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line371">line 371</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">HTMLTrackElement</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="disableAllTracksExcept_"><span class="type-signature"></span>disableAllTracksExcept_<span class="signature">(keepTrackId)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Sets all tracks except the specified one to 'disabled', avoiding
+unnecessary change events on tracks that are already disabled.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>keepTrackId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line477">line 477</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="getActiveTrack_"><span class="type-signature"></span>getActiveTrack_<span class="signature">()</span><span class="type-signature"> &rarr; {TextTrack}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Returns the active TextTrack, or null if none is currently active.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line278">line 278</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">TextTrack</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="getTrackKind_"><span class="type-signature"></span>getTrackKind_<span class="signature">(track<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Returns the appropriate `kind` value for a <track> element.
+WebKit requires the 'forced' kind for forced tracks; other browsers use
+'captions' for closed captions and 'subtitles' as the default.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>track</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.TextTrack">shaka.extern.TextTrack</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line544">line 544</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="getTrackLabel_"><span class="type-signature"></span>getTrackLabel_<span class="signature">(track<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Builds a human-readable label for a track. Priority order:
+1. track.label (if explicitly set)
+2. Intl.DisplayNames resolution (when available)
+3. Full language name from LanguageMapping (exact match)
+4. Base language name from LanguageMapping with variant in parentheses
+5. originalTextId with the language code in parentheses if they differ
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>track</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.TextTrack">shaka.extern.TextTrack</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line569">line 569</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="isSrcEqualsMode_"><span class="type-signature"></span>isSrcEqualsMode_<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Returns true if the player is currently in SRC_EQUALS mode.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line307">line 307</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
 
 
 
@@ -1729,7 +2798,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line272">line 272</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line154">line 154</a>
     </li></ul></dd>
     
 
@@ -1794,6 +2863,12 @@
 
 
 
+<div class="description">
+    Handles manual changes to the video's textTracks (e.g. the user enables a
+track through the browser's native subtitle menu). Applies debounce because
+the 'change' event can fire multiple times in quick succession.
+</div>
+
 
 
 
@@ -1837,7 +2912,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line139">line 139</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line245">line 245</a>
     </li></ul></dd>
     
 
@@ -1884,6 +2959,12 @@
 
 
 
+<div class="description">
+    Synchronises the DOM <track> elements with the player's track list.
+Creates elements for new tracks, reuses existing ones, and removes
+any that are no longer present.
+</div>
+
 
 
 
@@ -1927,7 +3008,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line76">line 76</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line213">line 213</a>
     </li></ul></dd>
     
 
@@ -1974,6 +3055,11 @@
 
 
 
+<div class="description">
+    Cleans up internal state when the player starts unloading content.
+Registered with listenOnce, so it fires at most once per playback session.
+</div>
+
 
 
 
@@ -2017,7 +3103,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line60">line 60</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line192">line 192</a>
     </li></ul></dd>
     
 
@@ -2065,11 +3151,8 @@
 
 
 <div class="description">
-    Remove all cues that are fully contained by the given time range (relative
-to the presentation). <code>endTime</code> will be greater to equal to
-<code>startTime</code>.  <code>remove</code> should only return
-<code>false</code> if the displayer has been destroyed. If the displayer
-has not been destroyed <code>remove</code> should return <code>true</code>.
+    Removes cues whose time range overlaps with [start, end).
+Returns false only if this instance has already been destroyed.
 </div>
 
 
@@ -2194,7 +3277,7 @@ has not been destroyed <code>remove</code> should return <code>true</code>.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line216">line 216</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line89">line 89</a>
     </li></ul></dd>
     
 
@@ -2231,6 +3314,449 @@ has not been destroyed <code>remove</code> should return <code>true</code>.
     <dd>
         
 <span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="resolveActiveTrackId_"><span class="type-signature"></span>resolveActiveTrackId_<span class="signature">()</span><span class="type-signature"> &rarr; {number}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Determines which track should be active after a 'change' event.
+Prefers the previously selected track; otherwise picks the first 'showing'
+track, and falls back to the first 'hidden' track.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line441">line 441</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    The ID of the track to activate, or -1 if none.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">number</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="resolveTrackLanguage_"><span class="type-signature"></span>resolveTrackLanguage_<span class="signature">(track<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Resolves the appropriate srclang value for a track based on its declared
+language. Falls back to 'und' (undetermined) if the language is unknown.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>track</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.TextTrack">shaka.extern.TextTrack</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line398">line 398</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="reuseTrackNode_"><span class="type-signature"></span>reuseTrackNode_<span class="signature">(track<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {HTMLTrackElement}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Reuses an existing <track> DOM node for a known track.
+Disables the node if the track is no longer active, and removes the entry
+from the original map so that onTextChanged_ can detect orphaned nodes.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>track</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.TextTrack">shaka.extern.TextTrack</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line354">line 354</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">HTMLTrackElement</span>
 
 
     </dd>
@@ -2362,7 +3888,7 @@ has not been destroyed <code>remove</code> should return <code>true</code>.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line323">line 323</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line182">line 182</a>
     </li></ul></dd>
     
 
@@ -2410,7 +3936,7 @@ has not been destroyed <code>remove</code> should return <code>true</code>.
 
 
 <div class="description">
-    Set text visibility.
+    Shows or hides subtitles. Handles both MSE and SRC_EQUALS playback modes.
 </div>
 
 
@@ -2512,7 +4038,151 @@ has not been destroyed <code>remove</code> should return <code>true</code>.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line280">line 280</a>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line164">line 164</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="syncTrackSelectionWithPlayer_"><span class="type-signature"></span>syncTrackSelectionWithPlayer_<span class="signature">(trackId)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Notifies the player of the newly selected track, or clears the selection
+if trackId is -1.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>trackId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_native_text_displayer.js.html">lib/text/native_text_displayer.js</a>, <a href="lib_text_native_text_displayer.js.html#line493">line 493</a>
     </li></ul></dd>
     
 
@@ -2574,7 +4244,7 @@ has not been destroyed <code>remove</code> should return <code>true</code>.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon May 25 2026 10:41:04 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Jun 01 2026 09:58:39 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

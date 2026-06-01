@@ -3510,10 +3510,13 @@ shaka.text.NativeTextDisplayer = class {
    */
   configure(config) {}
   /**
+   * Removes cues whose time range overlaps with [start, end).
+   * Returns false only if this instance has already been destroyed.
    * @override
    */
   remove(start, end) {}
   /**
+   * Appends cues to the active track, applying the subtitle delay if set.
    * @override
    */
   append(cues) {}
@@ -3526,13 +3529,14 @@ shaka.text.NativeTextDisplayer = class {
    */
   isTextVisible() {}
   /**
+   * Shows or hides subtitles. Handles both MSE and SRC_EQUALS playback modes.
    * @override
    */
   setTextVisibility(on) {}
   /**
    * @override
    */
-  setTextLanguage(language) {}
+  setTextLanguage(_language) {}
 };
 /**
  * A stub text displayer plugin that does nothing
