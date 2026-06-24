@@ -1120,7 +1120,7 @@ shaka.text.Cue.fontStyle = {
  */
 shaka.text.Cue.textDecoration = {
   'UNDERLINE': 'underline',
-  'LINE_THROUGH': 'lineThrough',
+  'LINE_THROUGH': 'line-through',
   'OVERLINE': 'overline'
 };
 /**

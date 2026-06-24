@@ -2630,7 +2630,7 @@ declare namespace shaka.text.Cue {
 // Generated from /home/runner/work/shaka-player/shaka-player/dist/shaka-player.compiled.externs.js
 declare namespace shaka.text.Cue {
   enum textDecoration {
-    LINE_THROUGH = 'lineThrough' ,
+    LINE_THROUGH = 'line-through' ,
     OVERLINE = 'overline' ,
     UNDERLINE = 'underline' ,
   }

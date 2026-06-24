@@ -2670,7 +2670,7 @@ declare namespace shaka.text.Cue {
 // Generated from /home/runner/work/shaka-player/shaka-player/dist/shaka-player.ui-es2021.externs.js
 declare namespace shaka.text.Cue {
   enum textDecoration {
-    LINE_THROUGH = 'lineThrough' ,
+    LINE_THROUGH = 'line-through' ,
     OVERLINE = 'overline' ,
     UNDERLINE = 'underline' ,
   }
@@ -3392,6 +3392,13 @@ declare namespace shaka.ui {
 declare namespace shaka.ui {
   class MuteButton extends shaka.ui.Element {
     private noStructuralTyping_shaka_ui_MuteButton : any;
+    constructor (parent : HTMLElement , controls : shaka.ui.Controls ) ;
+  }
+}
+// Generated from /home/runner/work/shaka-player/shaka-player/dist/shaka-player.ui-es2021.externs.js
+declare namespace shaka.ui {
+  class MuteVolumeBar extends shaka.ui.Element {
+    private noStructuralTyping_shaka_ui_MuteVolumeBar : any;
     constructor (parent : HTMLElement , controls : shaka.ui.Controls ) ;
   }
 }

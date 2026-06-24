@@ -1443,7 +1443,7 @@ shaka.text.Cue.fontStyle = {
  */
 shaka.text.Cue.textDecoration = {
   'UNDERLINE': 'underline',
-  'LINE_THROUGH': 'lineThrough',
+  'LINE_THROUGH': 'line-through',
   'OVERLINE': 'overline'
 };
 /**
@@ -6789,6 +6789,28 @@ shaka.ui.MuteButton = class extends shaka.ui.Element {
   constructor(parent, controls) {}
 };
 /**
+ * @extends {shaka.ui.RangeElement}
+ * @final
+ */
+shaka.ui.VolumeBar = class extends shaka.ui.RangeElement {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * @extends {shaka.ui.Element}
+ * @final
+ */
+shaka.ui.MuteVolumeBar = class extends shaka.ui.Element {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
  * @extends {shaka.ui.Element}
  * @final
  */
@@ -6980,17 +7002,6 @@ shaka.ui.ToggleStereoscopicButton = class extends shaka.ui.Element {
  * @final
  */
 shaka.ui.VideoTypeSelection = class extends shaka.ui.SettingsMenu {
-  /**
-   * @param {!HTMLElement} parent
-   * @param {!shaka.ui.Controls} controls
-   */
-  constructor(parent, controls) {}
-};
-/**
- * @extends {shaka.ui.RangeElement}
- * @final
- */
-shaka.ui.VolumeBar = class extends shaka.ui.RangeElement {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
