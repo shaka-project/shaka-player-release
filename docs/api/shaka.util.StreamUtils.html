@@ -313,7 +313,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2194">line 2194</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2222">line 2222</a>
     </li></ul></dd>
     
 
@@ -392,7 +392,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2185">line 2185</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2213">line 2213</a>
     </li></ul></dd>
     
 
@@ -466,7 +466,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2222">line 2222</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2250">line 2250</a>
     </li></ul></dd>
     
 
@@ -540,7 +540,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2234">line 2234</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2262">line 2262</a>
     </li></ul></dd>
     
 
@@ -614,7 +614,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2213">line 2213</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2241">line 2241</a>
     </li></ul></dd>
     
 
@@ -688,7 +688,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2189">line 2189</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2217">line 2217</a>
     </li></ul></dd>
     
 
@@ -762,7 +762,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2202">line 2202</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2230">line 2230</a>
     </li></ul></dd>
     
 
@@ -2364,7 +2364,7 @@ Also filters out variants that have too many audio channels.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2113">line 2113</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2169">line 2169</a>
     </li></ul></dd>
     
 
@@ -2401,6 +2401,171 @@ Also filters out variants that have too many audio channels.
     <dd>
         
 <span class="param-type"><a href="shaka.extern.html#.Variant">shaka.extern.Variant</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-public">
+
+
+    
+
+    
+    <h4 class="name" id=".createStream"><span class="type-signature"></span>createStream<span class="signature">(overrides<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {<a href="shaka.extern.html#.Stream">shaka.extern.Stream</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Creates a Stream object, filling in default values for every field and
+applying the given overrides on top.  This avoids repeating the full set
+of Stream defaults at the many call sites that build placeholder, dummy or
+external streams.  fullMimeTypes is derived from the resulting mimeType
+and codecs; streams without a mimeType keep the default empty set.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>overrides</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object&lt;string, *&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2119">line 2119</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="shaka.extern.html#.Stream">shaka.extern.Stream</a></span>
 
 
     </dd>
@@ -8294,7 +8459,7 @@ https://professionalsupport.dolby.com/s/article/How-to-signal-Dolby-Vision-in-MP
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Wed Jun 24 2026 10:20:14 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Jun 29 2026 13:03:57 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
