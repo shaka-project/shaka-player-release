@@ -12,7 +12,6 @@ goog.require('shaka.net.NetworkingUtils');
 goog.require('shaka.ui.Controls');
 goog.require('shaka.ui.Enums');
 goog.require('shaka.ui.Locales');
-goog.require('shaka.ui.Localization');
 goog.require('shaka.ui.OverflowMenu');
 goog.require('shaka.ui.SettingsMenu');
 goog.require('shaka.ui.Utils');
@@ -37,16 +36,6 @@ shaka.ui.ChapterSelection = class extends shaka.ui.SettingsMenu {
     this.menu.classList.add('shaka-chapters');
     this.button.classList.add('shaka-tooltip-status');
 
-    this.eventManager.listenMulti(
-        this.localization,
-        [
-          shaka.ui.Localization.LOCALE_UPDATED,
-          shaka.ui.Localization.LOCALE_CHANGED,
-        ], () => {
-          this.updateLocalizedStrings_();
-          this.updateChapters_();
-        });
-
     let hasImageTracks = this.player.getImageTracks().length;
 
     this.eventManager.listen(this.controls, 'chaptersupdated', () => {
@@ -65,55 +54,42 @@ shaka.ui.ChapterSelection = class extends shaka.ui.SettingsMenu {
       hasImageTracks = newHasImageTracks;
     });
 
-    if (this.isSubMenu) {
-      this.eventManager.listenMulti(
-          this.controls,
-          [
-            'submenuopen',
-            'submenuclose',
-          ], () => {
-            const hasChapters = this.controls.getChapters().length > 0;
-            shaka.ui.Utils.setDisplay(this.button,
-                hasChapters && !this.isSubMenuOpened);
-          });
-    }
-
     // Set up all the strings in the user's preferred language.
-    this.updateLocalizedStrings_();
+    this.updateLocalizedStrings();
 
     this.updateChapters_();
   }
 
-  /**
-   * @private
-   */
-  updateLocalizedStrings_() {
+  /** @override */
+  updateLocalizedStrings() {
     const LocIds = shaka.ui.Locales.Ids;
 
     this.backButton.ariaLabel = this.localization.resolve(LocIds.BACK);
-    this.button.ariaLabel = this.localization.resolve(LocIds.CHAPTERS);
-    this.nameSpan.textContent = this.localization.resolve(LocIds.CHAPTERS);
-    this.backSpan.textContent = this.localization.resolve(LocIds.CHAPTERS);
+
+    const label = this.localization.resolve(LocIds.CHAPTERS);
+    this.button.ariaLabel = label;
+    this.nameSpan.textContent = label;
+    this.backSpan.textContent = label;
+
+    this.updateChapters_();
   }
 
-  /**
-   * @private
-   */
+  /** @override */
+  checkAvailability() {
+    const hasChapters = this.controls.getChapters().length > 0;
+    shaka.ui.Utils.setDisplay(
+        this.button, hasChapters && !this.isSubMenuOpened);
+  }
+
+  /** @private */
   updateChapters_() {
-    // 1. Save the back to menu button
-    const backButton = shaka.ui.Utils.getFirstDescendantWithClassName(
-        this.menu, 'shaka-back-to-overflow-button');
-
-    // 2. Remove everything
-    shaka.util.Dom.removeAllChildren(this.menu);
-
-    // 3. Add the backTo Menu button back
-    this.menu.appendChild(backButton);
+    shaka.ui.Utils.clearMenuKeepingBackButton(this.menu);
 
     const chapters = this.controls.getChapters();
     if (chapters.length) {
       for (const chapter of chapters) {
         const button = shaka.util.Dom.createButton();
+        button.setAttribute('role', 'menuitem');
         button.classList.add('shaka-chapter-item');
         const span = shaka.util.Dom.createHTMLElement('span');
         span.classList.add('shaka-chapter');

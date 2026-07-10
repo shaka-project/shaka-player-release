@@ -44,6 +44,7 @@ shaka.ui.ContextMenu = class extends shaka.ui.Element {
     this.contextMenu_.classList.add('shaka-no-propagation');
     this.contextMenu_.classList.add('shaka-context-menu');
     this.contextMenu_.classList.add('shaka-hidden');
+    this.contextMenu_.setAttribute('role', 'menu');
 
     this.controlsContainer_.appendChild(this.contextMenu_);
 
@@ -140,6 +141,7 @@ shaka.ui.ContextMenu = class extends shaka.ui.Element {
    */
   closeMenu() {
     shaka.ui.Utils.setDisplay(this.contextMenu_, false);
+    this.controls.hideTextStylePreview();
   }
 
   /**

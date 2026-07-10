@@ -21,6 +21,7 @@
  *   hls: typeof shaka.hls,
  *   lcevc: typeof shaka.lcevc,
  *   media: typeof shaka.media,
+ *   metadata: typeof shaka.metadata,
  *   msf: typeof shaka.msf,
  *   net: typeof shaka.net,
  *   offline: typeof shaka.offline,

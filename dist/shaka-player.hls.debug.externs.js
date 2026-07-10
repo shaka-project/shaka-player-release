@@ -30,6 +30,8 @@ shaka.media = {};
 /** @const */
 shaka.media.SegmentPrefetch = {};
 /** @const */
+shaka.metadata = {};
+/** @const */
 shaka.net = {};
 /** @const */
 shaka.text = {};
@@ -49,6 +51,7 @@ shaka.util.CmcdManager = {};
  *   hls: typeof shaka.hls,
  *   lcevc: typeof shaka.lcevc,
  *   media: typeof shaka.media,
+ *   metadata: typeof shaka.metadata,
  *   net: typeof shaka.net,
  *   Player: typeof shaka.Player,
  *   polyfill: typeof shaka.polyfill,
@@ -145,6 +148,15 @@ shaka.util.EventManager = class {
    * @return {undefined}
    */
   unlisten(target, type, listener) {}
+  /**
+   * Detaches the same event listener from multiple event types on the same
+   * target.
+   * @param {EventTarget} target The event target.
+   * @param {!Array<string>} types The event types.
+   * @param {shaka.util.EventManager.ListenerType=} listener The event listener.
+   * @return {undefined}
+   */
+  unlistenMulti(target, types, listener) {}
   /**
    * Detaches all event listeners from all targets.
    * @return {undefined}
@@ -380,6 +392,7 @@ shaka.util.Error.Code = {
   'HLS_INVALID_GCM_SEGMENT': 4060,
   'DASH_INVALID_JSON': 4061,
   'MSF_NO_CATALOG': 4062,
+  'DASH_UNSUPPORTED_ESSENTIAL_PROPERTY': 4063,
   'STREAMING_ENGINE_STARTUP_INVALID_STATE': 5006,
   'NO_RECOGNIZED_KEY_SYSTEMS': 6000,
   'REQUESTED_KEY_SYSTEM_CONFIG_UNAVAILABLE': 6001,
@@ -532,6 +545,149 @@ shaka.util.Uint8ArrayUtils = class {
    * @return {!Uint8Array}
    */
   static concat(...varArgs) {}
+};
+/**
+ * @summary A set of language utility functions.
+ * @final
+ */
+shaka.util.LanguageUtils = class {
+  /**
+   * Check if |locale1| and |locale2| are locale-compatible.
+   * Locale-compatible is defined as all components in each locale match. Since
+   * we only respect the language and region components, we only check that
+   * the language and region components match.
+   * Examples:
+   *  Locale A | Locale B | Locale Compatible
+   *  ---------------------------------------
+   *  en-US    | en-US    | true
+   *  en       | en-US    | false
+   *  en-US    | en-CA    | false
+   * @param {string} locale1
+   * @param {string} locale2
+   * @return {boolean}
+   */
+  static areLocaleCompatible(locale1, locale2) {}
+  /**
+   * Check if |locale1| and |locale2| are language-compatible.
+   * Language compatible is when the language component of each locale matches.
+   * This means that no matter what region they have (or don't have) as long as
+   * the language components match, they are language-compatible.
+   * Examples:
+   *  Locale A | Locale B | Language-Compatible
+   *  -----------------------------------------
+   *  en-US    | en-US    | true
+   *  en-US    | en       | true
+   *  en-US    | en-CA    | true
+   *  en-CA    | fr-CA    | false
+   * @param {string} locale1
+   * @param {string} locale2
+   * @return {boolean}
+   */
+  static areLanguageCompatible(locale1, locale2) {}
+  /**
+   * Check if |possibleParent| is the parent locale of |possibleChild|. Because
+   * we do not support dialects, the parent-child relationship is a lot simpler.
+   * In a parent child relationship:
+   *    - The parent and child have the same language-component
+   *    - The parent has no region-component
+   *    - The child has a region-component
+   * Example:
+   *  Locale A | Locale B | Is A The parent of B?
+   *  --------------------------------------------
+   *  en-US    | en-US    | no
+   *  en-US    | en       | no
+   *  en       | en-US    | yes
+   *  en       | en       | no
+   *  en       | fr       | no
+   * @param {string} possibleParent
+   * @param {string} possibleChild
+   * @return {boolean}
+   */
+  static isParentOf(possibleParent, possibleChild) {}
+  /**
+   * Check if |localeA| shares the same parent with |localeB|. Since we don't
+   * support dialect, we will only look at language and region. For two locales
+   * to be siblings:
+   *    - Both must have language-components
+   *    - Both must have region-components
+   *    - Both must have the same language-component
+   * Example:
+   *  Locale A | Locale B | Siblings?
+   *  --------------------------------------------
+   *  en-US    | en-US    | yes
+   *  en-US    | en-CA    | yes
+   *  en-US    | en       | no
+   *  en       | en-US    | no
+   *  en       | en       | no
+   *  en       | fr       | no
+   * @param {string} localeA
+   * @param {string} localeB
+   * @return {boolean}
+   */
+  static isSiblingOf(localeA, localeB) {}
+  /**
+   * Normalize a locale. This will take a locale and canonicalize it to a state
+   * that we are prepared to work with.
+   * We only support with:
+   *   - language
+   *   - language-REGION
+   * If given a dialect, we will discard it. We will convert any 3-character
+   * codes to 2-character codes. We will force language codes to lowercase and
+   * region codes to uppercase.
+   * @param {string} locale
+   * @return {string}
+   */
+  static normalize(locale) {}
+  /**
+   * Check if two language codes are siblings. Language codes are siblings if
+   * they share the same base language while neither one is the base language.
+   * For example, "en-US" and "en-CA" are siblings but "en-US" and "en" are not
+   * siblings.
+   * @param {string} a
+   * @param {string} b
+   * @return {boolean}
+   */
+  static areSiblings(a, b) {}
+  /**
+   * Compute a numerical relatedness for language codes.  Language codes with a
+   * higher relatedness are a better match.  Unrelated language codes have a
+   * relatedness score of 0.
+   * @param {string} target
+   * @param {string} candidate
+   * @return {number}
+   */
+  static relatedness(target, candidate) {}
+  /**
+   * Get the normalized base language for a language code.
+   * @param {string} lang
+   * @return {string}
+   */
+  static getBase(lang) {}
+  /**
+   * Get the normalized language of the given text stream. Will return 'und' if
+   * a language is not found on the text stream.
+   * This should always be used to get the language from a text stream.
+   * @param {shaka.extern.Stream} stream
+   * @return {string}
+   */
+  static getLocaleForText(stream) {}
+  /**
+   * Get the normalized locale for the given variant. This will look through
+   * the variant to find the locale that represents the content in the variant.
+   * This will return 'und' if no language can be found.
+   * This should always be used to get the locale from a variant.
+   * @param {shaka.extern.Variant} variant
+   * @return {string}
+   */
+  static getLocaleForVariant(variant) {}
+  /**
+   * Find the locale in |searchSpace| that comes closest to |target|. If no
+   * locale is found to be close to |target|, then |null| will be returned.
+   * @param {string} target
+   * @param {!Iterable<string>} searchSpace
+   * @return {?string}
+   */
+  static findClosestLocale(target, searchSpace) {}
 };
 /**
  * @summary
@@ -1250,149 +1406,6 @@ shaka.util.Timer = class {
   stop() {}
 };
 /**
- * @summary A set of language utility functions.
- * @final
- */
-shaka.util.LanguageUtils = class {
-  /**
-   * Check if |locale1| and |locale2| are locale-compatible.
-   * Locale-compatible is defined as all components in each locale match. Since
-   * we only respect the language and region components, we only check that
-   * the language and region components match.
-   * Examples:
-   *  Locale A | Locale B | Locale Compatible
-   *  ---------------------------------------
-   *  en-US    | en-US    | true
-   *  en       | en-US    | false
-   *  en-US    | en-CA    | false
-   * @param {string} locale1
-   * @param {string} locale2
-   * @return {boolean}
-   */
-  static areLocaleCompatible(locale1, locale2) {}
-  /**
-   * Check if |locale1| and |locale2| are language-compatible.
-   * Language compatible is when the language component of each locale matches.
-   * This means that no matter what region they have (or don't have) as long as
-   * the language components match, they are language-compatible.
-   * Examples:
-   *  Locale A | Locale B | Language-Compatible
-   *  -----------------------------------------
-   *  en-US    | en-US    | true
-   *  en-US    | en       | true
-   *  en-US    | en-CA    | true
-   *  en-CA    | fr-CA    | false
-   * @param {string} locale1
-   * @param {string} locale2
-   * @return {boolean}
-   */
-  static areLanguageCompatible(locale1, locale2) {}
-  /**
-   * Check if |possibleParent| is the parent locale of |possibleChild|. Because
-   * we do not support dialects, the parent-child relationship is a lot simpler.
-   * In a parent child relationship:
-   *    - The parent and child have the same language-component
-   *    - The parent has no region-component
-   *    - The child has a region-component
-   * Example:
-   *  Locale A | Locale B | Is A The parent of B?
-   *  --------------------------------------------
-   *  en-US    | en-US    | no
-   *  en-US    | en       | no
-   *  en       | en-US    | yes
-   *  en       | en       | no
-   *  en       | fr       | no
-   * @param {string} possibleParent
-   * @param {string} possibleChild
-   * @return {boolean}
-   */
-  static isParentOf(possibleParent, possibleChild) {}
-  /**
-   * Check if |localeA| shares the same parent with |localeB|. Since we don't
-   * support dialect, we will only look at language and region. For two locales
-   * to be siblings:
-   *    - Both must have language-components
-   *    - Both must have region-components
-   *    - Both must have the same language-component
-   * Example:
-   *  Locale A | Locale B | Siblings?
-   *  --------------------------------------------
-   *  en-US    | en-US    | yes
-   *  en-US    | en-CA    | yes
-   *  en-US    | en       | no
-   *  en       | en-US    | no
-   *  en       | en       | no
-   *  en       | fr       | no
-   * @param {string} localeA
-   * @param {string} localeB
-   * @return {boolean}
-   */
-  static isSiblingOf(localeA, localeB) {}
-  /**
-   * Normalize a locale. This will take a locale and canonicalize it to a state
-   * that we are prepared to work with.
-   * We only support with:
-   *   - language
-   *   - language-REGION
-   * If given a dialect, we will discard it. We will convert any 3-character
-   * codes to 2-character codes. We will force language codes to lowercase and
-   * region codes to uppercase.
-   * @param {string} locale
-   * @return {string}
-   */
-  static normalize(locale) {}
-  /**
-   * Check if two language codes are siblings. Language codes are siblings if
-   * they share the same base language while neither one is the base language.
-   * For example, "en-US" and "en-CA" are siblings but "en-US" and "en" are not
-   * siblings.
-   * @param {string} a
-   * @param {string} b
-   * @return {boolean}
-   */
-  static areSiblings(a, b) {}
-  /**
-   * Compute a numerical relatedness for language codes.  Language codes with a
-   * higher relatedness are a better match.  Unrelated language codes have a
-   * relatedness score of 0.
-   * @param {string} target
-   * @param {string} candidate
-   * @return {number}
-   */
-  static relatedness(target, candidate) {}
-  /**
-   * Get the normalized base language for a language code.
-   * @param {string} lang
-   * @return {string}
-   */
-  static getBase(lang) {}
-  /**
-   * Get the normalized language of the given text stream. Will return 'und' if
-   * a language is not found on the text stream.
-   * This should always be used to get the language from a text stream.
-   * @param {shaka.extern.Stream} stream
-   * @return {string}
-   */
-  static getLocaleForText(stream) {}
-  /**
-   * Get the normalized locale for the given variant. This will look through
-   * the variant to find the locale that represents the content in the variant.
-   * This will return 'und' if no language can be found.
-   * This should always be used to get the locale from a variant.
-   * @param {shaka.extern.Variant} variant
-   * @return {string}
-   */
-  static getLocaleForVariant(variant) {}
-  /**
-   * Find the locale in |searchSpace| that comes closest to |target|. If no
-   * locale is found to be close to |target|, then |null| will be returned.
-   * @param {string} target
-   * @param {!Iterable<string>} searchSpace
-   * @return {?string}
-   */
-  static findClosestLocale(target, searchSpace) {}
-};
-/**
  * @summary A set of utility functions for dealing with Streams and Manifests.
  */
 shaka.util.StreamUtils = class {
@@ -1623,6 +1636,13 @@ shaka.util.Mp4Parser = class {
    */
   fullBox(type, definition) {}
   /**
+   * Declare multiple box types as Full Boxes.
+   * @param {!Array<string>} types
+   * @param {!shaka.util.Mp4Parser.CallbackType} definition
+   * @return {!shaka.util.Mp4Parser}
+   */
+  fullBoxes(types, definition) {}
+  /**
    * Stop parsing.  Useful for extracting information from partial segments and
    * avoiding an out-of-bounds error once you find what you are looking for.
    * @return {undefined}
@@ -1725,22 +1745,57 @@ shaka.cea.Mp4CeaParser = class {
   constructor() {}
 };
 /**
- * @summary
- * Parser for exponential Golomb codes, a variable-bit width number encoding
- * scheme used by h264.
- * Based on https://github.com/videojs/mux.js/blob/main/lib/utils/exp-golomb.js
  */
-shaka.util.ExpGolomb = class {
+shaka.metadata.Metadata = class {
   /**
+   * Returns all metadata frames found in the media data for the given MIME
+   * type.
+   * The method invokes every parser factory that has been registered for
+   * {@code mimeType} via {@link shaka.metadata.Metadata.registerParserByMime},
+   * collects all returned frames, and deduplicates them so that when multiple
+   * frames share the same {@code key} only the first occurrence is kept.
+   * The same MIME type may have more than one parser registered (e.g. both an
+   * ID3v2 and an ID3v1 parser for {@code audio/mpeg}).  All registered parsers
+   * are run in registration order and their results are concatenated before
+   * deduplication.
    * @param {!Uint8Array} data
-   * @param {boolean=} convertEbsp2rbsp
+   * @param {string} mimeType
+   * @return {!Array<!shaka.extern.MetadataFrame>}
    */
-  constructor(data, convertEbsp2rbsp) {}
+  static getMetadataFrames(data, mimeType) {}
+  /**
+   * Returns {@code true} when at least one parser has been registered for
+   * {@code mimeType}.
+   * @param {string} mimeType
+   * @return {boolean}
+   */
+  static supports(mimeType) {}
+  /**
+   * Registers a metadata parser factory for a given MIME type.
+   * The same MIME type may be registered more than once; each additional call
+   * appends the factory to the list of parsers for that MIME type.  When
+   * {@link shaka.metadata.Metadata.getMetadataFrames} is called, all
+   * registered parsers for the MIME type are invoked in registration order and
+   * their frames are merged (with first-occurrence-wins deduplication on
+   * {@code key}).
+   * @param {string} mimeType
+   * @param {shaka.extern.MetadataParser.Factory} parserFactory
+   * @return {undefined}
+   */
+  static registerParserByMime(mimeType, parserFactory) {}
+  /**
+   * Unregisters all parser factories that have been registered for the given
+   * MIME type.
+   * @param {string} mimeType
+   * @return {undefined}
+   */
+  static unregisterParserByMime(mimeType) {}
 };
 /**
  * @summary A set of Id3Utils utility functions.
+ * @implements {shaka.extern.MetadataParser}
  */
-shaka.util.Id3Utils = class {
+shaka.metadata.Id3Utils = class {
   /**
    * Returns an array of ID3 frames found in all the ID3 tags in the id3Data
    * @param {Uint8Array} id3Data - The ID3 data containing one or more ID3 tags
@@ -1755,6 +1810,23 @@ shaka.util.Id3Utils = class {
    * @return {!Uint8Array}
    */
   static getID3Data(id3Data, offset) {}
+  /**
+   * @override
+   */
+  parse(data) {}
+};
+/**
+ * @summary
+ * Parser for exponential Golomb codes, a variable-bit width number encoding
+ * scheme used by h264.
+ * Based on https://github.com/videojs/mux.js/blob/main/lib/utils/exp-golomb.js
+ */
+shaka.util.ExpGolomb = class {
+  /**
+   * @param {!Uint8Array} data
+   * @param {boolean=} convertEbsp2rbsp
+   */
+  constructor(data, convertEbsp2rbsp) {}
 };
 /**
  * @see https://en.wikipedia.org/wiki/MPEG_transport_stream
@@ -2254,7 +2326,9 @@ shaka.net.NetworkingEngine.RequestType = {
   'CONTENT_STEERING': 8,
   'CMCD': 9,
   'SESSION_DATA': 10,
-  'FINGERPRINT': 11
+  'FINGERPRINT': 11,
+  'PLAYLIST': 12,
+  'EVENT_CALLBACK': 13
 };
 /**
  * A more advanced form of the RequestType structure, meant to describe
@@ -2924,6 +2998,34 @@ shaka.media.PresentationTimeline = class {
    */
   getInitialProgramDateTime() {}
   /**
+   * Sets the program-date-time regions, one per discontinuity that introduces a
+   * new PROGRAM-DATE-TIME base.  Each region maps a presentation-time boundary
+   * (|start|, in seconds) to its wall-clock time (|pdt|, in seconds since
+   * 1970).  Must be sorted ascending by |start|.  An empty list clears them,
+   * restoring the default behavior of extrapolating from the initial program
+   * date time.
+   * @param {!Array<{start: number, pdt: number}>} regions
+   * @return {undefined}
+   */
+  setProgramDateTimeRegions(regions) {}
+  /**
+   * Gets the program-date-time region that contains the given presentation
+   * time, or null if there are no regions.  Times before the first region map
+   * to the first region.
+   * @param {number} time The presentation time, in seconds.
+   * @return {?{start: number, pdt: number}}
+   */
+  getProgramDateTimeRegionForTime(time) {}
+  /**
+   * Gets the wall-clock program date time, in seconds, for the given
+   * presentation time.  Accounts for PROGRAM-DATE-TIME jumps at discontinuities
+   * when region information is available, and otherwise extrapolates from the
+   * initial program date time.
+   * @param {number} time The presentation time, in seconds.
+   * @return {?number} The program date time in seconds, or null if unknown.
+   */
+  getProgramDateTimeForTime(time) {}
+  /**
    * Gives PresentationTimeline a Stream's minimum segment start time.
    * @param {number} startTime
    * @return {undefined}
@@ -3338,6 +3440,54 @@ shaka.media.AdaptationSet = class {
   constructor(root, candidates, compareCodecs) {}
 };
 /**
+ * @summary A proxy transmuxer that delegates transmux() calls to a Web Worker.
+ * Synchronous methods (isSupported, convertCodecs, getOriginalMimeType) are
+ * handled on the main thread by the inner transmuxer. Only the heavy
+ * transmux() work is offloaded to the worker.
+ * The worker URL must be supplied by the integrating application via the
+ * `mediaSource.transmuxWorkerUrl` config option. The library does not attempt
+ * to discover it. If the URL is empty or the worker cannot be created, the
+ * proxy falls back to main-thread transmuxing.
+ * @implements {shaka.extern.Transmuxer}
+ */
+shaka.transmuxer.TransmuxerProxy = class {
+  /**
+   * @param {!shaka.extern.Transmuxer} innerTransmuxer
+   *   The real transmuxer to use for sync methods and as fallback.
+   * @param {string=} workerUrl
+   *   URL of the standalone transmuxer worker script. When empty, the proxy
+   *   uses main-thread transmuxing.
+   */
+  constructor(innerTransmuxer, workerUrl) {}
+  /**
+   * @override
+   */
+  destroy() {}
+  /**
+   * @param {string} mimeType
+   * @param {string=} contentType
+   * @return {boolean}
+   * @override
+   */
+  isSupported(mimeType, contentType) {}
+  /**
+   * @param {string} contentType
+   * @param {string} mimeType
+   * @return {string}
+   * @override
+   */
+  convertCodecs(contentType, mimeType) {}
+  /**
+   * @return {string}
+   * @override
+   */
+  getOriginalMimeType() {}
+  /**
+   * @override
+   */
+  transmux(data, stream, reference, duration, contentType) {}
+};
+/**
  * @typedef {function(
  *  !(shaka.media.InitSegmentReference|shaka.media.SegmentReference),
  *  shaka.extern.Stream,
@@ -3430,6 +3580,36 @@ shaka.media.PreloadManager = class extends shaka.util.FakeEventTarget {
    * @override
    */
   destroy() {}
+};
+/**
+ * @summary Metadata parser for ID3v1 tags.
+ * @implements {shaka.extern.MetadataParser}
+ */
+shaka.metadata.Id3V1Utils = class {
+  /**
+   * @override
+   */
+  parse(data) {}
+};
+/**
+ * Utility class for parsing MP4 ILST (iTunes metadata) atoms.
+ * @implements {shaka.extern.MetadataParser}
+ */
+shaka.metadata.IlstUtils = class {
+  /**
+   * @override
+   */
+  parse(data) {}
+};
+/**
+ * Metadata parser for Vorbis Comments (FLAC, OGG, Vorbis, Opus).
+ * @implements {shaka.extern.MetadataParser}
+ */
+shaka.metadata.VorbisUtils = class {
+  /**
+   * @override
+   */
+  parse(data) {}
 };
 /**
  * @summary A networking plugin to handle http and https URIs via the Fetch API.
@@ -3564,6 +3744,19 @@ shaka.text.UITextDisplayer = class {
    */
   configure(config) {}
   /**
+   * Temporarily previews text displayer style settings using the normal UI
+   * text rendering path.
+   * @param {!shaka.extern.TextDisplayerConfiguration} config
+   * @param {string} exampleText
+   * @return {undefined}
+   */
+  setTextStylePreview(config, exampleText) {}
+  /**
+   * Clears temporary text style preview settings.
+   * @return {undefined}
+   */
+  clearTextStylePreview() {}
+  /**
    * @override
    */
   append(cues) {}
@@ -3594,15 +3787,64 @@ shaka.text.UITextDisplayer = class {
 shaka.text.WebVttGenerator = class {
 };
 /**
+ * Public re-export of CMCD streaming-format values. The literal object
+ * form is required for Closure tooling: clutz (TypeScript-defs gen)
+ * and `generateExterns.js` reject ``ed `@enum`s whose RHS is a
+ * MemberExpression / alias. The 4 values match
+ * `cml.cmcd.CmcdStreamingFormat` exactly; a unit test asserts value
+ * identity.
  * @enum {string}
+ * @export
  */
 shaka.util.CmcdManager.StreamingFormat = {
   DASH: 'd',
-  LOW_LATENCY_DASH: 'ld',
   HLS: 'h',
-  LOW_LATENCY_HLS: 'lh',
   SMOOTH: 's',
   OTHER: 'o'
+};
+/**
+ * Public re-export of CMCD v2 event types. Literal form per the
+ * Closure-tooling constraint above. Values match `cml.cmcd.CmcdEventType`
+ * exactly; unit-test asserts identity.
+ * @enum {string}
+ */
+shaka.util.CmcdManager.EventType = {
+  BITRATE_CHANGE: 'bc',
+  PLAY_STATE: 'ps',
+  PLAYBACK_RATE: 'pr',
+  ERROR: 'e',
+  TIME_INTERVAL: 't',
+  CONTENT_ID: 'c',
+  BACKGROUNDED_MODE: 'b',
+  MUTE: 'm',
+  UNMUTE: 'um',
+  PLAYER_EXPAND: 'pe',
+  PLAYER_COLLAPSE: 'pc',
+  RESPONSE_RECEIVED: 'rr',
+  AD_START: 'as',
+  AD_END: 'ae',
+  AD_BREAK_START: 'abs',
+  AD_BREAK_END: 'abe',
+  SKIP: 'sk',
+  CUSTOM_EVENT: 'ce'
+};
+/**
+ * Public re-export of CMCD v2 player states. Literal form per the
+ * Closure-tooling constraint above. Values match `cml.cmcd.CmcdPlayerState`
+ * exactly; unit-test asserts identity.
+ * @enum {string}
+ */
+shaka.util.CmcdManager.PlayerState = {
+  STARTING: 's',
+  PLAYING: 'p',
+  SEEKING: 'k',
+  REBUFFERING: 'r',
+  PAUSED: 'a',
+  WAITING: 'w',
+  ENDED: 'e',
+  FATAL_ERROR: 'f',
+  QUIT: 'q',
+  PRELOADING: 'd'
 };
 /**
  * @summary
@@ -3806,9 +4048,10 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    *    for VOD and liveEdge for LIVE).
    * @param {?string=} mimeType
    * @param {?shaka.extern.PlayerConfiguration=} config
+   * @param {boolean=} throwOnPreloadNotSupported
    * @return {!Promise<?shaka.media.PreloadManager>}
    */
-  preload(assetUri, startTime, mimeType, config) {}
+  preload(assetUri, startTime, mimeType, config, throwOnPreloadNotSupported) {}
   /**
    * Calls |destroy| on each PreloadManager object this player has created.
    * @return {undefined}
@@ -4556,9 +4799,29 @@ shaka.polyfill.TypedArray = class {
   static install() {}
 };
 /**
+ */
+shaka.polyfill.URLSearchParams = class {
+  /**
+   * Install the polyfill if needed.
+   * @return {undefined}
+   */
+  static install() {}
+};
+/**
  * @summary A polyfill to silence the play() Promise in HTML5 video.
  */
 shaka.polyfill.VideoPlayPromise = class {
+  /**
+   * Install the polyfill if needed.
+   * @return {undefined}
+   */
+  static install() {}
+};
+/**
+ * @summary A polyfill for requestVideoFrameCallback.
+ * Uses requestAnimationFrame + getVideoPlaybackQuality.
+ */
+shaka.polyfill.VideoFrameCallback = class {
   /**
    * Install the polyfill if needed.
    * @return {undefined}
@@ -4621,7 +4884,7 @@ shaka.text.Mp4TtmlParser = class {
   /**
    * @override
    */
-  parseMedia(data, time, uri) {}
+  parseMedia(data, time, uri, images) {}
 };
 /**
  * @implements {shaka.extern.TextParser}
@@ -4640,7 +4903,7 @@ shaka.text.VttTextParser = class {
   /**
    * @override
    */
-  parseMedia(data, time) {}
+  parseMedia(data, time, uri, images) {}
 };
 /**
  * @implements {shaka.extern.TextParser}
@@ -4658,20 +4921,35 @@ shaka.text.Mp4VttParser = class {
   /**
    * @override
    */
-  parseMedia(data, time) {}
+  parseMedia(data, time, uri, images) {}
 };
 /**
- * @implements {shaka.extern.Transmuxer}
+ * A base class for transmuxers that package transmuxed samples into fMP4
+ * segments.  It factors out the state and bookkeeping shared by every such
+ * transmuxer (the original MIME type, the running frame index and the cache of
+ * generated init segments), leaving subclasses to implement only the
+ * container-specific parsing in transmux().
+ * @abstract
  */
-shaka.transmuxer.AacTransmuxer = class {
+shaka.transmuxer.BaseTransmuxer = class {
   /**
    * @param {string} mimeType
    */
   constructor(mimeType) {}
   /**
-   * @override
+   * @return {undefined}
    */
   destroy() {}
+  /**
+   * @return {string}
+   */
+  getOriginalMimeType() {}
+};
+/**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
+ * @implements {shaka.extern.Transmuxer}
+ */
+shaka.transmuxer.AacTransmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * Check if the mime type and the content type is supported.
    * @param {string} mimeType
@@ -4684,27 +4962,16 @@ shaka.transmuxer.AacTransmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */
   transmux(data, stream, reference, duration) {}
 };
 /**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
  * @implements {shaka.extern.Transmuxer}
  */
-shaka.transmuxer.Ac3Transmuxer = class {
-  /**
-   * @param {string} mimeType
-   */
-  constructor(mimeType) {}
-  /**
-   * @override
-   */
-  destroy() {}
+shaka.transmuxer.Ac3Transmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * Check if the mime type and the content type is supported.
    * @param {string} mimeType
@@ -4717,27 +4984,16 @@ shaka.transmuxer.Ac3Transmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */
   transmux(data, stream, reference, duration) {}
 };
 /**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
  * @implements {shaka.extern.Transmuxer}
  */
-shaka.transmuxer.Ec3Transmuxer = class {
-  /**
-   * @param {string} mimeType
-   */
-  constructor(mimeType) {}
-  /**
-   * @override
-   */
-  destroy() {}
+shaka.transmuxer.Ec3Transmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * Check if the mime type and the content type is supported.
    * @param {string} mimeType
@@ -4750,27 +5006,16 @@ shaka.transmuxer.Ec3Transmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */
   transmux(data, stream, reference, duration) {}
 };
 /**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
  * @implements {shaka.extern.Transmuxer}
  */
-shaka.transmuxer.Mp3Transmuxer = class {
-  /**
-   * @param {string} mimeType
-   */
-  constructor(mimeType) {}
-  /**
-   * @override
-   */
-  destroy() {}
+shaka.transmuxer.Mp3Transmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * Check if the mime type and the content type is supported.
    * @param {string} mimeType
@@ -4783,10 +5028,6 @@ shaka.transmuxer.Mp3Transmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */
@@ -4826,9 +5067,10 @@ shaka.transmuxer.MpegTsTransmuxer = class {
   transmux(data, stream, reference, duration, contentType) {}
 };
 /**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
  * @implements {shaka.extern.Transmuxer}
  */
-shaka.transmuxer.TsTransmuxer = class {
+shaka.transmuxer.TsTransmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * @param {string} mimeType
    */
@@ -4849,10 +5091,6 @@ shaka.transmuxer.TsTransmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */

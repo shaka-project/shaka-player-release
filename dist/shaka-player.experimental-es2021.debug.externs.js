@@ -36,6 +36,8 @@ shaka.media = {};
 /** @const */
 shaka.media.SegmentPrefetch = {};
 /** @const */
+shaka.metadata = {};
+/** @const */
 shaka.msf = {};
 /** @const */
 shaka.net = {};
@@ -68,6 +70,7 @@ shaka.util.CmcdManager = {};
  *   hls: typeof shaka.hls,
  *   lcevc: typeof shaka.lcevc,
  *   media: typeof shaka.media,
+ *   metadata: typeof shaka.metadata,
  *   msf: typeof shaka.msf,
  *   net: typeof shaka.net,
  *   offline: typeof shaka.offline,
@@ -161,384 +164,6 @@ shaka.util.FakeEventTarget = class {
  * @typedef {EventListener|function(!Event):*}
  */
 shaka.util.FakeEventTarget.ListenerType;
-/**
- * @summary A set of BufferSource utility functions.
- */
-shaka.util.BufferUtils = class {
-  /**
-   * Compare two buffers for equality.  For buffers of different types, this
-   * compares the underlying buffers as binary data.
-   * @param {?BufferSource} arr1
-   * @param {?BufferSource} arr2
-   * @return {boolean}
-   * @suppress {strictMissingProperties}
-   */
-  static equal(arr1, arr2) {}
-  /**
-   * Gets an ArrayBuffer that contains the data from the given TypedArray.  Note
-   * this will allocate a new ArrayBuffer if the object is a partial view of
-   * the data.
-   * @param {!BufferSource} view
-   * @return {!ArrayBuffer}
-   */
-  static toArrayBuffer(view) {}
-  /**
-   * Creates a new Uint8Array view on the same buffer.  This clamps the values
-   * to be within the same view (i.e. you can't use this to move past the end
-   * of the view, even if the underlying buffer is larger).  However, you can
-   * pass a negative offset to access the data before the view.
-   * @param {BufferSource} data
-   * @param {number=} offset The offset from the beginning of this data's view
-   *   to start the new view at.
-   * @param {number=} length The byte length of the new view.
-   * @return {!Uint8Array}
-   */
-  static toUint8(data, offset, length) {}
-  /**
-   * Creates a new Uint16Array view on the same buffer.  This clamps the values
-   * to be within the same view (i.e. you can't use this to move past the end
-   * of the view, even if the underlying buffer is larger).  However, you can
-   * pass a negative offset to access the data before the view.
-   * @param {BufferSource} data
-   * @param {number=} offset The offset from the beginning of this data's view
-   *   to start the new view at.
-   * @param {number=} length The byte length of the new view.
-   * @return {!Uint16Array}
-   */
-  static toUint16(data, offset, length) {}
-  /**
-   * Creates a DataView over the given buffer.
-   * @see toUint8
-   * @param {BufferSource} buffer
-   * @param {number=} offset
-   * @param {number=} length
-   * @return {!DataView}
-   */
-  static toDataView(buffer, offset, length) {}
-};
-/**
- * @summary
- * Describes an error that happened.
- * @description
- * This uses numerical codes to describe
- * which error happened.
- * Some error are caused by errors from the browser.  In these cases, the error
- * object is provided as part of the <code>data</code> field.  System codes come
- * from the browser and may or may not be documented.  Here are some places
- * where the errors may be documented:
- * <ul>
- *   <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaError">MediaError</a>
- *   <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">HTTP Codes</a>
- *   <li><a href="https://hresult.info">Edge/PlayReady errors</a>
- * </ul>
- * @implements {shaka.extern.Error}
- * @extends {Error}
- */
-shaka.util.Error = class {
-  /**
-   * @param {shaka.util.Error.Severity} severity
-   * @param {shaka.util.Error.Category} category
-   * @param {shaka.util.Error.Code} code
-   * @param {...*} varArgs
-   */
-  constructor(severity, category, code, ...varArgs) {}
-};
-/**
-     * @override
-     */
-shaka.util.Error.prototype.severity;
-/**
-     * @override
-     */
-shaka.util.Error.prototype.category;
-/**
-     * @override
-     */
-shaka.util.Error.prototype.code;
-/**
-     * @override
-     */
-shaka.util.Error.prototype.data;
-/**
-     * @override
-     */
-shaka.util.Error.prototype.handled;
-/**
- * @enum {number}
- */
-shaka.util.Error.Severity = {
-  'RECOVERABLE': 1,
-  'CRITICAL': 2
-};
-/**
- * @enum {number}
- */
-shaka.util.Error.Category = {
-  'NETWORK': 1,
-  'TEXT': 2,
-  'MEDIA': 3,
-  'MANIFEST': 4,
-  'STREAMING': 5,
-  'DRM': 6,
-  'PLAYER': 7,
-  'CAST': 8,
-  'STORAGE': 9,
-  'ADS': 10
-};
-/**
- * @enum {number}
- */
-shaka.util.Error.Code = {
-  'UNSUPPORTED_SCHEME': 1000,
-  'BAD_HTTP_STATUS': 1001,
-  'HTTP_ERROR': 1002,
-  'TIMEOUT': 1003,
-  'MALFORMED_DATA_URI': 1004,
-  'REQUEST_FILTER_ERROR': 1006,
-  'RESPONSE_FILTER_ERROR': 1007,
-  'MALFORMED_TEST_URI': 1008,
-  'UNEXPECTED_TEST_REQUEST': 1009,
-  'ATTEMPTS_EXHAUSTED': 1010,
-  'SEGMENT_MISSING': 1011,
-  'INVALID_TEXT_HEADER': 2000,
-  'INVALID_TEXT_CUE': 2001,
-  'UNABLE_TO_DETECT_ENCODING': 2003,
-  'BAD_ENCODING': 2004,
-  'INVALID_XML': 2005,
-  'INVALID_MP4_TTML': 2007,
-  'INVALID_MP4_VTT': 2008,
-  'UNABLE_TO_EXTRACT_CUE_START_TIME': 2009,
-  'INVALID_MP4_CEA': 2010,
-  'TEXT_COULD_NOT_GUESS_MIME_TYPE': 2011,
-  'CANNOT_ADD_EXTERNAL_TEXT_TO_SRC_EQUALS': 2012,
-  'TEXT_ONLY_WEBVTT_SRC_EQUALS': 2013,
-  'MISSING_TEXT_PLUGIN': 2014,
-  'UNSUPPORTED_EXTERNAL_THUMBNAILS_URI': 2017,
-  'BUFFER_READ_OUT_OF_BOUNDS': 3000,
-  'JS_INTEGER_OVERFLOW': 3001,
-  'EBML_OVERFLOW': 3002,
-  'EBML_BAD_FLOATING_POINT_SIZE': 3003,
-  'MP4_SIDX_WRONG_BOX_TYPE': 3004,
-  'MP4_SIDX_INVALID_TIMESCALE': 3005,
-  'MP4_SIDX_TYPE_NOT_SUPPORTED': 3006,
-  'WEBM_CUES_ELEMENT_MISSING': 3007,
-  'WEBM_EBML_HEADER_ELEMENT_MISSING': 3008,
-  'WEBM_SEGMENT_ELEMENT_MISSING': 3009,
-  'WEBM_INFO_ELEMENT_MISSING': 3010,
-  'WEBM_DURATION_ELEMENT_MISSING': 3011,
-  'WEBM_CUE_TRACK_POSITIONS_ELEMENT_MISSING': 3012,
-  'WEBM_CUE_TIME_ELEMENT_MISSING': 3013,
-  'MEDIA_SOURCE_OPERATION_FAILED': 3014,
-  'MEDIA_SOURCE_OPERATION_THREW': 3015,
-  'VIDEO_ERROR': 3016,
-  'QUOTA_EXCEEDED_ERROR': 3017,
-  'TRANSMUXING_FAILED': 3018,
-  'CONTENT_TRANSFORMATION_FAILED': 3019,
-  'TRANSMUXING_NO_VIDEO_DATA': 3023,
-  'STREAMING_NOT_ALLOWED': 3024,
-  'BUFFER_WRITE_OUT_OF_BOUNDS': 3025,
-  'UNABLE_TO_GUESS_MANIFEST_TYPE': 4000,
-  'DASH_INVALID_XML': 4001,
-  'DASH_NO_SEGMENT_INFO': 4002,
-  'DASH_EMPTY_ADAPTATION_SET': 4003,
-  'DASH_EMPTY_PERIOD': 4004,
-  'DASH_WEBM_MISSING_INIT': 4005,
-  'DASH_UNSUPPORTED_CONTAINER': 4006,
-  'DASH_PSSH_BAD_ENCODING': 4007,
-  'DASH_NO_COMMON_KEY_SYSTEM': 4008,
-  'DASH_MULTIPLE_KEY_IDS_NOT_SUPPORTED': 4009,
-  'DASH_CONFLICTING_KEY_IDS': 4010,
-  'RESTRICTIONS_CANNOT_BE_MET': 4012,
-  'HLS_PLAYLIST_HEADER_MISSING': 4015,
-  'INVALID_HLS_TAG': 4016,
-  'HLS_INVALID_PLAYLIST_HIERARCHY': 4017,
-  'DASH_DUPLICATE_REPRESENTATION_ID': 4018,
-  'HLS_MULTIPLE_MEDIA_INIT_SECTIONS_FOUND': 4020,
-  'HLS_REQUIRED_ATTRIBUTE_MISSING': 4023,
-  'HLS_REQUIRED_TAG_MISSING': 4024,
-  'HLS_COULD_NOT_GUESS_CODECS': 4025,
-  'HLS_KEYFORMATS_NOT_SUPPORTED': 4026,
-  'DASH_UNSUPPORTED_XLINK_ACTUATE': 4027,
-  'DASH_XLINK_DEPTH_LIMIT': 4028,
-  'CONTENT_UNSUPPORTED_BY_BROWSER': 4032,
-  'CANNOT_ADD_EXTERNAL_TEXT_TO_LIVE_STREAM': 4033,
-  'NO_VARIANTS': 4036,
-  'PERIOD_FLATTENING_FAILED': 4037,
-  'INCONSISTENT_DRM_ACROSS_PERIODS': 4038,
-  'HLS_VARIABLE_NOT_FOUND': 4039,
-  'HLS_MSE_ENCRYPTED_MP2T_NOT_SUPPORTED': 4040,
-  'HLS_MSE_ENCRYPTED_LEGACY_APPLE_MEDIA_KEYS_NOT_SUPPORTED': 4041,
-  'NO_WEB_CRYPTO_API': 4042,
-  'CANNOT_ADD_EXTERNAL_THUMBNAILS_TO_LIVE_STREAM': 4045,
-  'AES_128_INVALID_IV_LENGTH': 4048,
-  'AES_128_INVALID_KEY_LENGTH': 4049,
-  'DASH_CONFLICTING_AES_128': 4050,
-  'DASH_UNSUPPORTED_AES_128': 4051,
-  'DASH_INVALID_PATCH': 4052,
-  'HLS_EMPTY_MEDIA_PLAYLIST': 4053,
-  'DASH_MSE_ENCRYPTED_LEGACY_APPLE_MEDIA_KEYS_NOT_SUPPORTED': 4054,
-  'CANNOT_ADD_EXTERNAL_CHAPTERS_TO_LIVE_STREAM': 4055,
-  'WEBTRANSPORT_NOT_AVAILABLE': 4056,
-  'WEBTRANSPORT_INITIALIZATION_FAILED': 4057,
-  'MSF_VOD_CONTENT_NOT_SUPPORTED': 4058,
-  'MSF_CATALOG_TIMEOUT': 4058,
-  'HLS_INVALID_KEY_IV_FOR_GCM': 4059,
-  'HLS_INVALID_GCM_SEGMENT': 4060,
-  'DASH_INVALID_JSON': 4061,
-  'MSF_NO_CATALOG': 4062,
-  'STREAMING_ENGINE_STARTUP_INVALID_STATE': 5006,
-  'NO_RECOGNIZED_KEY_SYSTEMS': 6000,
-  'REQUESTED_KEY_SYSTEM_CONFIG_UNAVAILABLE': 6001,
-  'FAILED_TO_CREATE_CDM': 6002,
-  'FAILED_TO_ATTACH_TO_VIDEO': 6003,
-  'INVALID_SERVER_CERTIFICATE': 6004,
-  'FAILED_TO_CREATE_SESSION': 6005,
-  'FAILED_TO_GENERATE_LICENSE_REQUEST': 6006,
-  'LICENSE_REQUEST_FAILED': 6007,
-  'LICENSE_RESPONSE_REJECTED': 6008,
-  'ENCRYPTED_CONTENT_WITHOUT_DRM_INFO': 6010,
-  'NO_LICENSE_SERVER_GIVEN': 6012,
-  'OFFLINE_SESSION_REMOVED': 6013,
-  'EXPIRED': 6014,
-  'SERVER_CERTIFICATE_REQUIRED': 6015,
-  'INIT_DATA_TRANSFORM_ERROR': 6016,
-  'SERVER_CERTIFICATE_REQUEST_FAILED': 6017,
-  'MIN_HDCP_VERSION_NOT_MATCH': 6018,
-  'ERROR_CHECKING_HDCP_VERSION': 6019,
-  'MISSING_EME_SUPPORT': 6020,
-  'LOAD_INTERRUPTED': 7000,
-  'OPERATION_ABORTED': 7001,
-  'NO_VIDEO_ELEMENT': 7002,
-  'OBJECT_DESTROYED': 7003,
-  'CONTENT_NOT_LOADED': 7004,
-  'SRC_EQUALS_PRELOAD_NOT_SUPPORTED': 7005,
-  'PRELOAD_DESTROYED': 7006,
-  'QUEUE_INDEX_OUT_OF_BOUNDS': 7007,
-  'CAST_API_UNAVAILABLE': 8000,
-  'NO_CAST_RECEIVERS': 8001,
-  'ALREADY_CASTING': 8002,
-  'UNEXPECTED_CAST_ERROR': 8003,
-  'CAST_CANCELED_BY_USER': 8004,
-  'CAST_CONNECTION_TIMED_OUT': 8005,
-  'CAST_RECEIVER_APP_UNAVAILABLE': 8006,
-  'STORAGE_NOT_SUPPORTED': 9000,
-  'INDEXED_DB_ERROR': 9001,
-  'DEPRECATED_OPERATION_ABORTED': 9002,
-  'REQUESTED_ITEM_NOT_FOUND': 9003,
-  'MALFORMED_OFFLINE_URI': 9004,
-  'CANNOT_STORE_LIVE_OFFLINE': 9005,
-  'NO_INIT_DATA_FOR_OFFLINE': 9007,
-  'LOCAL_PLAYER_INSTANCE_REQUIRED': 9008,
-  'NEW_KEY_OPERATION_NOT_SUPPORTED': 9011,
-  'KEY_NOT_FOUND': 9012,
-  'MISSING_STORAGE_CELL': 9013,
-  'STORAGE_LIMIT_REACHED': 9014,
-  'DOWNLOAD_SIZE_CALLBACK_ERROR': 9015,
-  'MODIFY_OPERATION_NOT_SUPPORTED': 9016,
-  'INDEXED_DB_INIT_TIMED_OUT': 9017,
-  'CS_IMA_SDK_MISSING': 10000,
-  'SS_IMA_SDK_MISSING': 10002,
-  'CURRENT_DAI_REQUEST_NOT_FINISHED': 10004,
-  'VAST_INVALID_XML': 10007,
-  'CS_AD_CONTAINER_MISSING': 10008,
-  'SS_AD_CONTAINER_MISSING': 10009,
-  'MEDIATAILOR_REQUEST_FAILED': 10010
-};
-/**
- * @namespace shaka.util.StringUtils
- * @summary A set of string utility functions.
- */
-shaka.util.StringUtils = class {
-  /**
-   * Creates a string from the given buffer as UTF-8 encoding.
-   * @param {?BufferSource} data
-   * @return {string}
-   */
-  static fromUTF8(data) {}
-  /**
-   * Creates a string from the given buffer as UTF-16 encoding.
-   * @param {?BufferSource} data
-   * @param {boolean} littleEndian
-         true to read little endian, false to read big.
-   * @param {boolean=} noThrow true to avoid throwing in cases where we may
-   *     expect invalid input.  If noThrow is true and the data has an odd
-   *     length,it will be truncated.
-   * @return {string}
-   */
-  static fromUTF16(data, littleEndian, noThrow) {}
-  /**
-   * Creates a string from the given buffer, auto-detecting the encoding that is
-   * being used.  If it cannot detect the encoding, it will throw an exception.
-   * @param {?BufferSource} data
-   * @return {string}
-   */
-  static fromBytesAutoDetect(data) {}
-  /**
-   * Creates a ArrayBuffer from the given string, converting to UTF-8 encoding.
-   * @param {string} str
-   * @return {!ArrayBuffer}
-   */
-  static toUTF8(str) {}
-  /**
-   * Creates a ArrayBuffer from the given string, converting to UTF-16 encoding.
-   * @param {string} str
-   * @param {boolean} littleEndian
-   * @return {!ArrayBuffer}
-   */
-  static toUTF16(str, littleEndian) {}
-  /**
-   * Resets the fromCharCode method's implementation.
-   * For debug use.
-   * @return {undefined}
-   */
-  static resetFromCharCode() {}
-};
-/**
- * @summary A set of Uint8Array utility functions.
- */
-shaka.util.Uint8ArrayUtils = class {
-  /**
-   * Convert a buffer to a base64 string. The output will be standard
-   * alphabet as opposed to base64url safe alphabet.
-   * @param {BufferSource} data
-   * @return {string}
-   */
-  static toStandardBase64(data) {}
-  /**
-   * Convert a buffer to a base64 string.  The output will always use the
-   * alternate encoding/alphabet also known as "base64url".
-   * @param {BufferSource} data
-   * @param {boolean=} padding If true, pad the output with equals signs.
-   *   Defaults to true.
-   * @return {string}
-   */
-  static toBase64(data, padding) {}
-  /**
-   * Convert a base64 string to a Uint8Array.  Accepts either the standard
-   * alphabet or the alternate "base64url" alphabet.
-   * @param {string} str
-   * @return {!Uint8Array}
-   */
-  static fromBase64(str) {}
-  /**
-   * Convert a hex string to a Uint8Array.
-   * @param {string} str
-   * @return {!Uint8Array}
-   */
-  static fromHex(str) {}
-  /**
-   * Convert a buffer to a hex string.
-   * @param {BufferSource} data
-   * @return {string}
-   */
-  static toHex(data) {}
-  /**
-   * Concatenate buffers.
-   * @param {...BufferSource} varArgs
-   * @return {!Uint8Array}
-   */
-  static concat(...varArgs) {}
-};
 /**
  * @summary A set of language utility functions.
  * @final
@@ -867,6 +492,15 @@ shaka.util.EventManager = class {
    */
   unlisten(target, type, listener) {}
   /**
+   * Detaches the same event listener from multiple event types on the same
+   * target.
+   * @param {EventTarget} target The event target.
+   * @param {!Array<string>} types The event types.
+   * @param {shaka.util.EventManager.ListenerType=} listener The event listener.
+   * @return {undefined}
+   */
+  unlistenMulti(target, types, listener) {}
+  /**
    * Detaches all event listeners from all targets.
    * @return {undefined}
    */
@@ -876,6 +510,385 @@ shaka.util.EventManager = class {
  * @typedef {function(!Event)}
  */
 shaka.util.EventManager.ListenerType;
+/**
+ * @summary A set of BufferSource utility functions.
+ */
+shaka.util.BufferUtils = class {
+  /**
+   * Compare two buffers for equality.  For buffers of different types, this
+   * compares the underlying buffers as binary data.
+   * @param {?BufferSource} arr1
+   * @param {?BufferSource} arr2
+   * @return {boolean}
+   * @suppress {strictMissingProperties}
+   */
+  static equal(arr1, arr2) {}
+  /**
+   * Gets an ArrayBuffer that contains the data from the given TypedArray.  Note
+   * this will allocate a new ArrayBuffer if the object is a partial view of
+   * the data.
+   * @param {!BufferSource} view
+   * @return {!ArrayBuffer}
+   */
+  static toArrayBuffer(view) {}
+  /**
+   * Creates a new Uint8Array view on the same buffer.  This clamps the values
+   * to be within the same view (i.e. you can't use this to move past the end
+   * of the view, even if the underlying buffer is larger).  However, you can
+   * pass a negative offset to access the data before the view.
+   * @param {BufferSource} data
+   * @param {number=} offset The offset from the beginning of this data's view
+   *   to start the new view at.
+   * @param {number=} length The byte length of the new view.
+   * @return {!Uint8Array}
+   */
+  static toUint8(data, offset, length) {}
+  /**
+   * Creates a new Uint16Array view on the same buffer.  This clamps the values
+   * to be within the same view (i.e. you can't use this to move past the end
+   * of the view, even if the underlying buffer is larger).  However, you can
+   * pass a negative offset to access the data before the view.
+   * @param {BufferSource} data
+   * @param {number=} offset The offset from the beginning of this data's view
+   *   to start the new view at.
+   * @param {number=} length The byte length of the new view.
+   * @return {!Uint16Array}
+   */
+  static toUint16(data, offset, length) {}
+  /**
+   * Creates a DataView over the given buffer.
+   * @see toUint8
+   * @param {BufferSource} buffer
+   * @param {number=} offset
+   * @param {number=} length
+   * @return {!DataView}
+   */
+  static toDataView(buffer, offset, length) {}
+};
+/**
+ * @summary
+ * Describes an error that happened.
+ * @description
+ * This uses numerical codes to describe
+ * which error happened.
+ * Some error are caused by errors from the browser.  In these cases, the error
+ * object is provided as part of the <code>data</code> field.  System codes come
+ * from the browser and may or may not be documented.  Here are some places
+ * where the errors may be documented:
+ * <ul>
+ *   <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaError">MediaError</a>
+ *   <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">HTTP Codes</a>
+ *   <li><a href="https://hresult.info">Edge/PlayReady errors</a>
+ * </ul>
+ * @implements {shaka.extern.Error}
+ * @extends {Error}
+ */
+shaka.util.Error = class {
+  /**
+   * @param {shaka.util.Error.Severity} severity
+   * @param {shaka.util.Error.Category} category
+   * @param {shaka.util.Error.Code} code
+   * @param {...*} varArgs
+   */
+  constructor(severity, category, code, ...varArgs) {}
+};
+/**
+     * @override
+     */
+shaka.util.Error.prototype.severity;
+/**
+     * @override
+     */
+shaka.util.Error.prototype.category;
+/**
+     * @override
+     */
+shaka.util.Error.prototype.code;
+/**
+     * @override
+     */
+shaka.util.Error.prototype.data;
+/**
+     * @override
+     */
+shaka.util.Error.prototype.handled;
+/**
+ * @enum {number}
+ */
+shaka.util.Error.Severity = {
+  'RECOVERABLE': 1,
+  'CRITICAL': 2
+};
+/**
+ * @enum {number}
+ */
+shaka.util.Error.Category = {
+  'NETWORK': 1,
+  'TEXT': 2,
+  'MEDIA': 3,
+  'MANIFEST': 4,
+  'STREAMING': 5,
+  'DRM': 6,
+  'PLAYER': 7,
+  'CAST': 8,
+  'STORAGE': 9,
+  'ADS': 10
+};
+/**
+ * @enum {number}
+ */
+shaka.util.Error.Code = {
+  'UNSUPPORTED_SCHEME': 1000,
+  'BAD_HTTP_STATUS': 1001,
+  'HTTP_ERROR': 1002,
+  'TIMEOUT': 1003,
+  'MALFORMED_DATA_URI': 1004,
+  'REQUEST_FILTER_ERROR': 1006,
+  'RESPONSE_FILTER_ERROR': 1007,
+  'MALFORMED_TEST_URI': 1008,
+  'UNEXPECTED_TEST_REQUEST': 1009,
+  'ATTEMPTS_EXHAUSTED': 1010,
+  'SEGMENT_MISSING': 1011,
+  'INVALID_TEXT_HEADER': 2000,
+  'INVALID_TEXT_CUE': 2001,
+  'UNABLE_TO_DETECT_ENCODING': 2003,
+  'BAD_ENCODING': 2004,
+  'INVALID_XML': 2005,
+  'INVALID_MP4_TTML': 2007,
+  'INVALID_MP4_VTT': 2008,
+  'UNABLE_TO_EXTRACT_CUE_START_TIME': 2009,
+  'INVALID_MP4_CEA': 2010,
+  'TEXT_COULD_NOT_GUESS_MIME_TYPE': 2011,
+  'CANNOT_ADD_EXTERNAL_TEXT_TO_SRC_EQUALS': 2012,
+  'TEXT_ONLY_WEBVTT_SRC_EQUALS': 2013,
+  'MISSING_TEXT_PLUGIN': 2014,
+  'UNSUPPORTED_EXTERNAL_THUMBNAILS_URI': 2017,
+  'BUFFER_READ_OUT_OF_BOUNDS': 3000,
+  'JS_INTEGER_OVERFLOW': 3001,
+  'EBML_OVERFLOW': 3002,
+  'EBML_BAD_FLOATING_POINT_SIZE': 3003,
+  'MP4_SIDX_WRONG_BOX_TYPE': 3004,
+  'MP4_SIDX_INVALID_TIMESCALE': 3005,
+  'MP4_SIDX_TYPE_NOT_SUPPORTED': 3006,
+  'WEBM_CUES_ELEMENT_MISSING': 3007,
+  'WEBM_EBML_HEADER_ELEMENT_MISSING': 3008,
+  'WEBM_SEGMENT_ELEMENT_MISSING': 3009,
+  'WEBM_INFO_ELEMENT_MISSING': 3010,
+  'WEBM_DURATION_ELEMENT_MISSING': 3011,
+  'WEBM_CUE_TRACK_POSITIONS_ELEMENT_MISSING': 3012,
+  'WEBM_CUE_TIME_ELEMENT_MISSING': 3013,
+  'MEDIA_SOURCE_OPERATION_FAILED': 3014,
+  'MEDIA_SOURCE_OPERATION_THREW': 3015,
+  'VIDEO_ERROR': 3016,
+  'QUOTA_EXCEEDED_ERROR': 3017,
+  'TRANSMUXING_FAILED': 3018,
+  'CONTENT_TRANSFORMATION_FAILED': 3019,
+  'TRANSMUXING_NO_VIDEO_DATA': 3023,
+  'STREAMING_NOT_ALLOWED': 3024,
+  'BUFFER_WRITE_OUT_OF_BOUNDS': 3025,
+  'UNABLE_TO_GUESS_MANIFEST_TYPE': 4000,
+  'DASH_INVALID_XML': 4001,
+  'DASH_NO_SEGMENT_INFO': 4002,
+  'DASH_EMPTY_ADAPTATION_SET': 4003,
+  'DASH_EMPTY_PERIOD': 4004,
+  'DASH_WEBM_MISSING_INIT': 4005,
+  'DASH_UNSUPPORTED_CONTAINER': 4006,
+  'DASH_PSSH_BAD_ENCODING': 4007,
+  'DASH_NO_COMMON_KEY_SYSTEM': 4008,
+  'DASH_MULTIPLE_KEY_IDS_NOT_SUPPORTED': 4009,
+  'DASH_CONFLICTING_KEY_IDS': 4010,
+  'RESTRICTIONS_CANNOT_BE_MET': 4012,
+  'HLS_PLAYLIST_HEADER_MISSING': 4015,
+  'INVALID_HLS_TAG': 4016,
+  'HLS_INVALID_PLAYLIST_HIERARCHY': 4017,
+  'DASH_DUPLICATE_REPRESENTATION_ID': 4018,
+  'HLS_MULTIPLE_MEDIA_INIT_SECTIONS_FOUND': 4020,
+  'HLS_REQUIRED_ATTRIBUTE_MISSING': 4023,
+  'HLS_REQUIRED_TAG_MISSING': 4024,
+  'HLS_COULD_NOT_GUESS_CODECS': 4025,
+  'HLS_KEYFORMATS_NOT_SUPPORTED': 4026,
+  'DASH_UNSUPPORTED_XLINK_ACTUATE': 4027,
+  'DASH_XLINK_DEPTH_LIMIT': 4028,
+  'CONTENT_UNSUPPORTED_BY_BROWSER': 4032,
+  'CANNOT_ADD_EXTERNAL_TEXT_TO_LIVE_STREAM': 4033,
+  'NO_VARIANTS': 4036,
+  'PERIOD_FLATTENING_FAILED': 4037,
+  'INCONSISTENT_DRM_ACROSS_PERIODS': 4038,
+  'HLS_VARIABLE_NOT_FOUND': 4039,
+  'HLS_MSE_ENCRYPTED_MP2T_NOT_SUPPORTED': 4040,
+  'HLS_MSE_ENCRYPTED_LEGACY_APPLE_MEDIA_KEYS_NOT_SUPPORTED': 4041,
+  'NO_WEB_CRYPTO_API': 4042,
+  'CANNOT_ADD_EXTERNAL_THUMBNAILS_TO_LIVE_STREAM': 4045,
+  'AES_128_INVALID_IV_LENGTH': 4048,
+  'AES_128_INVALID_KEY_LENGTH': 4049,
+  'DASH_CONFLICTING_AES_128': 4050,
+  'DASH_UNSUPPORTED_AES_128': 4051,
+  'DASH_INVALID_PATCH': 4052,
+  'HLS_EMPTY_MEDIA_PLAYLIST': 4053,
+  'DASH_MSE_ENCRYPTED_LEGACY_APPLE_MEDIA_KEYS_NOT_SUPPORTED': 4054,
+  'CANNOT_ADD_EXTERNAL_CHAPTERS_TO_LIVE_STREAM': 4055,
+  'WEBTRANSPORT_NOT_AVAILABLE': 4056,
+  'WEBTRANSPORT_INITIALIZATION_FAILED': 4057,
+  'MSF_VOD_CONTENT_NOT_SUPPORTED': 4058,
+  'MSF_CATALOG_TIMEOUT': 4058,
+  'HLS_INVALID_KEY_IV_FOR_GCM': 4059,
+  'HLS_INVALID_GCM_SEGMENT': 4060,
+  'DASH_INVALID_JSON': 4061,
+  'MSF_NO_CATALOG': 4062,
+  'DASH_UNSUPPORTED_ESSENTIAL_PROPERTY': 4063,
+  'STREAMING_ENGINE_STARTUP_INVALID_STATE': 5006,
+  'NO_RECOGNIZED_KEY_SYSTEMS': 6000,
+  'REQUESTED_KEY_SYSTEM_CONFIG_UNAVAILABLE': 6001,
+  'FAILED_TO_CREATE_CDM': 6002,
+  'FAILED_TO_ATTACH_TO_VIDEO': 6003,
+  'INVALID_SERVER_CERTIFICATE': 6004,
+  'FAILED_TO_CREATE_SESSION': 6005,
+  'FAILED_TO_GENERATE_LICENSE_REQUEST': 6006,
+  'LICENSE_REQUEST_FAILED': 6007,
+  'LICENSE_RESPONSE_REJECTED': 6008,
+  'ENCRYPTED_CONTENT_WITHOUT_DRM_INFO': 6010,
+  'NO_LICENSE_SERVER_GIVEN': 6012,
+  'OFFLINE_SESSION_REMOVED': 6013,
+  'EXPIRED': 6014,
+  'SERVER_CERTIFICATE_REQUIRED': 6015,
+  'INIT_DATA_TRANSFORM_ERROR': 6016,
+  'SERVER_CERTIFICATE_REQUEST_FAILED': 6017,
+  'MIN_HDCP_VERSION_NOT_MATCH': 6018,
+  'ERROR_CHECKING_HDCP_VERSION': 6019,
+  'MISSING_EME_SUPPORT': 6020,
+  'LOAD_INTERRUPTED': 7000,
+  'OPERATION_ABORTED': 7001,
+  'NO_VIDEO_ELEMENT': 7002,
+  'OBJECT_DESTROYED': 7003,
+  'CONTENT_NOT_LOADED': 7004,
+  'SRC_EQUALS_PRELOAD_NOT_SUPPORTED': 7005,
+  'PRELOAD_DESTROYED': 7006,
+  'QUEUE_INDEX_OUT_OF_BOUNDS': 7007,
+  'CAST_API_UNAVAILABLE': 8000,
+  'NO_CAST_RECEIVERS': 8001,
+  'ALREADY_CASTING': 8002,
+  'UNEXPECTED_CAST_ERROR': 8003,
+  'CAST_CANCELED_BY_USER': 8004,
+  'CAST_CONNECTION_TIMED_OUT': 8005,
+  'CAST_RECEIVER_APP_UNAVAILABLE': 8006,
+  'STORAGE_NOT_SUPPORTED': 9000,
+  'INDEXED_DB_ERROR': 9001,
+  'DEPRECATED_OPERATION_ABORTED': 9002,
+  'REQUESTED_ITEM_NOT_FOUND': 9003,
+  'MALFORMED_OFFLINE_URI': 9004,
+  'CANNOT_STORE_LIVE_OFFLINE': 9005,
+  'NO_INIT_DATA_FOR_OFFLINE': 9007,
+  'LOCAL_PLAYER_INSTANCE_REQUIRED': 9008,
+  'NEW_KEY_OPERATION_NOT_SUPPORTED': 9011,
+  'KEY_NOT_FOUND': 9012,
+  'MISSING_STORAGE_CELL': 9013,
+  'STORAGE_LIMIT_REACHED': 9014,
+  'DOWNLOAD_SIZE_CALLBACK_ERROR': 9015,
+  'MODIFY_OPERATION_NOT_SUPPORTED': 9016,
+  'INDEXED_DB_INIT_TIMED_OUT': 9017,
+  'CS_IMA_SDK_MISSING': 10000,
+  'SS_IMA_SDK_MISSING': 10002,
+  'CURRENT_DAI_REQUEST_NOT_FINISHED': 10004,
+  'VAST_INVALID_XML': 10007,
+  'CS_AD_CONTAINER_MISSING': 10008,
+  'SS_AD_CONTAINER_MISSING': 10009,
+  'MEDIATAILOR_REQUEST_FAILED': 10010
+};
+/**
+ * @namespace shaka.util.StringUtils
+ * @summary A set of string utility functions.
+ */
+shaka.util.StringUtils = class {
+  /**
+   * Creates a string from the given buffer as UTF-8 encoding.
+   * @param {?BufferSource} data
+   * @return {string}
+   */
+  static fromUTF8(data) {}
+  /**
+   * Creates a string from the given buffer as UTF-16 encoding.
+   * @param {?BufferSource} data
+   * @param {boolean} littleEndian
+         true to read little endian, false to read big.
+   * @param {boolean=} noThrow true to avoid throwing in cases where we may
+   *     expect invalid input.  If noThrow is true and the data has an odd
+   *     length,it will be truncated.
+   * @return {string}
+   */
+  static fromUTF16(data, littleEndian, noThrow) {}
+  /**
+   * Creates a string from the given buffer, auto-detecting the encoding that is
+   * being used.  If it cannot detect the encoding, it will throw an exception.
+   * @param {?BufferSource} data
+   * @return {string}
+   */
+  static fromBytesAutoDetect(data) {}
+  /**
+   * Creates a ArrayBuffer from the given string, converting to UTF-8 encoding.
+   * @param {string} str
+   * @return {!ArrayBuffer}
+   */
+  static toUTF8(str) {}
+  /**
+   * Creates a ArrayBuffer from the given string, converting to UTF-16 encoding.
+   * @param {string} str
+   * @param {boolean} littleEndian
+   * @return {!ArrayBuffer}
+   */
+  static toUTF16(str, littleEndian) {}
+  /**
+   * Resets the fromCharCode method's implementation.
+   * For debug use.
+   * @return {undefined}
+   */
+  static resetFromCharCode() {}
+};
+/**
+ * @summary A set of Uint8Array utility functions.
+ */
+shaka.util.Uint8ArrayUtils = class {
+  /**
+   * Convert a buffer to a base64 string. The output will be standard
+   * alphabet as opposed to base64url safe alphabet.
+   * @param {BufferSource} data
+   * @return {string}
+   */
+  static toStandardBase64(data) {}
+  /**
+   * Convert a buffer to a base64 string.  The output will always use the
+   * alternate encoding/alphabet also known as "base64url".
+   * @param {BufferSource} data
+   * @param {boolean=} padding If true, pad the output with equals signs.
+   *   Defaults to true.
+   * @return {string}
+   */
+  static toBase64(data, padding) {}
+  /**
+   * Convert a base64 string to a Uint8Array.  Accepts either the standard
+   * alphabet or the alternate "base64url" alphabet.
+   * @param {string} str
+   * @return {!Uint8Array}
+   */
+  static fromBase64(str) {}
+  /**
+   * Convert a hex string to a Uint8Array.
+   * @param {string} str
+   * @return {!Uint8Array}
+   */
+  static fromHex(str) {}
+  /**
+   * Convert a buffer to a hex string.
+   * @param {BufferSource} data
+   * @return {string}
+   */
+  static toHex(data) {}
+  /**
+   * Concatenate buffers.
+   * @param {...BufferSource} varArgs
+   * @return {!Uint8Array}
+   */
+  static concat(...varArgs) {}
+};
 /**
  * @summary
  *  lcevcDec - (MPEG-5 Part 2 LCEVC - Decoder) provides
@@ -1971,7 +1984,9 @@ shaka.net.NetworkingEngine.RequestType = {
   'CONTENT_STEERING': 8,
   'CMCD': 9,
   'SESSION_DATA': 10,
-  'FINGERPRINT': 11
+  'FINGERPRINT': 11,
+  'PLAYLIST': 12,
+  'EVENT_CALLBACK': 13
 };
 /**
  * A more advanced form of the RequestType structure, meant to describe
@@ -2201,6 +2216,13 @@ shaka.util.Mp4Parser = class {
    * @return {!shaka.util.Mp4Parser}
    */
   fullBox(type, definition) {}
+  /**
+   * Declare multiple box types as Full Boxes.
+   * @param {!Array<string>} types
+   * @param {!shaka.util.Mp4Parser.CallbackType} definition
+   * @return {!shaka.util.Mp4Parser}
+   */
+  fullBoxes(types, definition) {}
   /**
    * Stop parsing.  Useful for extracting information from partial segments and
    * avoiding an out-of-bounds error once you find what you are looking for.
@@ -2588,6 +2610,125 @@ shaka.media.SegmentReference.ThumbnailSprite;
  * }}
  */
 shaka.media.SegmentReference.Metadata;
+/**
+ */
+shaka.metadata.Metadata = class {
+  /**
+   * Returns all metadata frames found in the media data for the given MIME
+   * type.
+   * The method invokes every parser factory that has been registered for
+   * {@code mimeType} via {@link shaka.metadata.Metadata.registerParserByMime},
+   * collects all returned frames, and deduplicates them so that when multiple
+   * frames share the same {@code key} only the first occurrence is kept.
+   * The same MIME type may have more than one parser registered (e.g. both an
+   * ID3v2 and an ID3v1 parser for {@code audio/mpeg}).  All registered parsers
+   * are run in registration order and their results are concatenated before
+   * deduplication.
+   * @param {!Uint8Array} data
+   * @param {string} mimeType
+   * @return {!Array<!shaka.extern.MetadataFrame>}
+   */
+  static getMetadataFrames(data, mimeType) {}
+  /**
+   * Returns {@code true} when at least one parser has been registered for
+   * {@code mimeType}.
+   * @param {string} mimeType
+   * @return {boolean}
+   */
+  static supports(mimeType) {}
+  /**
+   * Registers a metadata parser factory for a given MIME type.
+   * The same MIME type may be registered more than once; each additional call
+   * appends the factory to the list of parsers for that MIME type.  When
+   * {@link shaka.metadata.Metadata.getMetadataFrames} is called, all
+   * registered parsers for the MIME type are invoked in registration order and
+   * their frames are merged (with first-occurrence-wins deduplication on
+   * {@code key}).
+   * @param {string} mimeType
+   * @param {shaka.extern.MetadataParser.Factory} parserFactory
+   * @return {undefined}
+   */
+  static registerParserByMime(mimeType, parserFactory) {}
+  /**
+   * Unregisters all parser factories that have been registered for the given
+   * MIME type.
+   * @param {string} mimeType
+   * @return {undefined}
+   */
+  static unregisterParserByMime(mimeType) {}
+};
+/**
+ * @summary A set of Id3Utils utility functions.
+ * @implements {shaka.extern.MetadataParser}
+ */
+shaka.metadata.Id3Utils = class {
+  /**
+   * Returns an array of ID3 frames found in all the ID3 tags in the id3Data
+   * @param {Uint8Array} id3Data - The ID3 data containing one or more ID3 tags
+   * @return {!Array<shaka.extern.MetadataFrame>}
+   */
+  static getID3Frames(id3Data) {}
+  /**
+   * Returns any adjacent ID3 tags found in data starting at offset, as one
+   * block of data
+   * @param {Uint8Array} id3Data - The ID3 data containing one or more ID3 tags
+   * @param {number=} offset - The offset at which to start searching
+   * @return {!Uint8Array}
+   */
+  static getID3Data(id3Data, offset) {}
+  /**
+   * @override
+   */
+  parse(data) {}
+};
+/**
+ * @summary A proxy transmuxer that delegates transmux() calls to a Web Worker.
+ * Synchronous methods (isSupported, convertCodecs, getOriginalMimeType) are
+ * handled on the main thread by the inner transmuxer. Only the heavy
+ * transmux() work is offloaded to the worker.
+ * The worker URL must be supplied by the integrating application via the
+ * `mediaSource.transmuxWorkerUrl` config option. The library does not attempt
+ * to discover it. If the URL is empty or the worker cannot be created, the
+ * proxy falls back to main-thread transmuxing.
+ * @implements {shaka.extern.Transmuxer}
+ */
+shaka.transmuxer.TransmuxerProxy = class {
+  /**
+   * @param {!shaka.extern.Transmuxer} innerTransmuxer
+   *   The real transmuxer to use for sync methods and as fallback.
+   * @param {string=} workerUrl
+   *   URL of the standalone transmuxer worker script. When empty, the proxy
+   *   uses main-thread transmuxing.
+   */
+  constructor(innerTransmuxer, workerUrl) {}
+  /**
+   * @override
+   */
+  destroy() {}
+  /**
+   * @param {string} mimeType
+   * @param {string=} contentType
+   * @return {boolean}
+   * @override
+   */
+  isSupported(mimeType, contentType) {}
+  /**
+   * @param {string} contentType
+   * @param {string} mimeType
+   * @return {string}
+   * @override
+   */
+  convertCodecs(contentType, mimeType) {}
+  /**
+   * @return {string}
+   * @override
+   */
+  getOriginalMimeType() {}
+  /**
+   * @override
+   */
+  transmux(data, stream, reference, duration, contentType) {}
+};
 /**  */
 shaka.util.Dom = class {
   /**
@@ -2603,25 +2744,6 @@ shaka.util.Dom = class {
    * @return {undefined}
    */
   static removeAllChildren(element) {}
-};
-/**
- * @summary A set of Id3Utils utility functions.
- */
-shaka.util.Id3Utils = class {
-  /**
-   * Returns an array of ID3 frames found in all the ID3 tags in the id3Data
-   * @param {Uint8Array} id3Data - The ID3 data containing one or more ID3 tags
-   * @return {!Array<shaka.extern.MetadataFrame>}
-   */
-  static getID3Frames(id3Data) {}
-  /**
-   * Returns any adjacent ID3 tags found in data starting at offset, as one
-   * block of data
-   * @param {Uint8Array} id3Data - The ID3 data containing one or more ID3 tags
-   * @param {number=} offset - The offset at which to start searching
-   * @return {!Uint8Array}
-   */
-  static getID3Data(id3Data, offset) {}
 };
 /**
  * @summary
@@ -2867,6 +2989,34 @@ shaka.media.PresentationTimeline = class {
    * @return {?number} The initial program date time in seconds.
    */
   getInitialProgramDateTime() {}
+  /**
+   * Sets the program-date-time regions, one per discontinuity that introduces a
+   * new PROGRAM-DATE-TIME base.  Each region maps a presentation-time boundary
+   * (|start|, in seconds) to its wall-clock time (|pdt|, in seconds since
+   * 1970).  Must be sorted ascending by |start|.  An empty list clears them,
+   * restoring the default behavior of extrapolating from the initial program
+   * date time.
+   * @param {!Array<{start: number, pdt: number}>} regions
+   * @return {undefined}
+   */
+  setProgramDateTimeRegions(regions) {}
+  /**
+   * Gets the program-date-time region that contains the given presentation
+   * time, or null if there are no regions.  Times before the first region map
+   * to the first region.
+   * @param {number} time The presentation time, in seconds.
+   * @return {?{start: number, pdt: number}}
+   */
+  getProgramDateTimeRegionForTime(time) {}
+  /**
+   * Gets the wall-clock program date time, in seconds, for the given
+   * presentation time.  Accounts for PROGRAM-DATE-TIME jumps at discontinuities
+   * when region information is available, and otherwise extrapolates from the
+   * initial program date time.
+   * @param {number} time The presentation time, in seconds.
+   * @return {?number} The program date time in seconds, or null if unknown.
+   */
+  getProgramDateTimeForTime(time) {}
   /**
    * Gives PresentationTimeline a Stream's minimum segment start time.
    * @param {number} startTime
@@ -3588,6 +3738,19 @@ shaka.text.UITextDisplayer = class {
    */
   configure(config) {}
   /**
+   * Temporarily previews text displayer style settings using the normal UI
+   * text rendering path.
+   * @param {!shaka.extern.TextDisplayerConfiguration} config
+   * @param {string} exampleText
+   * @return {undefined}
+   */
+  setTextStylePreview(config, exampleText) {}
+  /**
+   * Clears temporary text style preview settings.
+   * @return {undefined}
+   */
+  clearTextStylePreview() {}
+  /**
    * @override
    */
   append(cues) {}
@@ -3618,15 +3781,64 @@ shaka.text.UITextDisplayer = class {
 shaka.text.WebVttGenerator = class {
 };
 /**
+ * Public re-export of CMCD streaming-format values. The literal object
+ * form is required for Closure tooling: clutz (TypeScript-defs gen)
+ * and `generateExterns.js` reject ``ed `@enum`s whose RHS is a
+ * MemberExpression / alias. The 4 values match
+ * `cml.cmcd.CmcdStreamingFormat` exactly; a unit test asserts value
+ * identity.
  * @enum {string}
+ * @export
  */
 shaka.util.CmcdManager.StreamingFormat = {
   DASH: 'd',
-  LOW_LATENCY_DASH: 'ld',
   HLS: 'h',
-  LOW_LATENCY_HLS: 'lh',
   SMOOTH: 's',
   OTHER: 'o'
+};
+/**
+ * Public re-export of CMCD v2 event types. Literal form per the
+ * Closure-tooling constraint above. Values match `cml.cmcd.CmcdEventType`
+ * exactly; unit-test asserts identity.
+ * @enum {string}
+ */
+shaka.util.CmcdManager.EventType = {
+  BITRATE_CHANGE: 'bc',
+  PLAY_STATE: 'ps',
+  PLAYBACK_RATE: 'pr',
+  ERROR: 'e',
+  TIME_INTERVAL: 't',
+  CONTENT_ID: 'c',
+  BACKGROUNDED_MODE: 'b',
+  MUTE: 'm',
+  UNMUTE: 'um',
+  PLAYER_EXPAND: 'pe',
+  PLAYER_COLLAPSE: 'pc',
+  RESPONSE_RECEIVED: 'rr',
+  AD_START: 'as',
+  AD_END: 'ae',
+  AD_BREAK_START: 'abs',
+  AD_BREAK_END: 'abe',
+  SKIP: 'sk',
+  CUSTOM_EVENT: 'ce'
+};
+/**
+ * Public re-export of CMCD v2 player states. Literal form per the
+ * Closure-tooling constraint above. Values match `cml.cmcd.CmcdPlayerState`
+ * exactly; unit-test asserts identity.
+ * @enum {string}
+ */
+shaka.util.CmcdManager.PlayerState = {
+  STARTING: 's',
+  PLAYING: 'p',
+  SEEKING: 'k',
+  REBUFFERING: 'r',
+  PAUSED: 'a',
+  WAITING: 'w',
+  ENDED: 'e',
+  FATAL_ERROR: 'f',
+  QUIT: 'q',
+  PRELOADING: 'd'
 };
 /**
  * @summary
@@ -3830,9 +4042,10 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    *    for VOD and liveEdge for LIVE).
    * @param {?string=} mimeType
    * @param {?shaka.extern.PlayerConfiguration=} config
+   * @param {boolean=} throwOnPreloadNotSupported
    * @return {!Promise<?shaka.media.PreloadManager>}
    */
-  preload(assetUri, startTime, mimeType, config) {}
+  preload(assetUri, startTime, mimeType, config, throwOnPreloadNotSupported) {}
   /**
    * Calls |destroy| on each PreloadManager object this player has created.
    * @return {undefined}
@@ -4953,6 +5166,14 @@ shaka.cast.CastReceiver = class extends shaka.util.FakeEventTarget {
    */
   setContentArtist(artist) {}
   /**
+   * Set the Cast content's album name.
+   * Also sets the metadata type to music.
+   * Should be called from an appDataCallback.
+   * @param {string} albumName
+   * @return {undefined}
+   */
+  setContentAlbumName(albumName) {}
+  /**
    * Destroys the underlying Player, then terminates the cast receiver app.
    * @override
    */
@@ -5124,6 +5345,36 @@ shaka.hls.HlsParser = class {
    * @override
    */
   setMediaElement(mediaElement) {}
+};
+/**
+ * @summary Metadata parser for ID3v1 tags.
+ * @implements {shaka.extern.MetadataParser}
+ */
+shaka.metadata.Id3V1Utils = class {
+  /**
+   * @override
+   */
+  parse(data) {}
+};
+/**
+ * Utility class for parsing MP4 ILST (iTunes metadata) atoms.
+ * @implements {shaka.extern.MetadataParser}
+ */
+shaka.metadata.IlstUtils = class {
+  /**
+   * @override
+   */
+  parse(data) {}
+};
+/**
+ * Metadata parser for Vorbis Comments (FLAC, OGG, Vorbis, Opus).
+ * @implements {shaka.extern.MetadataParser}
+ */
+shaka.metadata.VorbisUtils = class {
+  /**
+   * @override
+   */
+  parse(data) {}
 };
 /**
  * @summary DataViewWriter abstracts a growable DataView for binary writing.
@@ -5675,9 +5926,29 @@ shaka.polyfill.TypedArray = class {
   static install() {}
 };
 /**
+ */
+shaka.polyfill.URLSearchParams = class {
+  /**
+   * Install the polyfill if needed.
+   * @return {undefined}
+   */
+  static install() {}
+};
+/**
  * @summary A polyfill to silence the play() Promise in HTML5 video.
  */
 shaka.polyfill.VideoPlayPromise = class {
+  /**
+   * Install the polyfill if needed.
+   * @return {undefined}
+   */
+  static install() {}
+};
+/**
+ * @summary A polyfill for requestVideoFrameCallback.
+ * Uses requestAnimationFrame + getVideoPlaybackQuality.
+ */
+shaka.polyfill.VideoFrameCallback = class {
   /**
    * Install the polyfill if needed.
    * @return {undefined}
@@ -5755,6 +6026,13 @@ shaka.queue.QueueManager = class extends shaka.util.FakeEventTarget {
    * @override
    */
   playItem(itemIndex) {}
+  /**
+   * @param {string} url
+   * @param {boolean=} playOnLoad
+   * @return {!Promise}
+   * @override
+   */
+  loadFromM3uPlaylist(url, playOnLoad) {}
 };
 /**
  * @implements {shaka.extern.TextParser}
@@ -5790,7 +6068,7 @@ shaka.text.Mp4TtmlParser = class {
   /**
    * @override
    */
-  parseMedia(data, time, uri) {}
+  parseMedia(data, time, uri, images) {}
 };
 /**
  * @implements {shaka.extern.TextParser}
@@ -5809,7 +6087,7 @@ shaka.text.VttTextParser = class {
   /**
    * @override
    */
-  parseMedia(data, time) {}
+  parseMedia(data, time, uri, images) {}
 };
 /**
  * @implements {shaka.extern.TextParser}
@@ -5827,38 +6105,44 @@ shaka.text.Mp4VttParser = class {
   /**
    * @override
    */
-  parseMedia(data, time) {}
+  parseMedia(data, time, uri, images) {}
 };
 /**
  * @implements {shaka.extern.TextParser}
  */
-shaka.text.SrtTextParser = class {
-  constructor() {}
+shaka.text.SrtTextParser = class extends shaka.text.VttTextParser {
   /**
    * @override
    */
-  parseInit(data) {}
-  /**
-   * @override
-   */
-  setManifestType(manifestType) {}
-  /**
-   * @override
-   */
-  parseMedia(data, time, uri) {}
+  parseMedia(data, time, uri, images) {}
 };
 /**
- * @implements {shaka.extern.Transmuxer}
+ * A base class for transmuxers that package transmuxed samples into fMP4
+ * segments.  It factors out the state and bookkeeping shared by every such
+ * transmuxer (the original MIME type, the running frame index and the cache of
+ * generated init segments), leaving subclasses to implement only the
+ * container-specific parsing in transmux().
+ * @abstract
  */
-shaka.transmuxer.AacTransmuxer = class {
+shaka.transmuxer.BaseTransmuxer = class {
   /**
    * @param {string} mimeType
    */
   constructor(mimeType) {}
   /**
-   * @override
+   * @return {undefined}
    */
   destroy() {}
+  /**
+   * @return {string}
+   */
+  getOriginalMimeType() {}
+};
+/**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
+ * @implements {shaka.extern.Transmuxer}
+ */
+shaka.transmuxer.AacTransmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * Check if the mime type and the content type is supported.
    * @param {string} mimeType
@@ -5871,27 +6155,16 @@ shaka.transmuxer.AacTransmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */
   transmux(data, stream, reference, duration) {}
 };
 /**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
  * @implements {shaka.extern.Transmuxer}
  */
-shaka.transmuxer.Ac3Transmuxer = class {
-  /**
-   * @param {string} mimeType
-   */
-  constructor(mimeType) {}
-  /**
-   * @override
-   */
-  destroy() {}
+shaka.transmuxer.Ac3Transmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * Check if the mime type and the content type is supported.
    * @param {string} mimeType
@@ -5904,27 +6177,16 @@ shaka.transmuxer.Ac3Transmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */
   transmux(data, stream, reference, duration) {}
 };
 /**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
  * @implements {shaka.extern.Transmuxer}
  */
-shaka.transmuxer.Ec3Transmuxer = class {
-  /**
-   * @param {string} mimeType
-   */
-  constructor(mimeType) {}
-  /**
-   * @override
-   */
-  destroy() {}
+shaka.transmuxer.Ec3Transmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * Check if the mime type and the content type is supported.
    * @param {string} mimeType
@@ -5937,19 +6199,16 @@ shaka.transmuxer.Ec3Transmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */
   transmux(data, stream, reference, duration) {}
 };
 /**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
  * @implements {shaka.extern.Transmuxer}
  */
-shaka.transmuxer.Mp3Transmuxer = class {
+shaka.transmuxer.LocTransmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * @param {string} mimeType
    */
@@ -5959,7 +6218,6 @@ shaka.transmuxer.Mp3Transmuxer = class {
    */
   destroy() {}
   /**
-   * Check if the mime type and the content type is supported.
    * @param {string} mimeType
    * @param {string=} contentType
    * @return {boolean}
@@ -5973,7 +6231,25 @@ shaka.transmuxer.Mp3Transmuxer = class {
   /**
    * @override
    */
-  getOriginalMimeType() {}
+  transmux(data, stream, reference, duration, contentType) {}
+};
+/**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
+ * @implements {shaka.extern.Transmuxer}
+ */
+shaka.transmuxer.Mp3Transmuxer = class extends shaka.transmuxer.BaseTransmuxer {
+  /**
+   * Check if the mime type and the content type is supported.
+   * @param {string} mimeType
+   * @param {string=} contentType
+   * @return {boolean}
+   * @override
+   */
+  isSupported(mimeType, contentType) {}
+  /**
+   * @override
+   */
+  convertCodecs(contentType, mimeType) {}
   /**
    * @override
    */
@@ -6013,9 +6289,10 @@ shaka.transmuxer.MpegTsTransmuxer = class {
   transmux(data, stream, reference, duration, contentType) {}
 };
 /**
+ * @extends {shaka.transmuxer.BaseTransmuxer}
  * @implements {shaka.extern.Transmuxer}
  */
-shaka.transmuxer.TsTransmuxer = class {
+shaka.transmuxer.TsTransmuxer = class extends shaka.transmuxer.BaseTransmuxer {
   /**
    * @param {string} mimeType
    */
@@ -6036,10 +6313,6 @@ shaka.transmuxer.TsTransmuxer = class {
    * @override
    */
   convertCodecs(contentType, mimeType) {}
-  /**
-   * @override
-   */
-  getOriginalMimeType() {}
   /**
    * @override
    */
@@ -6211,6 +6484,16 @@ shaka.ui.MediaSession = class {
    */
   setupTitle(title) {}
   /**
+   * @param {string} artist
+   * @return {undefined}
+   */
+  setupArtist(artist) {}
+  /**
+   * @param {string} album
+   * @return {undefined}
+   */
+  setupAlbum(album) {}
+  /**
    * @param {string} imageUrl
    * @return {undefined}
    */
@@ -6247,12 +6530,29 @@ shaka.ui.RangeElement = class extends shaka.ui.Element {
    * @param {!shaka.ui.Controls} controls
    * @param {!Array<string>} containerClassNames
    * @param {!Array<string>} barClassNames
+   * @param {boolean=} enableWheel
    */
-  constructor(parent, controls, containerClassNames, barClassNames) {}
+  constructor(parent, controls, containerClassNames, barClassNames, enableWheel) {}
   /**
    * @override
    */
   setRange(min, max) {}
+  /**
+   * @override
+   */
+  setStep(step) {}
+  /**
+   * @override
+   */
+  getMin() {}
+  /**
+   * @override
+   */
+  getMax() {}
+  /**
+   * @override
+   */
+  setBackground(background) {}
   /**
    * Called when user interaction begins.
    * To be overridden by subclasses.
@@ -6528,9 +6828,11 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    */
   canTakeScreenshot() {}
   /**
+   * @param {string=} format
+   * @param {number=} imageQuality
    * @return {undefined}
    */
-  takeScreenshot() {}
+  takeScreenshot(format, imageQuality) {}
   /**
    * @return {boolean}
    */
@@ -6539,10 +6841,13 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    * Copy the current video frame to the clipboard as an image.
    * If the browser lacks support for the Clipboard API, no action will be
    * taken.
+   * If the format is not support by the Clipboard API, no action will be
+   * taken.
    * @param {string=} format
+   * @param {number=} imageQuality
    * @return {undefined}
    */
-  copyVideoFrameToClipboard(format) {}
+  copyVideoFrameToClipboard(format, imageQuality) {}
   /**
    * @return {undefined}
    */
@@ -6606,10 +6911,22 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
   incrementRoll(angle) {}
 };
 /**
+ * Abstract base class for UI menu elements (OverflowMenu, SettingsMenu).
  * @extends {shaka.ui.Element}
+ * @abstract
+ */
+shaka.ui.MenuBase = class extends shaka.ui.Element {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * @extends {shaka.ui.MenuBase}
  * @final
  */
-shaka.ui.OverflowMenu = class extends shaka.ui.Element {
+shaka.ui.OverflowMenu = class extends shaka.ui.MenuBase {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
@@ -6624,10 +6941,26 @@ shaka.ui.OverflowMenu = class extends shaka.ui.Element {
   static registerElement(name, factory, registerInContext) {}
 };
 /**
+ * Abstract base class shared by StatisticsButton and AdStatisticsButton.
+ * Handles the common button/container DOM setup, toggle logic, and row
+ * generation; subclasses supply the stats source, parse map, and layout.
  * @extends {shaka.ui.Element}
+ * @abstract
+ */
+shaka.ui.StatisticsButtonBase = class extends shaka.ui.Element {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   * @param {string} buttonClass  CSS class added to the button element
+   * @param {string} containerClass  CSS class added to the stats container
+   */
+  constructor(parent, controls, buttonClass, containerClass) {}
+};
+/**
+ * @extends {shaka.ui.StatisticsButtonBase}
  * @final
  */
-shaka.ui.AdStatisticsButton = class extends shaka.ui.Element {
+shaka.ui.AdStatisticsButton = class extends shaka.ui.StatisticsButtonBase {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
@@ -6752,10 +7085,10 @@ shaka.ui.Overlay.FailReasonCode = {
   'PLAYER_FAILED_TO_LOAD': 1
 };
 /**
- * @extends {shaka.ui.Element}
+ * @extends {shaka.ui.MenuBase}
  * @implements {shaka.extern.IUISettingsMenu}
  */
-shaka.ui.SettingsMenu = class extends shaka.ui.Element {
+shaka.ui.SettingsMenu = class extends shaka.ui.MenuBase {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
@@ -6819,10 +7152,25 @@ shaka.ui.CopyVideoFrameButton = class extends shaka.ui.Element {
   constructor(parent, controls) {}
 };
 /**
+ * Trick-play button that cycles through configurable playback rates.
+ * Pass isForward=true for fast-forward behaviour, false for rewind.
  * @extends {shaka.ui.Element}
- * @final
  */
-shaka.ui.FastForwardButton = class extends shaka.ui.Element {
+shaka.ui.TrickPlayButton = class extends shaka.ui.Element {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   * @param {boolean} isForward  true → fast-forward; false → rewind
+   */
+  constructor(parent, controls, isForward) {}
+};
+/**
+ * @extends {shaka.ui.TrickPlayButton}
+ * @final
+ * @deprecated Use shaka.ui.TrickPlayButton with isForward=true, or the
+ *   'fast_forward' UI element name directly.
+ */
+shaka.ui.FastForwardButton = class extends shaka.ui.TrickPlayButton {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
@@ -6916,8 +7264,9 @@ shaka.ui.PlayButton = class extends shaka.ui.Element {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
+   * @param {boolean=} showBuffering
    */
-  constructor(parent, controls) {}
+  constructor(parent, controls, showBuffering) {}
 };
 /**
  * @extends {shaka.ui.SettingsMenu}
@@ -6935,6 +7284,17 @@ shaka.ui.PlaybackRateSelection = class extends shaka.ui.SettingsMenu {
  * @final
  */
 shaka.ui.PresentationTimeTracker = class extends shaka.ui.Element {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * @extends {shaka.ui.SettingsMenu}
+ * @final
+ */
+shaka.ui.QueueButton = class extends shaka.ui.SettingsMenu {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
@@ -6975,10 +7335,12 @@ shaka.ui.ResolutionSelection = class extends shaka.ui.SettingsMenu {
   constructor(parent, controls) {}
 };
 /**
- * @extends {shaka.ui.Element}
+ * @extends {shaka.ui.TrickPlayButton}
  * @final
+ * @deprecated Use shaka.ui.TrickPlayButton with isForward=false, or the
+ *   'rewind' UI element name directly.
  */
-shaka.ui.RewindButton = class extends shaka.ui.Element {
+shaka.ui.RewindButton = class extends shaka.ui.TrickPlayButton {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
@@ -6997,26 +7359,46 @@ shaka.ui.SaveVideoFrameButton = class extends shaka.ui.Element {
   constructor(parent, controls) {}
 };
 /**
+ * Queue-navigation button that skips forward or backward one item.
+ * Pass isNext=true for skip-next behaviour, false for skip-previous.
  * @extends {shaka.ui.Element}
- * @final
  */
-shaka.ui.SkipNextButton = class extends shaka.ui.Element {
+shaka.ui.SkipQueueButton = class extends shaka.ui.Element {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
+   * @param {boolean} isNext  true → skip forward; false → skip backward
+   * @param {boolean=} showWhenUnavailable
    */
-  constructor(parent, controls) {}
+  constructor(parent, controls, isNext, showWhenUnavailable) {}
 };
 /**
- * @extends {shaka.ui.Element}
+ * @extends {shaka.ui.SkipQueueButton}
  * @final
+ * @deprecated Use shaka.ui.SkipQueueButton with isNext=true, or the
+ *   'skip_next' / 'skip_next_always' UI element names directly.
  */
-shaka.ui.SkipPreviousButton = class extends shaka.ui.Element {
+shaka.ui.SkipNextButton = class extends shaka.ui.SkipQueueButton {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
+   * @param {boolean=} showWhenUnavailable
    */
-  constructor(parent, controls) {}
+  constructor(parent, controls, showWhenUnavailable) {}
+};
+/**
+ * @extends {shaka.ui.SkipQueueButton}
+ * @final
+ * @deprecated Use shaka.ui.SkipQueueButton with isNext=false, or the
+ *   'skip_previous' / 'skip_previous_always' UI element names directly.
+ */
+shaka.ui.SkipPreviousButton = class extends shaka.ui.SkipQueueButton {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   * @param {boolean=} showWhenUnavailable
+   */
+  constructor(parent, controls, showWhenUnavailable) {}
 };
 /**
  * @extends {shaka.ui.Element}
@@ -7030,10 +7412,10 @@ shaka.ui.Spacer = class extends shaka.ui.Element {
   constructor(parent, controls) {}
 };
 /**
- * @extends {shaka.ui.Element}
+ * @extends {shaka.ui.StatisticsButtonBase}
  * @final
  */
-shaka.ui.StatisticsButton = class extends shaka.ui.Element {
+shaka.ui.StatisticsButton = class extends shaka.ui.StatisticsButtonBase {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
@@ -7041,10 +7423,26 @@ shaka.ui.StatisticsButton = class extends shaka.ui.Element {
   constructor(parent, controls) {}
 };
 /**
+ * Abstract base for text style configuration menus (position, size, etc.).
+ * Subclasses implement the template methods getItems / getLabelForItem /
+ * onItemSelected / getPreviewConfigForItem / getCurrentValueLabel.
  * @extends {shaka.ui.SettingsMenu}
+ * @template T
+ * @abstract
+ */
+shaka.ui.TextStyleMenu = class extends shaka.ui.SettingsMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   * @param {string} icon
+   */
+  constructor(parent, controls, icon) {}
+};
+/**
+ * @extends {shaka.ui.TextStyleMenu<shaka.config.PositionArea>}
  * @final
  */
-shaka.ui.TextPosition = class extends shaka.ui.SettingsMenu {
+shaka.ui.TextPosition = class extends shaka.ui.TextStyleMenu {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls
@@ -7063,10 +7461,10 @@ shaka.ui.TextSelection = class extends shaka.ui.SettingsMenu {
   constructor(parent, controls) {}
 };
 /**
- * @extends {shaka.ui.SettingsMenu}
+ * @extends {shaka.ui.TextStyleMenu<number>}
  * @final
  */
-shaka.ui.TextSize = class extends shaka.ui.SettingsMenu {
+shaka.ui.TextSize = class extends shaka.ui.TextStyleMenu {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls

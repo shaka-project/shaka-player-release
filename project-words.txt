@@ -1,5 +1,8 @@
 # events / html
 abrstatuschanged
+abrtest
+haspopup
+menuitemradio
 adblocker
 audiofocuspaused
 audiofocusgranted
@@ -89,6 +92,7 @@ textrole
 texttrackvisibility
 thirdquartile
 timeandseekrangeupdated
+timelinechange
 timelineregionadded
 timelineregionenter
 timelineregionexit
@@ -116,6 +120,8 @@ csslintrc
 csslintstamp
 cygpath
 datas
+Decryptor
+Decryptors
 degrad
 discardable
 displayer
@@ -155,6 +161,7 @@ seekbar
 statelessly
 stringifiers
 styleable
+syncsafe
 testcheckstamp
 textproto
 transmux
@@ -168,6 +175,7 @@ uints
 uncompiled
 unconfigured
 unfuzzed
+unpadding
 unregisters
 unstore
 unviewed
@@ -197,6 +205,7 @@ Clearkey
 Clearkeys
 Clutz
 codem
+cssnano
 hbbtv
 Conax
 cvox
@@ -265,7 +274,10 @@ cmfv
 cmsd
 colr
 containerless
+covr
+cpil
 cuelist
+cuepoint
 cuepoints
 cwip
 demuxer
@@ -307,11 +319,13 @@ hdcp
 hdlr
 hvcc
 iamf
+ilst
 imagetype
 imsa
 imsc
 inband
 isom
+isrc
 keyids
 keysystem
 latm
@@ -347,6 +361,7 @@ mspro
 mssim
 multicodec
 multidrm
+multivideo
 muxed
 muxer
 mvex
@@ -376,12 +391,14 @@ rltb
 samplerate
 saio
 saiz
+sbgp
 schi
 schm
 scte
 sdtp
 senc
 sepiff
+sgpd
 sidx
 sinf
 skipoffset
@@ -390,6 +407,7 @@ smpte
 sntp
 soun
 srcs
+ssai
 ssim
 sstr
 stbl
@@ -400,13 +418,19 @@ stsd
 stsz
 sttg
 stts
+styp
 subcues
 subframes
 subt
 subviewer
+talb
 tblr
+tbpm
 tbrl
+tdrc
 tenc
+tcmp
+tcom
 tcop
 tfdt
 tfhd
@@ -417,18 +441,28 @@ timecodes
 timepoint
 timepoints
 tkhd
+tmpo
+tpos
 traf
 trak
 traks
 transquant
+trck
 trexs
 trickmode
+trkn
 trun
 tsbd
+tsrc
 ttml
 txxx
+tyer
+udta
+ufid
 unskippable
+mpdpatch
 urlparam
+uslt
 valu
 vdms
 vexu
@@ -450,6 +484,7 @@ wvtt
 wxxx
 xlink
 xsdate
+altmpd
 xyzx
 
 # vr
@@ -498,6 +533,7 @@ TARGETDURATION
 SQUEEZECURRENT
 
 # MSF (Media over QUIC Transport Streaming format)
+cmsf
 moqt
 msf
 QUIC
@@ -513,14 +549,18 @@ cdnb
 
 # other
 Aegisub
+ALBUMARTIST
 autoglottonym
 avinfo
 awesomplete
 axinom
+BADENTRY
 beatle
+BROWSERSLIST
 checkmark
 crbug
 *deadbeef*
+DISCNUMBER
 doclet
 doclets
 enoent
@@ -530,27 +570,36 @@ googlers
 halfling
 heliocentrism
 homebrewed
+Icecast
 ismena
 joeyparrish
 Kartenberg
 kbits
 khtml
+libopus
 malform
 masterlist
 mbps
 msdk
+oggs
 onservicecallback
 productinfo
+REPLAYGAIN
 RMKSA
 RVFC
+SEEKTABLE
 servernum
+SGAI
+Shoutcast
 sintel
 stardate
 systeminfo
 templatized
+TRACKNUMBER
 UNLCK
 vaage
 webapis
+WHATWG
 
 # banned words
 !timmer

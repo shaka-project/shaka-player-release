@@ -7,16 +7,15 @@
 
 goog.provide('shaka.ui.LoopButton');
 
+goog.require('shaka.config.RepeatMode');
 goog.require('shaka.ui.Controls');
 goog.require('shaka.ui.Element');
 goog.require('shaka.ui.Enums');
 goog.require('shaka.ui.Icon');
 goog.require('shaka.ui.Locales');
-goog.require('shaka.ui.Localization');
 goog.require('shaka.ui.OverflowMenu');
 goog.require('shaka.ui.Utils');
 goog.require('shaka.util.Dom');
-goog.require('shaka.util.Timer');
 goog.requireType('shaka.ui.Controls');
 
 
@@ -33,12 +32,15 @@ shaka.ui.LoopButton = class extends shaka.ui.Element {
   constructor(parent, controls) {
     super(parent, controls);
 
-    const LocIds = shaka.ui.Locales.Ids;
+    /** @private {shaka.extern.IQueueManager} */
+    this.queueManager_ = this.controls.getQueueManager();
+
     /** @private {!HTMLButtonElement} */
     this.button_ = shaka.util.Dom.createButton();
     this.button_.classList.add('shaka-loop-button');
     this.button_.classList.add('shaka-tooltip');
     this.button_.classList.add('shaka-no-propagation');
+    this.button_.ariaPressed = 'false';
 
     /** @private {!shaka.ui.Icon} */
     this.icon_ = new shaka.ui.Icon(this.button_,
@@ -49,7 +51,6 @@ shaka.ui.LoopButton = class extends shaka.ui.Element {
     label.classList.add('shaka-overflow-menu-only');
     label.classList.add('shaka-simple-overflow-button-label-inline');
     this.nameSpan_ = shaka.util.Dom.createHTMLElement('span');
-    this.nameSpan_.textContent = this.localization.resolve(LocIds.LOOP);
     label.appendChild(this.nameSpan_);
 
     /** @private {!HTMLElement} */
@@ -59,18 +60,9 @@ shaka.ui.LoopButton = class extends shaka.ui.Element {
 
     this.button_.appendChild(label);
 
-    this.updateLocalizedStrings_();
+    this.updateLocalizedStrings();
 
     this.parent.appendChild(this.button_);
-
-    this.eventManager.listenMulti(
-        this.localization,
-        [
-          shaka.ui.Localization.LOCALE_UPDATED,
-          shaka.ui.Localization.LOCALE_CHANGED,
-        ], () => {
-          this.updateLocalizedStrings_();
-        });
 
     this.eventManager.listen(this.button_, 'click', () => {
       if (!this.controls.isOpaque()) {
@@ -79,30 +71,20 @@ shaka.ui.LoopButton = class extends shaka.ui.Element {
       this.onClick_();
     });
 
-    /** @private {boolean} */
-    this.loopEnabled_ = this.video.loop;
-
-    // No event is fired when the video.loop property changes, so
-    // in order to detect a manual change to the property, we have
-    // two options:
-    // 1) set an observer that gets triggered every time the video
-    // object is mutated and check is the loop property was changed.
-    // 2) create a timer that checks the state of the loop property
-    // regularly.
-    // I (ismena) opted to go for #2 as at least video.currentTime
-    // will be changing constantly during playback, to say nothing
-    // about other video properties. I expect the timer to be less
-    // of a performance hit.
-    /**
-     * The timer that tracks down the ad progress.
-     *
-     * @private {shaka.util.Timer}
-     */
-    this.timer_ = new shaka.util.Timer(() => {
-      this.onTimerTick_();
+    /** @private {MutationObserver} */
+    this.mutationObserver_ = new MutationObserver((mutationsList) => {
+      for (const mutation of mutationsList) {
+        if (mutation.type === 'attributes' &&
+            mutation.attributeName === 'loop') {
+          this.updateLocalizedStrings();
+        }
+      }
     });
 
-    this.timer_.tickEvery(1);
+    this.mutationObserver_.observe(this.controls.getLocalVideo(), {
+      attributes: true,
+      attributeFilter: ['loop'],
+    });
 
     this.eventManager.listenMulti(
         this.player,
@@ -111,83 +93,95 @@ shaka.ui.LoopButton = class extends shaka.ui.Element {
           'loaded',
           'manifestupdated',
         ], () => {
-          this.checkAvailability_();
+          this.checkAvailability();
         });
 
-    this.eventManager.listen(this.video, 'durationchange', () => {
-      this.checkAvailability_();
+    this.eventManager.listen(this.player, 'configurationchanged', () => {
+      this.updateLocalizedStrings();
     });
 
-    if (this.isSubMenu) {
-      this.eventManager.listenMulti(
-          this.controls,
-          [
-            'submenuopen',
-            'submenuclose',
-          ], () => {
-            this.checkAvailability_();
-          });
-    }
+    this.eventManager.listen(this.video, 'durationchange', () => {
+      this.checkAvailability();
+    });
 
-    this.checkAvailability_();
+    this.checkAvailability();
   }
 
   /**
    * @override
    */
   release() {
-    this.timer_.stop();
-    this.timer_ = null;
+    this.mutationObserver_?.disconnect();
+    this.mutationObserver_ = null;
     super.release();
   }
 
 
   /** @private */
   onClick_() {
-    this.video.loop = !this.video.loop;
-    this.timer_.tickNow();
-    this.timer_.tickEvery(1);
-  }
-
-
-  /** @private */
-  onTimerTick_() {
-    if (this.loopEnabled_ == this.video.loop) {
-      return;
+    if (this.queueManager_.getCurrentItem() && !this.video.loop) {
+      const currentMode = this.player.getConfiguration().queue.repeatMode;
+      let nextMode;
+      switch (currentMode) {
+        case shaka.config.RepeatMode.OFF:
+          nextMode = shaka.config.RepeatMode.ALL;
+          break;
+        case shaka.config.RepeatMode.ALL:
+          nextMode = shaka.config.RepeatMode.SINGLE;
+          break;
+        case shaka.config.RepeatMode.SINGLE:
+        default:
+          nextMode = shaka.config.RepeatMode.OFF;
+          break;
+      }
+      this.player.configure('queue.repeatMode', nextMode);
+    } else {
+      this.video.loop = !this.video.loop;
     }
-
-    this.updateLocalizedStrings_();
-    this.loopEnabled_ = this.video.loop;
   }
 
-
-  /**
-   * @private
-   */
-  updateLocalizedStrings_() {
+  /** @override */
+  updateLocalizedStrings() {
     const LocIds = shaka.ui.Locales.Ids;
     const Icons = shaka.ui.Enums.MaterialDesignSVGIcons;
 
     this.nameSpan_.textContent =
         this.localization.resolve(LocIds.LOOP);
 
-    const labelText = this.video.loop ? LocIds.ON : LocIds.OFF;
-
-    this.currentState_.textContent = this.localization.resolve(labelText);
-
-    this.icon_.use(this.video.loop ? Icons['UNLOOP'] : Icons['LOOP']);
-
-    const ariaText = this.video.loop ?
-        LocIds.EXIT_LOOP_MODE : LocIds.ENTER_LOOP_MODE;
-
-    this.button_.ariaLabel = this.localization.resolve(ariaText);
+    let currentMode = shaka.config.RepeatMode.OFF;
+    if (this.video.loop) {
+      currentMode = shaka.config.RepeatMode.ALL;
+    } else if (this.queueManager_.getCurrentItem()) {
+      currentMode = this.player.getConfiguration().queue.repeatMode;
+    }
+    switch (currentMode) {
+      case shaka.config.RepeatMode.OFF:
+        this.currentState_.textContent = this.localization.resolve(LocIds.OFF);
+        this.icon_.use(Icons['UNLOOP']);
+        this.button_.ariaLabel =
+            this.localization.resolve(LocIds.ENTER_LOOP_MODE);
+        this.button_.ariaPressed = 'false';
+        break;
+      case shaka.config.RepeatMode.ALL:
+        this.currentState_.textContent = this.localization.resolve(LocIds.ON);
+        this.icon_.use(Icons['LOOP']);
+        this.button_.ariaLabel =
+            this.localization.resolve(LocIds.EXIT_LOOP_MODE);
+        this.button_.ariaPressed = 'true';
+        break;
+      case shaka.config.RepeatMode.SINGLE:
+      default:
+        this.currentState_.textContent = this.localization.resolve(LocIds.ON);
+        this.icon_.use(Icons['LOOP_ONE']);
+        this.button_.ariaLabel =
+            this.localization.resolve(LocIds.EXIT_LOOP_MODE);
+        this.button_.ariaPressed = 'true';
+        break;
+    }
   }
 
-
-  /**
-   * @private
-   */
-  checkAvailability_() {
+  /** @override */
+  checkAvailability() {
     shaka.ui.Utils.setDisplay(
         this.button_, !this.player.isLive() && !this.isSubMenuOpened);
   }

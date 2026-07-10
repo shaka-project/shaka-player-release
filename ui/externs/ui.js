@@ -62,6 +62,22 @@ shaka.extern.UIVolumeBarColors;
 
 /**
  * @typedef {{
+ *   base: string,
+ *   level: string,
+ * }}
+ *
+ * @property {string} base
+ *   The CSS background color applied to the base of the playback rate bar, on
+ *   top of which the current playback rate level is shown.
+ * @property {string} level
+ *   The CSS background color applied to the portion of the playback rate bar
+ *   showing the current playback rate level.
+ * @exportDoc
+ */
+shaka.extern.UIPlaybackRateBarColors;
+
+/**
+ * @typedef {{
  *   720: string,
  *   1080: string,
  *   1440: string,
@@ -263,11 +279,13 @@ shaka.extern.UIDocumentPictureInPicture;
  * A callback for customizing track labels in the UI.
  *
  * The callback receives the default label (or null if the language was
- * unrecognized), the track object, and a type string ('audio' or 'text').
- * Return a string to override the label, or a falsy value to keep the default.
+ * unrecognized), the track object, and a type string ('audio', 'text', or
+ * 'video').  Return a string to override the label, or a falsy value to keep
+ * the default.
  *
  * @typedef {function(?string,
- *     (shaka.extern.AudioTrack|shaka.extern.TextTrack),
+ *     (shaka.extern.AudioTrack|shaka.extern.TextTrack|
+ *      shaka.extern.VideoTrack),
  *     string): ?string}
  * @exportDoc
  */
@@ -286,6 +304,8 @@ shaka.extern.UITrackLabelCallback;
  *   statisticsList: !Array<string>,
  *   adStatisticsList: !Array<string>,
  *   playbackRates: !Array<number>,
+ *   playbackRateSliderMin: number,
+ *   playbackRateSliderMax: number,
  *   fastForwardRates: !Array<number>,
  *   rewindRates: !Array<number>,
  *   addSeekBar: boolean,
@@ -296,6 +316,7 @@ shaka.extern.UITrackLabelCallback;
  *   showUnbufferedStart: boolean,
  *   seekBarColors: shaka.extern.UISeekBarColors,
  *   volumeBarColors: shaka.extern.UIVolumeBarColors,
+ *   playbackRateBarColors: shaka.extern.UIPlaybackRateBarColors,
  *   qualityMarks: shaka.extern.UIQualityMarks,
  *   trackLabelFormat: shaka.ui.Overlay.TrackLabelFormat,
  *   textTrackLabelFormat: shaka.ui.Overlay.TrackLabelFormat,
@@ -327,6 +348,7 @@ shaka.extern.UITrackLabelCallback;
  *   allowTogglePresentationTime: boolean,
  *   showRemainingTimeInPresentationTime: boolean,
  *   enableVrDeviceMotion: boolean,
+ *   enableVrWheelZoom: boolean,
  *   showUIAlways: boolean,
  *   showUIAlwaysOnAudioOnly: boolean,
  *   preferIntlDisplayNames: boolean,
@@ -337,6 +359,7 @@ shaka.extern.UITrackLabelCallback;
  *   showUIOnPaused: boolean,
  *   showMenusOnTheRight: boolean,
  *   customTrackLabel: shaka.extern.UITrackLabelCallback,
+ *   showBufferingSpinner: boolean,
  * }}
  *
  * @property {!Array<string>} controlPanelElements
@@ -356,7 +379,19 @@ shaka.extern.UITrackLabelCallback;
  * @property {!Array<number>} playbackRates
  *   The ordered list of rates for playback selection.
  *   <br>
- *   Defaults to <code>[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]</code>.
+ *   Defaults to <code>[1, 1.25, 1.5, 2, 3]</code>.
+ * @property {number} playbackRateSliderMin
+ *   The minimum playback rate available in the playback-rate slider.
+ *   This only affects the continuous slider range and does not add a preset
+ *   button to the playback-rate menu.
+ *   <br>
+ *   Defaults to <code>0.5</code>.
+ * @property {number} playbackRateSliderMax
+ *   The maximum playback rate available in the playback-rate slider.
+ *   This only affects the continuous slider range and does not add a preset
+ *   button to the playback-rate menu.
+ *   <br>
+ *   Defaults to <code>3</code>.
  * @property {!Array<number>} fastForwardRates
  *   The ordered list of rates for fast forward selection.
  *   <br>
@@ -411,6 +446,10 @@ shaka.extern.UITrackLabelCallback;
  *   The CSS colors applied to the volume bar.  This allows you to override the
  *   colors used in the linear gradient constructed in JavaScript, since you
  *   cannot do this in pure CSS.
+ * @property {shaka.extern.UIPlaybackRateBarColors} playbackRateBarColors
+ *   The CSS colors applied to the playback rate bar.  This allows you to
+ *   override the colors used in the linear gradient constructed in JavaScript,
+ *   since you cannot do this in pure CSS.
  * @property {shaka.extern.UIQualityMarks} qualityMarks
  *   The name of the quality marks.
  * @property {shaka.ui.Overlay.TrackLabelFormat} trackLabelFormat
@@ -535,8 +574,9 @@ shaka.extern.UITrackLabelCallback;
  *   Defaults to <code>false</code>.
  * @property {string} defaultVrProjectionMode
  *   Indicate the default VR projection mode.
- *   Possible values: <code>'equirectangular'</code> or
- *   <code>'halfequirectangular'</code> or <code>'cubemap'</code>.
+ *   Possible values: <code>'equirectangular'</code>,
+ *   <code>'halfequirectangular'</code>, <code>'fisheye'</code> or
+ *   <code>'cubemap'</code>.
  *   <br>
  *   Defaults to <code>'equirectangular'</code>.
  * @property {boolean} preferVideoFullScreenInVisionOS
@@ -589,6 +629,13 @@ shaka.extern.UITrackLabelCallback;
  *   <br>
  *   Defaults to <code>true</code> except on Vision OS where the default value
  *   is <code>false</code>
+ * @property {boolean} enableVrWheelZoom
+ *   Enables zooming the field of view of VR videos with the mouse wheel.
+ *   When disabled, the wheel scrolls the page normally, which is usually a
+ *   better experience for players embedded in a page. The field of view can
+ *   still be changed with a pinch gesture or through the API.
+ *   <br>
+ *   Defaults to <code>false</code>.
  * @property {boolean} showUIAlways
  *   If true, always keep the UI visible for all content.
  *   <br>
@@ -630,11 +677,19 @@ shaka.extern.UITrackLabelCallback;
  * @property {shaka.extern.UITrackLabelCallback} customTrackLabel
  *   A callback for customizing track labels in the UI.  The callback receives
  *   the default label (or <code>null</code> if the language was unrecognized),
- *   the track object, and a type string (<code>'audio'</code> or
- *   <code>'text'</code>).  Return a string to override the label, or a falsy
- *   value to keep the default.
+ *   the track object, and a type string (<code>'audio'</code>,
+ *   <code>'text'</code>, or <code>'video'</code>).  Return a string to override
+ *   the label, or a falsy value to keep the default.
  *   <br>
  *   Defaults to a no-op that returns <code>''</code>.
+ * @property {boolean} showBufferingSpinner
+ *   Whether or not to display a buffering spinner while the media is loading
+ *   or temporarily stalled due to insufficient data. When enabled, a visual
+ *   indicator is shown to inform the user that playback is waiting for more
+ *   content to be buffered.
+ *   <br>
+ *   Defaults to <code>true</code> except on mobile and smart TV whose
+ *   default value is <code>false</code>.
  * @exportDoc
  */
 shaka.extern.UIConfiguration;
@@ -721,6 +776,18 @@ shaka.extern.IUIElement = class {
    * @override
    */
   release() {}
+
+  /**
+   * Called when the locale changes. Override to update UI strings.
+   * @protected
+   */
+  updateLocalizedStrings() {}
+
+  /**
+   * Called when a submenu opens or closes. Override to show/hide this element.
+   * @protected
+   */
+  checkAvailability() {}
 };
 
 
@@ -756,8 +823,10 @@ shaka.extern.IUIRangeElement = class {
    * @param {!shaka.ui.Controls} controls
    * @param {!Array<string>} containerClassNames
    * @param {!Array<string>} barClassNames
+   * @param {boolean=} enableWheel
    */
-  constructor(parent, controls, containerClassNames, barClassNames) {
+  constructor(parent, controls, containerClassNames, barClassNames,
+      enableWheel) {
     /**
      * @protected {!HTMLElement}
      * @exportDoc
@@ -776,6 +845,26 @@ shaka.extern.IUIRangeElement = class {
    * @param {number} max
    */
   setRange(min, max) {}
+
+  /**
+   * @param {number|string} step
+   */
+  setStep(step) {}
+
+  /**
+   * @return {number}
+   */
+  getMin() {}
+
+  /**
+   * @return {number}
+   */
+  getMax() {}
+
+  /**
+   * @param {string} background
+   */
+  setBackground(background) {}
 
   /**
    * Called when user interaction begins.

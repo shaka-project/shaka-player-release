@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// cspell:ignore playenabler moqtail cmsf testsrc eccp
+// cspell:ignore playenabler moqtail testsrc eccp
 
 /**
  * @fileoverview
@@ -744,6 +744,13 @@ shakaAssets.testAssets = [
       .addFeature(shakaAssets.Feature.HLS)
       .addFeature(shakaAssets.Feature.LIVE)
       .addFeature(shakaAssets.Feature.MP4),
+  new ShakaDemoAssetInfo(
+      /* name= */ 'Raw MP3 with ID3 metadata (src=)',
+      /* iconUri= */ '',
+      /* manifestUri= */ 'https://raw.githubusercontent.com/shaka-project/shaka-player-history/refs/heads/main/sources/bach/John_Lewis_Grant_-_01_-_Bach_Prelude___Fugue_1.mp3',
+      /* source= */ shakaAssets.Source.SHAKA)
+      .addFeature(shakaAssets.Feature.AUDIO_ONLY)
+      .addFeature(shakaAssets.Feature.CONTAINERLESS),
   // End Shaka assets }}}
 
   // Axinom assets {{{
@@ -1326,6 +1333,24 @@ shakaAssets.testAssets = [
       .addFeature(shakaAssets.Feature.DASH)
       .addFeature(shakaAssets.Feature.LIVE)
       .addFeature(shakaAssets.Feature.MP4),
+  new ShakaDemoAssetInfo(
+      /* name= */ 'Live sim Server-Guided Ad Insertion using DASH 6th-edition Alternative-MPD Replace events',
+      /* iconUri= */ 'https://storage.googleapis.com/shaka-asset-icons/dash_if_test_pattern.png',
+      /* manifestUri= */ 'https://livesim2.dashif.org/livesim2/sgai_p60:20/testpic_2s/Manifest.mpd?sessionId=alice&interests=travel,sailing',
+      /* source= */ shakaAssets.Source.DASH_IF)
+      .addFeature(shakaAssets.Feature.DASH)
+      .addFeature(shakaAssets.Feature.LIVE)
+      .addFeature(shakaAssets.Feature.MP4)
+      .addFeature(shakaAssets.Feature.ADS),
+  new ShakaDemoAssetInfo(
+      /* name= */ 'Live sim Content-Steering',
+      /* iconUri= */ 'https://storage.googleapis.com/shaka-asset-icons/dash_if_test_pattern.png',
+      /* manifestUri= */ 'https://livesim2.dashif.org/livesim2/steer_alpha,beta;ttl=20/testpic_2s/Manifest.mpd?sessionId=alice',
+      /* source= */ shakaAssets.Source.DASH_IF)
+      .addFeature(shakaAssets.Feature.DASH)
+      .addFeature(shakaAssets.Feature.LIVE)
+      .addFeature(shakaAssets.Feature.MP4)
+      .addFeature(shakaAssets.Feature.CONTENT_STEERING),
   // End DASH-IF Assets }}}
 
   // Bitmovin assets {{{
@@ -1632,6 +1657,7 @@ shakaAssets.testAssets = [
       /* source= */ shakaAssets.Source.APPLE)
       .addFeature(shakaAssets.Feature.HLS)
       .addFeature(shakaAssets.Feature.MP4)
+      .addFeature(shakaAssets.Feature.ADS)
       .addFeature(shakaAssets.Feature.ULTRA_HIGH_DEFINITION)
       .addFeature(shakaAssets.Feature.TRICK_MODE)
       .addFeature(shakaAssets.Feature.SUBTITLES)
@@ -2649,7 +2675,7 @@ shakaAssets.testAssets = [
       .setExtraConfig({
         manifest: {
           msf: {
-            namespaces: ['cmaf/clear'],
+            namespaces: ['cmsf/clear'],
           },
         },
       })
@@ -2669,7 +2695,7 @@ shakaAssets.testAssets = [
       .setExtraConfig({
         manifest: {
           msf: {
-            namespaces: ['cmaf/drm-cbcs'],
+            namespaces: ['cmsf/drm-cbcs'],
           },
         },
       })
@@ -2687,7 +2713,24 @@ shakaAssets.testAssets = [
       .setExtraConfig({
         manifest: {
           msf: {
-            namespaces: ['cmaf/eccp-cbcs'],
+            namespaces: ['cmsf/eccp-cbcs'],
+          },
+        },
+      })
+      .setMimeType('application/msf'),
+  new ShakaDemoAssetInfo(
+      /* name= */ 'moqlivemock LoC',
+      /* iconUri= */ '',
+      /* manifestUri= */ 'https://moqlivemock.demo.osaas.io/moq',
+      /* source= */ shakaAssets.Source.EYEVINN)
+      .addFeature(shakaAssets.Feature.MSF)
+      .addFeature(shakaAssets.Feature.MP4)
+      .addFeature(shakaAssets.Feature.MULTIPLE_LANGUAGES)
+      .addFeature(shakaAssets.Feature.SUBTITLES)
+      .setExtraConfig({
+        manifest: {
+          msf: {
+            namespaces: ['msf/clear'],
           },
         },
       })

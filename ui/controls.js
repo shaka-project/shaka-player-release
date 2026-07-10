@@ -26,6 +26,7 @@ goog.require('shaka.ui.Localization');
 goog.require('shaka.ui.MediaSession');
 goog.require('shaka.ui.SeekBar');
 goog.require('shaka.ui.SkipAdButton');
+goog.require('shaka.ui.TextStylePreview');
 goog.require('shaka.ui.Utils');
 goog.require('shaka.ui.VRManager');
 goog.require('shaka.util.ArrayUtils');
@@ -290,6 +291,8 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       for (const menu of this.menus_) {
         shaka.ui.Utils.setDisplay(menu, /* visible= */ false);
       }
+      this.dispatchEvent(new shaka.util.FakeEvent('submenuclose'));
+      this.hideTextStylePreview();
       if (this.config_.enableTooltips) {
         this.controlsButtonPanel_.classList.add('shaka-tooltips-on');
       }
@@ -330,6 +333,10 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
 
     /** @private {shaka.ui.Localization} */
     this.localization_ = shaka.ui.Controls.createLocalization_();
+
+    /** @private {?shaka.ui.TextStylePreview} */
+    this.textStylePreview_ = new shaka.ui.TextStylePreview(
+        this.localPlayer_, this.localization_);
 
     /** @private {shaka.util.EventManager} */
     this.eventManager_ = new shaka.util.EventManager();
@@ -430,6 +437,9 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
     if (document.pictureInPictureElement == this.localVideo_) {
       await document.exitPictureInPicture();
     }
+
+    this.textStylePreview_?.release();
+    this.textStylePreview_ = null;
 
     this.eventManager_?.release();
     this.eventManager_ = null;
@@ -568,6 +578,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    */
   configure(config) {
     this.config_ = config;
+    this.hideTextStylePreview();
 
     this.castProxy_.changeReceiverId(config.castReceiverAppId,
         config.castAndroidReceiverCompatible);
@@ -911,6 +922,35 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
     for (const menu of this.contextMenus_) {
       shaka.ui.Utils.setDisplay(menu, /* visible= */ false);
     }
+    this.hideTextStylePreview();
+  }
+
+  /**
+   * Shows a temporary subtitle with the current text displayer style.
+   */
+  showTextStylePreview() {
+    this.textStylePreview_?.show();
+  }
+
+  /**
+   * Updates the temporary subtitle style without changing player config.
+   *
+   * @param {!shaka.ui.TextStylePreview.Configuration=} config
+   */
+  updateTextStylePreview(config = {}) {
+    this.textStylePreview_?.update(config);
+  }
+
+  /**
+   * Reverts the temporary subtitle to the style captured when the menu opened.
+   */
+  resetTextStylePreview() {
+    this.textStylePreview_?.reset();
+  }
+
+  /** Removes the temporary subtitle style preview. */
+  hideTextStylePreview() {
+    this.textStylePreview_?.hide();
   }
 
   /**
@@ -936,9 +976,8 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
 
   /**
    * @return {boolean}
-   * @private
    */
-  shouldUseDocumentPictureInPicture_() {
+  shouldUseDocumentPictureInPicture() {
     return 'documentPictureInPicture' in window &&
         this.config_.documentPictureInPicture.enabled;
   }
@@ -984,7 +1023,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       if (this.shouldUseDocumentFullscreen_()) {
         if (this.isPiPEnabled()) {
           await this.togglePiP();
-          if (this.shouldUseDocumentPictureInPicture_()) {
+          if (this.shouldUseDocumentPictureInPicture()) {
             // This is necessary because we need a small delay when
             // executing actions when returning from document PiP.
             await shaka.util.Functional.delay(0.05);
@@ -1048,7 +1087,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       return false;
     }
     if (document.pictureInPictureEnabled ||
-        this.shouldUseDocumentPictureInPicture_()) {
+        this.shouldUseDocumentPictureInPicture()) {
       const video = /** @type {HTMLVideoElement} */(this.localVideo_);
       return !video.disablePictureInPicture;
     }
@@ -1068,7 +1107,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
   /** @export */
   async togglePiP() {
     try {
-      if (this.shouldUseDocumentPictureInPicture_()) {
+      if (this.shouldUseDocumentPictureInPicture()) {
         // If you were fullscreen, leave fullscreen first.
         if (this.isFullScreenEnabled()) {
           await this.exitFullScreen_();
@@ -1161,15 +1200,36 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       });
     }
 
+    // Blur overlay: covers the full placeholder, blurs the poster behind it.
+    const blurOverlay = shaka.util.Dom.createHTMLElement('div');
+    blurOverlay.classList.add('pip-blur-overlay');
+    placeholder.appendChild(blurOverlay);
+
+    // Wrap pulse ring + icon together so the ring is centered on the button.
+    const pipIconGroup = shaka.util.Dom.createHTMLElement('div');
+    pipIconGroup.classList.add('pip-icon-group');
+    placeholder.appendChild(pipIconGroup);
+
+    const pulseRing = shaka.util.Dom.createHTMLElement('div');
+    pulseRing.classList.add('pip-pulse-ring');
+    pipIconGroup.appendChild(pulseRing);
+
     const iconWrapper = shaka.util.Dom.createHTMLElement('div');
     iconWrapper.classList.add('pip-icon-wrapper');
-    placeholder.appendChild(iconWrapper);
+    pipIconGroup.appendChild(iconWrapper);
     const pipIcon = (new shaka.ui.Icon(iconWrapper,
         shaka.ui.Enums.MaterialDesignSVGIcons['EXIT_PIP'])).getSvgElement();
     const pipAction = () => this.togglePiP();
     this.eventManager_.listenOnce(pipIcon, 'click', pipAction);
 
+    const pipLabel = shaka.util.Dom.createHTMLElement('p');
+    pipLabel.classList.add('pip-label');
+    pipLabel.textContent =
+        this.localization_.resolve(shaka.ui.Locales.Ids.PIP_WINDOW_ACTIVE);
+    placeholder.appendChild(pipLabel);
+
     const style = getComputedStyle(pipPlayer);
+    placeholder.style.width = style.width;
     placeholder.style.height = style.height;
     parentPlayer.appendChild(placeholder);
 
@@ -1313,8 +1373,15 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       this.addBigButtons_();
     }
 
-    if (!this.spinnerContainer_) {
-      this.addBufferingSpinner_();
+    if (this.config_.showBufferingSpinner) {
+      if (!this.spinnerContainer_) {
+        this.addBufferingSpinner_();
+      }
+    } else {
+      if (this.spinnerContainer_) {
+        this.videoContainer_.removeChild(this.spinnerContainer_);
+        this.spinnerContainer_ = null;
+      }
     }
 
     if (this.config_.seekOnTaps) {
@@ -1332,6 +1399,8 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
         this.videoContainer_.getElementsByClassName('shaka-settings-menu'));
     this.menus_.push(...Array.from(
         this.videoContainer_.getElementsByClassName('shaka-overflow-menu')));
+    this.menus_.push(...Array.from(
+        this.videoContainer_.getElementsByClassName('shaka-sub-menu')));
 
     this.contextMenus_ = Array.from(
         this.videoContainer_.getElementsByClassName('shaka-context-menu'));
@@ -1446,6 +1515,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       </g>
     </svg>`;
     spinner.insertAdjacentHTML('beforeend', str);
+    this.onBufferingStateChange_();
   }
 
   /**
@@ -1549,6 +1619,8 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
     this.controlsButtonPanel_.classList.add('shaka-controls-button-panel');
     this.controlsButtonPanel_.classList.add(
         'shaka-show-controls-on-mouse-over');
+    this.controlsButtonPanel_.setAttribute('role', 'toolbar');
+
     if (this.config_.enableTooltips) {
       this.controlsButtonPanel_.classList.add('shaka-tooltips-on');
     }
@@ -2238,7 +2310,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    * @private
    */
   onBufferingStateChange_() {
-    if (!this.enabled_) {
+    if (!this.enabled_ || !this.spinnerContainer_) {
       return;
     }
 
@@ -2289,12 +2361,15 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
   }
 
   /**
+   * @param {string=} format
+   * @param {number=} imageQuality
    * @export
    */
-  takeScreenshot() {
+  takeScreenshot(format = 'png', imageQuality = 1) {
     if (!this.canTakeScreenshot()) {
       return;
     }
+    const mimeType = `image/${format === 'jpg' ? 'jpeg' : format}`;
     const canvas = /** @type {!HTMLCanvasElement}*/ (
       document.createElement('canvas'));
     const context = /** @type {CanvasRenderingContext2D} */ (
@@ -2306,13 +2381,13 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const dataURL = canvas.toDataURL('image/png');
+    const dataURL = canvas.toDataURL(mimeType, imageQuality);
 
     const downloadLink = /** @type {!HTMLAnchorElement}*/ (
       document.createElement('a'));
     downloadLink.href = dataURL;
     downloadLink.download =
-        'videoframe_' + video.currentTime.toFixed(3) + '.png';
+        'videoframe_' + video.currentTime.toFixed(3) + '.' + format;
     downloadLink.click();
   }
 
@@ -2333,12 +2408,19 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    *
    * If the browser lacks support for the Clipboard API, no action will be
    * taken.
+   * If the format is not support by the Clipboard API, no action will be
+   * taken.
    *
    * @param {string=} format
+   * @param {number=} imageQuality
    * @export
    */
-  copyVideoFrameToClipboard(format = 'image/png') {
+  copyVideoFrameToClipboard(format = 'png', imageQuality = 1) {
     if (!this.canCopyVideoFrameToClipboard()) {
+      return;
+    }
+    const mimeType = `image/${format === 'jpg' ? 'jpeg' : format}`;
+    if (!ClipboardItem.supports(mimeType)) {
       return;
     }
     const canvas = /** @type {!HTMLCanvasElement}*/ (
@@ -2355,12 +2437,12 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
     // Convert canvas to blob and copy to clipboard
     canvas.toBlob((blob) => {
       if (blob) {
-        const item = new ClipboardItem({'image/png': blob});
+        const item = new ClipboardItem({[mimeType]: blob});
         navigator.clipboard.write([item]).catch((error) => {
           shaka.log.error('Failed to copy image to clipboard:', error);
         });
       }
-    }, format);
+    }, mimeType, imageQuality);
   }
 
   /**
