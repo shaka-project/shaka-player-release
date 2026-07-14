@@ -76,6 +76,21 @@ where the errors may be documented:
   <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">HTTP Codes</a>
   <li><a href="https://hresult.info">Edge/PlayReady errors</a>
 </ul>
+
+The <code>@extends {Error}</code> annotation below is a type-only
+declaration for the Closure Compiler; this class does <b>not</b> actually
+extend the native <code>Error</code> at runtime (there is no <code>extends
+Error</code> clause and the constructor never calls <code>super()</code>).
+That annotation exists only so that our conformance checks (see
+build/conformance.textproto's <code>BanThrowOfNonErrorTypes</code> rule)
+accept <code>throw new shaka.util.Error(...)</code> throughout the
+codebase; it is not a promise about the runtime prototype chain.
+<br><br>
+In particular, <code>(new shaka.util.Error(...)) instanceof Error</code>
+is <code>false</code>.  This is intentional: it lets application code tell
+an unhandled native error apart from a Shaka-specific error by checking
+<code>instanceof Error</code> before checking
+<code>instanceof shaka.util.Error</code>.  See <a href="tutorial-errors.html">Error Handling</a>.
 </div>
 
 
@@ -289,7 +304,7 @@ where the errors may be documented:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line32">line 32</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line47">line 47</a>
     </li></ul></dd>
     
 
@@ -779,7 +794,7 @@ where the errors may be documented:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line186">line 186</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line201">line 201</a>
     </li></ul></dd>
     
 
@@ -6362,7 +6377,7 @@ provided.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line223">line 223</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line238">line 238</a>
     </li></ul></dd>
     
 
@@ -6443,7 +6458,7 @@ See comments in test/test/boot.js for details.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line157">line 157</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line172">line 172</a>
     </li></ul></dd>
     
 
@@ -6624,7 +6639,7 @@ to reset the library.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line163">line 163</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line178">line 178</a>
     </li></ul></dd>
     
 
@@ -6705,7 +6720,7 @@ to reset the library.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line49">line 49</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line64">line 64</a>
     </li></ul></dd>
     
 
@@ -6786,7 +6801,7 @@ to reset the library.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line54">line 54</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line69">line 69</a>
     </li></ul></dd>
     
 
@@ -6867,7 +6882,7 @@ to reset the library.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line59">line 59</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line74">line 74</a>
     </li></ul></dd>
     
 
@@ -6948,7 +6963,7 @@ to reset the library.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line64">line 64</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line79">line 79</a>
     </li></ul></dd>
     
 
@@ -7028,7 +7043,7 @@ category and code as enums.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line97">line 97</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line112">line 112</a>
     </li></ul></dd>
     
 
@@ -7109,7 +7124,7 @@ category and code as enums.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line44">line 44</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line59">line 59</a>
     </li></ul></dd>
     
 
@@ -7187,7 +7202,7 @@ category and code as enums.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line109">line 109</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line124">line 124</a>
     </li></ul></dd>
     
 
@@ -7318,7 +7333,7 @@ category and code as enums.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line127">line 127</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line142">line 142</a>
     </li></ul></dd>
     
 
@@ -7426,7 +7441,7 @@ category and code as enums.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line119">line 119</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line134">line 134</a>
     </li></ul></dd>
     
 
@@ -7538,7 +7553,7 @@ category and code as enums.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line1269">line 1269</a>
+        <a href="lib_util_error.js.html">lib/util/error.js</a>, <a href="lib_util_error.js.html#line1284">line 1284</a>
     </li></ul></dd>
     
 
@@ -7584,7 +7599,7 @@ category and code as enums.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Jul 10 2026 08:48:59 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Tue Jul 14 2026 12:35:08 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

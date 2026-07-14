@@ -577,6 +577,20 @@ shaka.util.BufferUtils = class {
  *   <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status">HTTP Codes</a>
  *   <li><a href="https://hresult.info">Edge/PlayReady errors</a>
  * </ul>
+ * The <code>@extends {Error}</code> annotation below is a type-only
+ * declaration for the Closure Compiler; this class does <b>not</b> actually
+ * extend the native <code>Error</code> at runtime (there is no <code>extends
+ * Error</code> clause and the constructor never calls <code>super()</code>).
+ * That annotation exists only so that our conformance checks (see
+ * build/conformance.textproto's <code>BanThrowOfNonErrorTypes</code> rule)
+ * accept <code>throw new shaka.util.Error(...)</code> throughout the
+ * codebase; it is not a promise about the runtime prototype chain.
+ * <br><br>
+ * In particular, <code>(new shaka.util.Error(...)) instanceof Error</code>
+ * is <code>false</code>.  This is intentional: it lets application code tell
+ * an unhandled native error apart from a Shaka-specific error by checking
+ * <code>instanceof Error</code> before checking
+ * <code>instanceof shaka.util.Error</code>.  See {@tutorial errors}.
  * @implements {shaka.extern.Error}
  * @extends {Error}
  */
