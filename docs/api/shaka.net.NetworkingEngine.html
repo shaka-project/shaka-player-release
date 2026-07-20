@@ -974,7 +974,7 @@ data, without breaking backwards compatibility.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line905">line 905</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line915">line 915</a>
     </li></ul></dd>
     
 
@@ -1189,7 +1189,7 @@ highest-priority one is used.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line931">line 931</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line941">line 941</a>
     </li></ul></dd>
     
 
@@ -1776,7 +1776,7 @@ highest-priority one is used.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line878">line 878</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line888">line 888</a>
     </li></ul></dd>
     
 
@@ -1854,7 +1854,7 @@ highest-priority one is used.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line959">line 959</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line969">line 969</a>
     </li></ul></dd>
     
 
@@ -3020,7 +3020,7 @@ all browsers, so instead we mock this.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line794">line 794</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line804">line 804</a>
     </li></ul></dd>
     
 
@@ -3852,7 +3852,7 @@ APPLICATION.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line774">line 774</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line784">line 784</a>
     </li></ul></dd>
     
 
@@ -4768,7 +4768,7 @@ is complete. This Promise should never be rejected.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line398">line 398</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line400">line 400</a>
     </li></ul></dd>
     
 
@@ -4999,7 +4999,7 @@ is complete. This Promise should never be rejected.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line729">line 729</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line739">line 739</a>
     </li></ul></dd>
     
 
@@ -5057,7 +5057,7 @@ is complete. This Promise should never be rejected.
     
 
     
-    <h4 class="name" id="makeRequestWithRetry_"><span class="type-signature"></span>makeRequestWithRetry_<span class="signature">(type, request, context, numBytesRemainingObj)</span><span class="type-signature"> &rarr; {<a href="shaka.extern.IAbortableOperation.html">shaka.extern.IAbortableOperation</a>&lt;<a href="shaka.net.NetworkingEngine.html#.ResponseAndGotProgress">shaka.net.NetworkingEngine.ResponseAndGotProgress</a>&gt;}</span></h4>
+    <h4 class="name" id="makeRequestWithRetry_"><span class="type-signature"></span>makeRequestWithRetry_<span class="signature">(type, request, context, numBytesRemainingObj, originalHeaders<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {<a href="shaka.extern.IAbortableOperation.html">shaka.extern.IAbortableOperation</a>&lt;<a href="shaka.net.NetworkingEngine.html#.ResponseAndGotProgress">shaka.net.NetworkingEngine.ResponseAndGotProgress</a>&gt;}</span></h4>
     
 
     
@@ -5189,6 +5189,29 @@ is complete. This Promise should never be rejected.
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>originalHeaders</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object&lt;string, string&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -5228,7 +5251,7 @@ is complete. This Promise should never be rejected.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line450">line 450</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line453">line 453</a>
     </li></ul></dd>
     
 
@@ -5809,7 +5832,7 @@ are registered.
     
 
     
-    <h4 class="name" id="send_"><span class="type-signature"></span>send_<span class="signature">(type, request, context, backoff<span class="signature-attributes">non-null</span>, lastError<span class="signature-attributes">nullable</span>, numBytesRemainingObj)</span><span class="type-signature"> &rarr; {<a href="shaka.extern.IAbortableOperation.html">shaka.extern.IAbortableOperation</a>&lt;<a href="shaka.net.NetworkingEngine.html#.ResponseAndGotProgress">shaka.net.NetworkingEngine.ResponseAndGotProgress</a>&gt;}</span></h4>
+    <h4 class="name" id="send_"><span class="type-signature"></span>send_<span class="signature">(type, request, context, backoff<span class="signature-attributes">non-null</span>, lastError<span class="signature-attributes">nullable</span>, numBytesRemainingObj, originalHeaders<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {<a href="shaka.extern.IAbortableOperation.html">shaka.extern.IAbortableOperation</a>&lt;<a href="shaka.net.NetworkingEngine.html#.ResponseAndGotProgress">shaka.net.NetworkingEngine.ResponseAndGotProgress</a>&gt;}</span></h4>
     
 
     
@@ -6043,6 +6066,37 @@ are registered.
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>originalHeaders</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object&lt;string, string&gt;</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -6082,7 +6136,7 @@ are registered.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line472">line 472</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line477">line 477</a>
     </li></ul></dd>
     
 
@@ -6485,7 +6539,7 @@ successfully.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1020">line 1020</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1030">line 1030</a>
     </li></ul></dd>
     
 
@@ -6564,7 +6618,7 @@ reason (e.g. even if the download was aborted).
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1036">line 1036</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1046">line 1046</a>
     </li></ul></dd>
     
 
@@ -6643,7 +6697,7 @@ the player, plus some extra data.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line989">line 989</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line999">line 999</a>
     </li></ul></dd>
     
 
@@ -6724,7 +6778,7 @@ original request.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1006">line 1006</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1016">line 1016</a>
     </li></ul></dd>
     
 
@@ -6802,7 +6856,7 @@ original request.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1049">line 1049</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1059">line 1059</a>
     </li></ul></dd>
     
 
@@ -6880,7 +6934,7 @@ original request.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1077">line 1077</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1087">line 1087</a>
     </li></ul></dd>
     
 
@@ -6959,7 +7013,7 @@ new URI and the second string is the old URI.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1064">line 1064</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line1074">line 1074</a>
     </li></ul></dd>
     
 
@@ -7125,7 +7179,7 @@ progress event is fired by the scheme plugin.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line975">line 975</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line985">line 985</a>
     </li></ul></dd>
     
 
@@ -7314,7 +7368,7 @@ progress event is fired by the scheme plugin.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line951">line 951</a>
+        <a href="lib_net_networking_engine.js.html">lib/net/networking_engine.js</a>, <a href="lib_net_networking_engine.js.html#line961">line 961</a>
     </li></ul></dd>
     
 
@@ -7563,7 +7617,7 @@ progress event is fired by the scheme plugin.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Tue Jul 14 2026 12:35:02 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Jul 20 2026 11:47:15 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
