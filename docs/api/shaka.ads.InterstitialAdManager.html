@@ -2785,7 +2785,7 @@ See https://github.com/shaka-project/shaka-player/issues/10191
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1376">line 1376</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1390">line 1390</a>
     </li></ul></dd>
     
 
@@ -2956,6 +2956,174 @@ See https://github.com/shaka-project/shaka-player/issues/10191
 
     
         <h3 class="subsection-title">Methods</h3>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id=".isSafeClickThroughUri_"><span class="type-signature"></span>isSafeClickThroughUri_<span class="signature">(uri)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Returns true if a click-through URI is safe to hand to window.open().
+
+Click-through URIs come from manifests and ad decision responses, which
+are not trusted input. window.open() with a javascript: URI executes in
+the opener's origin, so restrict click-throughs to http(s). Control
+characters and whitespace are stripped before the scheme is read, because
+browsers ignore them when resolving the scheme of a URL. A URI with no
+scheme is relative and resolves against the page, so it is allowed.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>uri</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2572">line 2572</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
 
         
             
@@ -3741,7 +3909,7 @@ ensures the polling that will eventually resolve it is running.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1890">line 1890</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1904">line 1904</a>
     </li></ul></dd>
     
 
@@ -3908,7 +4076,7 @@ viewport/topLeft/size, expressed as CSS percentages.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1512">line 1512</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1526">line 1526</a>
     </li></ul></dd>
     
 
@@ -4448,7 +4616,7 @@ re-armed so the running ad is truncated.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2449">line 2449</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2463">line 2463</a>
     </li></ul></dd>
     
 
@@ -4790,7 +4958,7 @@ changes.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2247">line 2247</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2261">line 2261</a>
     </li></ul></dd>
     
 
@@ -5268,7 +5436,7 @@ appropriate.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2426">line 2426</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2440">line 2440</a>
     </li></ul></dd>
     
 
@@ -5425,7 +5593,7 @@ appropriate.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1612">line 1612</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1626">line 1626</a>
     </li></ul></dd>
     
 
@@ -5630,7 +5798,7 @@ the Date Range has no ID, the times are floored to a tenth of a second.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2349">line 2349</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2363">line 2363</a>
     </li></ul></dd>
     
 
@@ -5815,7 +5983,7 @@ null if there is no such frame.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2335">line 2335</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2349">line 2349</a>
     </li></ul></dd>
     
 
@@ -5972,7 +6140,7 @@ null if there is no such frame.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2082">line 2082</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2096">line 2096</a>
     </li></ul></dd>
     
 
@@ -6355,7 +6523,7 @@ is invalidated whenever interstitials_ changes.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2396">line 2396</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2410">line 2410</a>
     </li></ul></dd>
     
 
@@ -6567,7 +6735,7 @@ is invalidated whenever interstitials_ changes.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2227">line 2227</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2241">line 2241</a>
     </li></ul></dd>
     
 
@@ -6724,7 +6892,7 @@ is invalidated whenever interstitials_ changes.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2384">line 2384</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2398">line 2398</a>
     </li></ul></dd>
     
 
@@ -6881,7 +7049,7 @@ is invalidated whenever interstitials_ changes.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2411">line 2411</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2425">line 2425</a>
     </li></ul></dd>
     
 
@@ -6989,7 +7157,7 @@ is invalidated whenever interstitials_ changes.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2434">line 2434</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2448">line 2448</a>
     </li></ul></dd>
     
 
@@ -7146,7 +7314,7 @@ is invalidated whenever interstitials_ changes.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2524">line 2524</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2538">line 2538</a>
     </li></ul></dd>
     
 
@@ -7346,7 +7514,7 @@ is invalidated whenever interstitials_ changes.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2317">line 2317</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2331">line 2331</a>
     </li></ul></dd>
     
 
@@ -7510,7 +7678,7 @@ now contains the playhead so the poll resolves it again.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1960">line 1960</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1974">line 1974</a>
     </li></ul></dd>
     
 
@@ -7656,7 +7824,7 @@ in the middle of an interstitial.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1929">line 1929</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1943">line 1943</a>
     </li></ul></dd>
     
 
@@ -7979,7 +8147,7 @@ in the middle of an interstitial.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2370">line 2370</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2384">line 2384</a>
     </li></ul></dd>
     
 
@@ -8136,7 +8304,7 @@ in the middle of an interstitial.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2510">line 2510</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2524">line 2524</a>
     </li></ul></dd>
     
 
@@ -8390,7 +8558,7 @@ in the middle of an interstitial.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1586">line 1586</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1600">line 1600</a>
     </li></ul></dd>
     
 
@@ -8624,7 +8792,7 @@ in the middle of an interstitial.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2005">line 2005</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2019">line 2019</a>
     </li></ul></dd>
     
 
@@ -8763,7 +8931,7 @@ in the middle of an interstitial.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2483">line 2483</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2497">line 2497</a>
     </li></ul></dd>
     
 
@@ -8919,7 +9087,7 @@ given group id, so the asset list can be resolved again.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1987">line 1987</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2001">line 2001</a>
     </li></ul></dd>
     
 
@@ -9065,7 +9233,7 @@ the configured default.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2030">line 2030</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2044">line 2044</a>
     </li></ul></dd>
     
 
@@ -9227,7 +9395,7 @@ it into the individual interstitials it contains.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1763">line 1763</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1777">line 1777</a>
     </li></ul></dd>
     
 
@@ -9389,7 +9557,7 @@ interstitials. Invoked from the poll timer; not awaited.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1905">line 1905</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1919">line 1919</a>
     </li></ul></dd>
     
 
@@ -9571,7 +9739,7 @@ interstitials. Invoked from the poll timer; not awaited.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2500">line 2500</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2514">line 2514</a>
     </li></ul></dd>
     
 
@@ -9710,7 +9878,7 @@ interstitials. Invoked from the poll timer; not awaited.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1526">line 1526</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1540">line 1540</a>
     </li></ul></dd>
     
 
@@ -10448,7 +10616,7 @@ interstitials. Invoked from the poll timer; not awaited.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1090">line 1090</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1097">line 1097</a>
     </li></ul></dd>
     
 
@@ -10592,7 +10760,7 @@ deferred until playback approaches it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2043">line 2043</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2057">line 2057</a>
     </li></ul></dd>
     
 
@@ -10706,7 +10874,7 @@ middle of an interstitial, where the _HLS_start_offset would differ.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1946">line 1946</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line1960">line 1960</a>
     </li></ul></dd>
     
 
@@ -11079,7 +11247,7 @@ used to shorten (early-return from) an interstitial in live streams.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2299">line 2299</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2313">line 2313</a>
     </li></ul></dd>
     
 
@@ -11310,7 +11478,7 @@ used to shorten (early-return from) an interstitial in live streams.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2628">line 2628</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2667">line 2667</a>
     </li></ul></dd>
     
 
@@ -12055,7 +12223,7 @@ resolution has been deferred until playback approaches it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2597">line 2597</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2636">line 2636</a>
     </li></ul></dd>
     
 
@@ -12268,7 +12436,7 @@ resolution has been deferred until playback approaches it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2612">line 2612</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2651">line 2651</a>
     </li></ul></dd>
     
 
@@ -12429,7 +12597,7 @@ resolution has been deferred until playback approaches it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2641">line 2641</a>
+        <a href="lib_ads_interstitial_ad_manager.js.html">lib/ads/interstitial_ad_manager.js</a>, <a href="lib_ads_interstitial_ad_manager.js.html#line2680">line 2680</a>
     </li></ul></dd>
     
 
@@ -12475,7 +12643,7 @@ resolution has been deferred until playback approaches it.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Wed Jul 29 2026 07:35:02 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Thu Aug 13 2026 00:30:51 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
