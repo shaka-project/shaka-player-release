@@ -319,7 +319,81 @@ so the timestamps next to a boundary stay reachable too.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line1019">line 1019</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line1080">line 1080</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+<h4 class="name" id=".KEYBOARD_THUMBNAIL_TIMEOUT_"><span class="type-signature"></span>KEYBOARD_THUMBNAIL_TIMEOUT_<span class="type-signature"> :number</span></h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">number</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line1068">line 1068</a>
     </li></ul></dd>
     
 
@@ -393,7 +467,7 @@ so the timestamps next to a boundary stay reachable too.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line996">line 996</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line1050">line 1050</a>
     </li></ul></dd>
     
 
@@ -473,7 +547,7 @@ work, this value has to be synchronized with the one in the stylesheet.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line1007">line 1007</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line1061">line 1061</a>
     </li></ul></dd>
     
 
@@ -547,7 +621,7 @@ work, this value has to be synchronized with the one in the stylesheet.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line988">line 988</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line1042">line 1042</a>
     </li></ul></dd>
     
 
@@ -700,7 +774,7 @@ new ad breaks need to be marked in the current seek range.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line182">line 182</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line214">line 214</a>
     </li></ul></dd>
     
 
@@ -1520,7 +1594,7 @@ less/range_elements.less for a complete explanation.
 
 
 <div class="description">
-    True if the bar is moving due to touchscreen or keyboard events.
+    True if the bar is moving due to touchscreen events.
 </div>
 
 
@@ -1974,6 +2048,90 @@ the seek bar and the seek being sent to the player.
             
 <div class="access-container access-private">
 
+<h4 class="name" id="showThumbnailTimer_"><span class="type-signature"></span>showThumbnailTimer_<span class="type-signature"> :<a href="shaka.util.Timer.html">shaka.util.Timer</a></span></h4>
+
+
+
+
+<div class="description">
+    The timer is activated to preview the position a key press has moved
+the bar to.
+
+Which keys seek, and by how much, is up to Controls, which listens for
+them on an ancestor of the bar and therefore runs after us. Waiting for
+the event to be over lets us read the value it has just set instead of
+repeating that decision here.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="shaka.util.Timer.html">shaka.util.Timer</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line200">line 200</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
 <h4 class="name" id="thumbnailContainer_"><span class="type-signature"></span>thumbnailContainer_<span class="type-signature"> :HTMLElement</span></h4>
 
 
@@ -2344,6 +2502,85 @@ the seek bar and the seek being sent to the player.
             
 <div class="access-container access-private">
 
+<h4 class="name" id="valueBeforeKeyPress_"><span class="type-signature"></span>valueBeforeKeyPress_<span class="type-signature"> :number</span></h4>
+
+
+
+
+<div class="description">
+    The value of the bar right before the last key press, used to tell
+whether the key moved the playhead at all.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">number</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line187">line 187</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
 <h4 class="name" id="wasPlaying_"><span class="type-signature"></span>wasPlaying_<span class="type-signature"> :boolean</span></h4>
 
 
@@ -2557,7 +2794,7 @@ depending on its previous state
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line603">line 603</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line646">line 646</a>
     </li></ul></dd>
     
 
@@ -2726,7 +2963,7 @@ depending on its previous state
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line956">line 956</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line1010">line 1010</a>
     </li></ul></dd>
     
 
@@ -2888,7 +3125,7 @@ not exist.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line380">line 380</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line423">line 423</a>
     </li></ul></dd>
     
 
@@ -3045,7 +3282,7 @@ not exist.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line940">line 940</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line994">line 994</a>
     </li></ul></dd>
     
 
@@ -3209,7 +3446,7 @@ width, so this differs from a naive (value / range) * width mapping.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line692">line 692</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line735">line 735</a>
     </li></ul></dd>
     
 
@@ -3382,7 +3619,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line714">line 714</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line757">line 757</a>
     </li></ul></dd>
     
 
@@ -3490,7 +3727,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line921">line 921</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line975">line 975</a>
     </li></ul></dd>
     
 
@@ -3587,7 +3824,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line367">line 367</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line410">line 410</a>
     </li></ul></dd>
     
 
@@ -3767,7 +4004,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line593">line 593</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line636">line 636</a>
     </li></ul></dd>
     
 
@@ -3875,7 +4112,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line466">line 466</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line509">line 509</a>
     </li></ul></dd>
     
 
@@ -3965,7 +4202,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line516">line 516</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line559">line 559</a>
     </li></ul></dd>
     
 
@@ -4055,7 +4292,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line635">line 635</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line678">line 678</a>
     </li></ul></dd>
     
 
@@ -4203,7 +4440,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_range_element.js.html">ui/range_element.js</a>, <a href="ui_range_element.js.html#line386">line 386</a>
+        <a href="ui_range_element.js.html">ui/range_element.js</a>, <a href="ui_range_element.js.html#line387">line 387</a>
     </li></ul></dd>
     
 
@@ -4351,7 +4588,7 @@ hover or seek to precisely.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_range_element.js.html">ui/range_element.js</a>, <a href="ui_range_element.js.html#line361">line 361</a>
+        <a href="ui_range_element.js.html">ui/range_element.js</a>, <a href="ui_range_element.js.html#line362">line 362</a>
     </li></ul></dd>
     
 
@@ -4501,7 +4738,7 @@ to start seeking.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_range_element.js.html">ui/range_element.js</a>, <a href="ui_range_element.js.html#line373">line 373</a>
+        <a href="ui_range_element.js.html">ui/range_element.js</a>, <a href="ui_range_element.js.html#line374">line 374</a>
     </li></ul></dd>
     
 
@@ -4591,7 +4828,7 @@ to start seeking.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line662">line 662</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line705">line 705</a>
     </li></ul></dd>
     
 
@@ -4699,7 +4936,7 @@ to start seeking.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line757">line 757</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line800">line 800</a>
     </li></ul></dd>
     
 
@@ -4838,7 +5075,7 @@ to start seeking.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line746">line 746</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line789">line 789</a>
     </li></ul></dd>
     
 
@@ -4977,7 +5214,7 @@ to start seeking.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line930">line 930</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line984">line 984</a>
     </li></ul></dd>
     
 
@@ -5079,7 +5316,7 @@ Also called internally when the user interacts with the input element.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line395">line 395</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line438">line 438</a>
     </li></ul></dd>
     
 
@@ -5185,7 +5422,7 @@ Also called internally when the user interacts with the input element.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line678">line 678</a>
+        <a href="ui_seek_bar.js.html">ui/seek_bar.js</a>, <a href="ui_seek_bar.js.html#line721">line 721</a>
     </li></ul></dd>
     
 
@@ -5247,7 +5484,7 @@ Also called internally when the user interacts with the input element.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Aug 16 2026 17:47:52 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Aug 21 2026 14:30:46 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

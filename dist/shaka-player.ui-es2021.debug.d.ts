@@ -3738,7 +3738,7 @@ declare namespace shaka.ui {
      * Called when user interaction begins.
      * To be overridden by subclasses.
      */
-    onChangeStart ( ) : any ;
+    onChangeStart (fromTouchEvent ? : boolean ) : any ;
     setBackground (background : any ) : any ;
     setRange (min : any , max : any ) : any ;
     setStep (step : any ) : any ;

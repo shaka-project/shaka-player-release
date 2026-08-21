@@ -6570,9 +6570,10 @@ shaka.ui.RangeElement = class extends shaka.ui.Element {
   /**
    * Called when user interaction begins.
    * To be overridden by subclasses.
+   * @param {boolean=} fromTouchEvent
    * @override
    */
-  onChangeStart() {}
+  onChangeStart(fromTouchEvent) {}
   /**
    * Called when a new value is set by user interaction.
    * To be overridden by subclasses.

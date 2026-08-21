@@ -780,6 +780,162 @@ for individual requests and by StreamingEngine to retry streaming failures.</div
 </div>
 
         
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="pendingDelay_"><span class="type-signature"></span>pendingDelay_<span class="type-signature"> :Promise.PromiseWithResolvers</span></h4>
+
+
+
+
+<div class="description">
+    The resolvers of the delay currently being awaited by attempt(), if any.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Promise.PromiseWithResolvers</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line83">line 83</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="pendingTimer_"><span class="type-signature"></span>pendingTimer_<span class="type-signature"> :<a href="shaka.util.Timer.html">shaka.util.Timer</a></span></h4>
+
+
+
+
+<div class="description">
+    The timer backing the delay currently being awaited by attempt(), if any.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type"><a href="shaka.util.Timer.html">shaka.util.Timer</a></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line89">line 89</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
     
 
     
@@ -847,7 +1003,7 @@ for individual requests and by StreamingEngine to retry streaming failures.</div
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line134">line 134</a>
+        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line173">line 173</a>
     </li></ul></dd>
     
 
@@ -905,7 +1061,7 @@ for individual requests and by StreamingEngine to retry streaming failures.</div
     
 
     
-    <h4 class="name" id=".defer"><span class="type-signature"></span>defer<span class="signature">(delayInMs, callback)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id=".defer"><span class="type-signature"></span>defer<span class="signature">(delayInMs, callback)</span><span class="type-signature"> &rarr; {<a href="shaka.util.Timer.html">shaka.util.Timer</a>}</span></h4>
     
 
     
@@ -1032,7 +1188,7 @@ time-delay call.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line185">line 185</a>
+        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line225">line 225</a>
     </li></ul></dd>
     
 
@@ -1057,6 +1213,24 @@ time-delay call.
 
 
 
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="shaka.util.Timer.html">shaka.util.Timer</a></span>
+
+
+    </dd>
+</dl>
+
+    
 
 
 
@@ -1199,7 +1373,7 @@ will create a random value that is between 50% and 150% of the input value.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line157">line 157</a>
+        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line196">line 196</a>
     </li></ul></dd>
     
 
@@ -1311,7 +1485,7 @@ will create a random value that is between 50% and 150% of the input value.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line94">line 94</a>
+        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line107">line 107</a>
     </li></ul></dd>
     
 
@@ -1341,7 +1515,8 @@ will create a random value that is between 50% and 150% of the input value.
         
 <div class="param-desc">
     Resolves when the caller may make an attempt, possibly
-  after a delay.  Rejects if no more attempts are allowed.
+  after a delay.  Rejects if no more attempts are allowed, or if stop() is
+  called while we are waiting out a delay.
 </div>
 
 
@@ -1428,7 +1603,103 @@ will create a random value that is between 50% and 150% of the input value.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line172">line 172</a>
+        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line211">line 211</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-public">
+
+
+    
+
+    
+    <h4 class="name" id="stop"><span class="type-signature"></span>stop<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Interrupts the delay of an in-progress attempt(), if any, making its
+Promise reject with OPERATION_ABORTED right away.  Attempts made after this
+are unaffected.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_net_backoff.js.html">lib/net/backoff.js</a>, <a href="lib_net_backoff.js.html#line157">line 157</a>
     </li></ul></dd>
     
 
@@ -1490,7 +1761,7 @@ will create a random value that is between 50% and 150% of the input value.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Aug 16 2026 17:47:47 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Aug 21 2026 14:30:42 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
