@@ -221,8 +221,11 @@ shaka.media.StreamingEngine = class {
     /** @private {?number} */
     this.boundaryTime_ = null;
 
+    /** @private {?number} */
+    this.crossBoundarySeekTarget_ = null;
+
     /** @private {boolean} */
-    this.crossBoundarySeek_ = false;
+    this.crossBoundaryResetPending_ = false;
 
     /** @private {?shaka.util.Timer} */
     this.crossBoundaryTimer_ = new shaka.util.Timer(() => {
@@ -232,7 +235,8 @@ shaka.media.StreamingEngine = class {
       }
       if (this.boundaryTime_) {
         shaka.log.info('Crossing boundary at', this.boundaryTime_);
-        this.crossBoundarySeek_ = true;
+        this.crossBoundarySeekTarget_ = this.boundaryTime_;
+        this.crossBoundaryResetPending_ = true;
         video.currentTime = this.boundaryTime_;
         this.boundaryTime_ = null;
       }
@@ -971,6 +975,21 @@ shaka.media.StreamingEngine = class {
     }
 
     const presentationTime = this.playerInterface_.getPresentationTime();
+    const crossBoundarySeek =
+        this.crossBoundarySeekTarget_ != null &amp;&amp;
+        shaka.util.NumberUtils.isFloatEqual(
+            presentationTime,
+            this.crossBoundarySeekTarget_,
+            shaka.media.StreamingEngine.CROSS_BOUNDARY_SEEK_TOLERANCE_);
+    this.crossBoundarySeekTarget_ = null;
+
+    if (!crossBoundarySeek) {
+      // A user seek superseded or followed the internal boundary seek.
+      // mediaState.seeked will carry any required reset through the normal
+      // path.
+      this.crossBoundaryResetPending_ = false;
+    }
+
     const ContentType = shaka.util.ManifestParserUtils.ContentType;
     const newTimeIsBuffered = (type) => {
       return this.playerInterface_.mediaSourceEngine.isBuffered(
@@ -982,7 +1001,7 @@ shaka.media.StreamingEngine = class {
       const mediaState = this.mediaStates_.get(type);
       const logPrefix = shaka.media.StreamingEngine.logPrefix_(mediaState);
 
-      if (!this.crossBoundarySeek_ &amp;&amp; !newTimeIsBuffered(type)) {
+      if (!crossBoundarySeek &amp;&amp; !newTimeIsBuffered(type)) {
         this.lastMediaSourceReset_ = 0;
         if (mediaState.segmentPrefetch) {
           mediaState.segmentPrefetch.resetPosition();
@@ -1022,7 +1041,7 @@ shaka.media.StreamingEngine = class {
         mediaState.seeked = true;
       }
 
-      if (this.crossBoundarySeek_ &amp;&amp; !mediaState.clearingBuffer &amp;&amp;
+      if (crossBoundarySeek &amp;&amp; !mediaState.clearingBuffer &amp;&amp;
           !mediaState.performingUpdate &amp;&amp; !mediaState.updateTimer) {
         this.scheduleUpdate_(mediaState, 0);
       }
@@ -3667,7 +3686,9 @@ shaka.media.StreamingEngine = class {
     const logPrefix = shaka.media.StreamingEngine.logPrefix_(mediaState);
 
     const initRef = reference.initSegmentReference;
-    let discard = lastInitRef.boundaryEnd !== initRef.boundaryEnd;
+    const crossesBoundary =
+        lastInitRef.boundaryEnd !== initRef.boundaryEnd;
+    let discard = crossesBoundary;
     // Some devices can play plain data when initialized with an encrypted
     // init segment. We can keep the MediaSource in this case.
     if (this.config_.crossBoundaryStrategy ===
@@ -3712,17 +3733,26 @@ shaka.media.StreamingEngine = class {
     const leadingMediaState = (this.mediaStates_.get(ContentType.VIDEO) ||
         this.mediaStates_.get(ContentType.AUDIO)) === mediaState;
 
-    // this.crossBoundarySeek_ is used when a seek occurs due to crossing the
+    const crossBoundaryReset =
+        leadingMediaState &amp;&amp; crossesBoundary &amp;&amp;
+        this.crossBoundaryResetPending_;
+
+    if (crossBoundaryReset) {
+      // The next boundary reference completes the internal seek operation,
+      // whether KEEP accepts the reference or a reset is required.
+      this.crossBoundaryResetPending_ = false;
+    }
+
+    // crossBoundaryReset is used when a seek occurs due to crossing the
     // boundary without user interaction. mediaState.seeked occurs when the
     // user explicitly seeks.
     // If discarded &amp; seeked across a boundary, reset MediaSource.
     if (leadingMediaState &amp;&amp; discard &amp;&amp;
-        (this.crossBoundarySeek_ || mediaState.seeked)) {
+        (crossBoundaryReset || mediaState.seeked)) {
       shaka.log.debug(logPrefix, 'reset mediaSource',
           'from=', mediaState.lastInitSegmentReference,
           'to=', reference.initSegmentReference);
 
-      this.crossBoundarySeek_ = false;
       this.resetMediaSource(/* force= */ true).then(() => {
         const eventName = shaka.util.FakeEvent.EventName.BoundaryCrossed;
         const data = new Map()
@@ -4002,6 +4032,17 @@ shaka.media.StreamingEngine.CROSS_BOUNDARY_END_THRESHOLD_ = 1;
 
 
 /**
+ * Tolerance for matching the playhead to an internally requested boundary
+ * seek, in seconds. This accounts for browsers rounding or clamping the media
+ * element's currentTime value.
+ *
+ * @const {number}
+ * @private
+ */
+shaka.media.StreamingEngine.CROSS_BOUNDARY_SEEK_TOLERANCE_ = 0.1;
+
+
+/**
  * The threshold to decide if we are in the end or not when we need find a
  * segment.
  *
@@ -4033,7 +4074,7 @@ shaka.media.StreamingEngine.LOOKUP_TIME_DURATION_THRESHOLD_ = 1;
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Aug 21 2026 14:30:36 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Aug 28 2026 14:06:57 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

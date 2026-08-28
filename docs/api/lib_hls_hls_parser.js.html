@@ -1154,6 +1154,8 @@ shaka.hls.HlsParser = class {
         Array.from(this.chapterStreamsMap_.values());
     this.manifest_.startTime = this.startTime_;
 
+    this.propagateDetectedClosedCaptions_();
+
     // If there is no 'CODECS' attribute in the manifest and codec guessing is
     // disabled, we need to create the segment indexes now so that missing info
     // can be parsed from the media data and added to the stream objects.
@@ -1175,11 +1177,40 @@ shaka.hls.HlsParser = class {
   }
 
   /**
+   * Apply fallback-detected embedded caption streams to every video rendition.
+   * @private
+   */
+  propagateDetectedClosedCaptions_() {
+    if (this.groupIdToClosedCaptionsMap_.size) {
+      return;
+    }
+
+    const detectedClosedCaptions = new Map();
+    for (const variant of this.manifest_.variants) {
+      if (variant.video &amp;&amp; variant.video.closedCaptions) {
+        for (const [id, language] of variant.video.closedCaptions) {
+          detectedClosedCaptions.set(id, language);
+        }
+      }
+    }
+    if (!detectedClosedCaptions.size) {
+      return;
+    }
+
+    for (const variant of this.manifest_.variants) {
+      if (variant.video &amp;&amp; !variant.video.closedCaptions) {
+        variant.video.closedCaptions = new Map(detectedClosedCaptions);
+      }
+    }
+  }
+
+  /**
    * @param {!Array&lt;!shaka.media.SegmentReference>} segments
+   * @param {boolean} probeClosedCaptions
    * @return {!Promise&lt;shaka.media.SegmentUtils.BasicInfo>}
    * @private
    */
-  async getBasicInfoFromSegments_(segments) {
+  async getBasicInfoFromSegments_(segments, probeClosedCaptions) {
     const defaultBasicInfo = shaka.media.SegmentUtils.getBasicInfoFromMimeType(
         this.config_.hls.mediaPlaylistFullMimeType);
     if (!segments.length) {
@@ -1241,6 +1272,16 @@ shaka.hls.HlsParser = class {
       const basicInfo = shaka.media.SegmentUtils.getBasicInfoFromMp4(
           initData, data, this.config_.disableText);
       if (basicInfo) {
+        if (probeClosedCaptions &amp;&amp; !basicInfo.closedCaptions.size) {
+          const candidates = this.getClosedCaptionProbeSegments_(
+              segments, segmentIndex);
+          const closedCaptions =
+              await this.probeClosedCaptionsFromSegments_(
+                  candidates, segment.initSegmentReference, initData);
+          if (closedCaptions) {
+            basicInfo.closedCaptions = closedCaptions;
+          }
+        }
         return basicInfo;
       }
     }
@@ -1249,6 +1290,73 @@ shaka.hls.HlsParser = class {
           contentMimeType);
     }
     return defaultBasicInfo;
+  }
+
+  /**
+   * @param {!Array&lt;{
+   *   segment: !shaka.media.SegmentReference,
+   *   segmentIndex: number
+   * }>} candidates
+   * @param {?shaka.media.InitSegmentReference} initSegmentReference
+   * @param {?BufferSource} initData
+   * @return {!Promise&lt;?Map&lt;string, string>>}
+   * @private
+   */
+  async probeClosedCaptionsFromSegments_(
+      candidates, initSegmentReference, initData) {
+    const candidate = candidates.shift();
+    if (!candidate) {
+      return null;
+    }
+    if (candidate.segment.initSegmentReference != initSegmentReference) {
+      initSegmentReference = candidate.segment.initSegmentReference;
+      const initInfo = await this.getInfoFromSegment_(
+          initSegmentReference, 0);
+      initData = initInfo.data;
+    }
+    const candidateInfo = await this.getInfoFromSegment_(
+        candidate.segment, candidate.segmentIndex);
+    const candidateBasicInfo =
+        shaka.media.SegmentUtils.getBasicInfoFromMp4(
+            initData, candidateInfo.data, this.config_.disableText);
+    if (candidateBasicInfo &amp;&amp; candidateBasicInfo.closedCaptions.size) {
+      return candidateBasicInfo.closedCaptions;
+    }
+    return this.probeClosedCaptionsFromSegments_(
+        candidates, initSegmentReference, initData);
+  }
+
+  /**
+   * @param {!Array&lt;!shaka.media.SegmentReference>} segments
+   * @param {number} firstSegmentIndex
+   * @return {!Array&lt;{
+   *   segment: !shaka.media.SegmentReference,
+   *   segmentIndex: number
+   * }>}
+   * @private
+   */
+  getClosedCaptionProbeSegments_(segments, firstSegmentIndex) {
+    const lastIndex = segments.length - 1;
+    const candidateIndices = this.isLive_() ?
+        [Math.trunc(lastIndex * 3 / 4), Math.trunc(lastIndex / 4)] :
+        [Math.trunc(lastIndex / 2), lastIndex];
+    const candidates = [];
+    const availableIndices = segments.map((segment, segmentIndex) => {
+      return {segment, segmentIndex};
+    }).filter((candidate) => {
+      return candidate.segmentIndex != firstSegmentIndex &amp;&amp;
+          candidate.segment.getStatus() !=
+              shaka.media.SegmentReference.Status.MISSING;
+    });
+    for (const candidateIndex of candidateIndices) {
+      if (availableIndices.length) {
+        availableIndices.sort((a, b) =>
+          Math.abs(a.segmentIndex - candidateIndex) -
+          Math.abs(b.segmentIndex - candidateIndex));
+        candidates.push(availableIndices.shift());
+      }
+    }
+    return candidates;
   }
 
   /**
@@ -2972,6 +3080,7 @@ shaka.hls.HlsParser = class {
         stream.codecs = stream.codecs || realStream.codecs;
         stream.closedCaptions =
             stream.closedCaptions || realStream.closedCaptions;
+        this.propagateDetectedClosedCaptions_();
         stream.width = stream.width || realStream.width;
         stream.height = stream.height || realStream.height;
         stream.hdr = stream.hdr || realStream.hdr;
@@ -3406,7 +3515,12 @@ shaka.hls.HlsParser = class {
     let colorGamut = null;
     let frameRate = null;
     if (segments.length > 0 &amp;&amp; requestBasicInfo) {
-      const basicInfo = await this.getBasicInfoFromSegments_(segments);
+      const probeClosedCaptions = type ==
+          shaka.util.ManifestParserUtils.ContentType.VIDEO &amp;&amp;
+          !closedCaptions &amp;&amp;
+          !this.config_.hls.disableClosedCaptionsDetection;
+      const basicInfo = await this.getBasicInfoFromSegments_(
+          segments, probeClosedCaptions);
 
       if (type != basicInfo.type &amp;&amp; this.isLive_()) {
         this.mediaSequenceToStartTimeByType_.set(
@@ -6235,7 +6349,7 @@ shaka.media.ManifestParser.registerParserByMime(
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Aug 21 2026 14:30:36 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Aug 28 2026 14:06:57 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
