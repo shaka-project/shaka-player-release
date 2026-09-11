@@ -1017,18 +1017,6 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
     shaka.util.PlayerConfiguration.addDeprecatedConfigFields(criteriaConfig);
     this.currentAdaptationSetCriteria_.configure(criteriaConfig);
 
-    /** @private {string} */
-    this.currentTextLanguage_ =
-        this.config_.preferredText[0]?.language || '';
-
-    /** @private {string} */
-    this.currentTextRole_ =
-        this.config_.preferredText[0]?.role || '';
-
-    /** @private {boolean} */
-    this.currentTextForced_ =
-        this.config_.preferredText[0]?.forced || false;
-
     /** @private {!Array&lt;function(): (!Promise | undefined)>} */
     this.cleanupOnUnload_ = [];
 
@@ -3127,15 +3115,6 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
     // depending on the config.
     this.setupLcevc_(this.config_, isLcevcDualTrack);
 
-    this.currentTextLanguage_ =
-        (this.config_.preferredText[0] &amp;&amp;
-        this.config_.preferredText[0].language) || '';
-    this.currentTextRole_ =
-        (this.config_.preferredText[0] &amp;&amp;
-        this.config_.preferredText[0].role) || '';
-    this.currentTextForced_ =
-        this.config_.preferredText[0]?.forced || false;
-
     shaka.Player.applyPlayRange_(this.manifest_.presentationTimeline,
         this.config_.playRangeStart,
         this.config_.playRangeEnd);
@@ -3869,22 +3848,11 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
       return;
     }
 
-    const preferredText = this.config_.preferredText;
-
-    // Try each preferred text entry in order
-    for (const pref of preferredText) {
-      if (!pref.language) {
-        continue;
-      }
-      const subset = shaka.util.StreamUtils.filterStreamsByLanguageAndRole(
-          textTracks,
-          pref.language,
-          pref.role,
-          pref.forced);
-      if (subset.length) {
-        this.selectTextTrack(subset[0]);
-        return;
-      }
+    let subset = shaka.util.StreamUtils.filterStreamsByTextPreferences(
+        textTracks, this.config_.preferredText);
+    if (subset.length) {
+      this.selectTextTrack(subset[0]);
+      return;
     }
 
     if (this.video_ &amp;&amp; this.video_.audioTracks &amp;&amp;
@@ -3892,7 +3860,7 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
       const audioTracks = Array.from(this.video_.audioTracks);
       const activeAudio = audioTracks.find((t) => t.enabled);
       if (activeAudio) {
-        const subset = shaka.util.StreamUtils.filterStreamsByLanguageAndRole(
+        subset = shaka.util.StreamUtils.filterStreamsByLanguageAndRole(
             textTracks,
             activeAudio.language,
             /* preferredRole= */ '',
@@ -6023,12 +5991,6 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
       this.streamingEngine_.switchTextStream(stream);
       this.onTextChanged_();
       this.setTextDisplayerLanguage_();
-
-      // Workaround for
-      // https://github.com/shaka-project/shaka-player/issues/1299
-      // When track is selected, back-propagate the language to
-      // currentTextLanguage_.
-      this.currentTextLanguage_ = stream.language;
       this.setTextTrackVisibility_(true);
     };
     const selectSrcEqualsMode = () => {
@@ -6344,12 +6306,21 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
         const audioTracks = Array.from(this.video_.audioTracks);
         let trackMatch = null;
         let activeTrack = null;
+        if (audioTrack.id != null) {
+          trackMatch = audioTracks.find(
+              (t) => shaka.util.StreamUtils.html5TrackId(t) === audioTrack.id);
+        }
         for (const track of audioTracks) {
-          const trackLanguage = track.language || 'und';
-          if (!trackMatch &amp;&amp; track.label == audioTrack.label &amp;&amp;
-              LanguageUtils.normalize(trackLanguage) == inputLanguage &amp;&amp;
-              track.kind == audioTrack.roles[0]) {
-            trackMatch = track;
+          if (!trackMatch) {
+            const trackLanguage = track.language || 'und';
+            const trackKind = track.kind || '';
+            const audioTrackRole = audioTrack.roles &amp;&amp; audioTrack.roles.length ?
+                audioTrack.roles[0] : '';
+            if ((track.label || '') == (audioTrack.label || '') &amp;&amp;
+                LanguageUtils.normalize(trackLanguage) == inputLanguage &amp;&amp;
+                trackKind == audioTrackRole) {
+              trackMatch = track;
+            }
           }
           if (track.enabled) {
             activeTrack = track;
@@ -6825,11 +6796,8 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
         } else {
           // Find the text stream that best matches the user's preferences.
           const streams =
-                shaka.util.StreamUtils.filterStreamsByLanguageAndRole(
-                    this.manifest_.textStreams,
-                    this.currentTextLanguage_,
-                    this.currentTextRole_,
-                    this.currentTextForced_);
+                shaka.util.StreamUtils.filterStreamsByTextPreferences(
+                    this.manifest_.textStreams, this.config_.preferredText);
 
           // It is possible that there are no streams to play.
           if (streams.length > 0) {
@@ -8564,7 +8532,8 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
 
   /**
    * Choose a text stream from all possible text streams while taking into
-   * account user preference.
+   * account user preference.  Each entry of preferredText is tried in order,
+   * and the first one that matches any text stream wins.
    *
    * @param {!shaka.extern.Variant} initialVariant
    * @return {?shaka.extern.Stream}
@@ -8572,11 +8541,8 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   chooseTextStream_(initialVariant) {
     let textStream = null;
-    let subset = shaka.util.StreamUtils.filterStreamsByLanguageAndRole(
-        this.manifest_.textStreams,
-        this.currentTextLanguage_,
-        this.currentTextRole_,
-        this.currentTextForced_);
+    let subset = shaka.util.StreamUtils.filterStreamsByTextPreferences(
+        this.manifest_.textStreams, this.config_.preferredText);
     if (subset.length) {
       textStream = subset[0];
     }
@@ -8683,24 +8649,17 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
         'Video and video.audioTracks should not be null!');
     const audioTracks = Array.from(this.video_.audioTracks);
     const currentTrack = audioTracks.find((t) => t.enabled);
-
-    // This will reset the "enabled" of other tracks to false.
+    for (const audioTrack of audioTracks) {
+      if (audioTrack !== track) {
+        audioTrack.enabled = false;
+      }
+    }
     track.enabled = true;
-
-    if (!currentTrack) {
-      return;
-    }
-
-    // AirPlay does not reset the "enabled" of other tracks to false, so
-    // it must be changed by hand.
-    if (track.id !== currentTrack.id) {
-      currentTrack.enabled = false;
-    }
 
     const videoTrack = this.getActiveHtml5VideoTrack_();
 
-    const oldTrack =
-        StreamUtils.html5TrackToShakaTrack(currentTrack, videoTrack);
+    const oldTrack = currentTrack ?
+        StreamUtils.html5TrackToShakaTrack(currentTrack, videoTrack) : null;
     const newTrack = StreamUtils.html5TrackToShakaTrack(track, videoTrack);
     // Dispatch a 'variantchanged' event
     this.onVariantChanged_(oldTrack, newTrack);
@@ -9711,7 +9670,7 @@ shaka.Player.TYPICAL_BUFFERING_THRESHOLD_ = 0.5;
  */
 shaka.Player.version = goog.define('shaka.Player.version',
     // eslint-disable-next-line no-useless-concat
-    'v5.2.9' + '-uncompiled');  // x-release-please-version
+    'v5.2.10' + '-uncompiled');  // x-release-please-version
 
 // Initialize the deprecation system using the version string we just set
 // on the player.
@@ -9758,7 +9717,7 @@ shaka.Player.TextTrackLabel = 'Shaka Player TextTrack';
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 04 2026 13:26:19 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 11 2026 10:55:36 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

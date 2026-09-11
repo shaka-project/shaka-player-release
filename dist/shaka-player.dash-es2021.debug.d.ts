@@ -4502,7 +4502,7 @@ declare namespace shaka.extern {
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/player.js
 declare namespace shaka.extern {
-  type AudioTrack = { accessibilityPurpose : shaka.media.ManifestParser.AccessibilityPurpose | null , active : boolean , audioSamplingRate : number | null , channelsCount : number | null , codecs : string | null , label : string | null , language : string , mimeType : string | null , originalLanguage : string | null , primary : boolean , roles : string [] , spatialAudio : boolean } ;
+  type AudioTrack = { accessibilityPurpose : shaka.media.ManifestParser.AccessibilityPurpose | null , active : boolean , audioSamplingRate : number | null , channelsCount : number | null , codecs : string | null , id ? : number , label : string | null , language : string , mimeType : string | null , originalLanguage : string | null , primary : boolean , roles : string [] , spatialAudio : boolean } ;
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/player.js
 declare namespace shaka.extern {

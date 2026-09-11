@@ -313,7 +313,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2145">line 2145</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2175">line 2175</a>
     </li></ul></dd>
     
 
@@ -392,7 +392,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2136">line 2136</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2166">line 2166</a>
     </li></ul></dd>
     
 
@@ -466,7 +466,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2173">line 2173</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2203">line 2203</a>
     </li></ul></dd>
     
 
@@ -540,7 +540,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2185">line 2185</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2215">line 2215</a>
     </li></ul></dd>
     
 
@@ -614,7 +614,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2164">line 2164</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2194">line 2194</a>
     </li></ul></dd>
     
 
@@ -688,7 +688,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2140">line 2140</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2170">line 2170</a>
     </li></ul></dd>
     
 
@@ -762,7 +762,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2153">line 2153</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2183">line 2183</a>
     </li></ul></dd>
     
 
@@ -2225,7 +2225,7 @@ Also filters out variants that have too many audio channels.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2026">line 2026</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2056">line 2056</a>
     </li></ul></dd>
     
 
@@ -2364,7 +2364,7 @@ Also filters out variants that have too many audio channels.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2092">line 2092</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2122">line 2122</a>
     </li></ul></dd>
     
 
@@ -2529,7 +2529,7 @@ and codecs; streams without a mimeType keep the default empty set.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2041">line 2041</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2071">line 2071</a>
     </li></ul></dd>
     
 
@@ -3603,6 +3603,9 @@ platform via MediaCapabilities.decodingInfo() API.
 <div class="description">
     Chooses streams according to the given config.
 Works both for Stream and Track types due to their similarities.
+
+The language, role and forced preferences are all strict requirements: if
+any of them cannot be matched, an empty array is returned.
 </div>
 
 
@@ -3769,7 +3772,7 @@ Works both for Stream and Track types due to their similarities.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1775">line 1775</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1779">line 1779</a>
     </li></ul></dd>
     
 
@@ -3960,7 +3963,201 @@ Works both for Stream and Track types due to their similarities.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1873">line 1873</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1903">line 1903</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">!Array&lt;!<a href="shaka.extern.html#.Stream">shaka.extern.Stream</a>&gt;</span>
+|
+
+<span class="param-type">!Array&lt;!<a href="shaka.extern.html#.Track">shaka.extern.Track</a>&gt;</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-public">
+
+
+    
+
+    
+    <h4 class="name" id=".filterStreamsByTextPreferences"><span class="type-signature"></span>filterStreamsByTextPreferences<span class="signature">(streams, preferences<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {!Array&lt;!<a href="shaka.extern.html#.Stream">shaka.extern.Stream</a>&gt;|!Array&lt;!<a href="shaka.extern.html#.Track">shaka.extern.Track</a>&gt;}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Choose the streams that best match the given text preferences.  Each
+preference is tried in order, and the first one that matches any stream
+wins.
+
+Works both for Stream and Track types due to their similarities.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>streams</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">!Array&lt;!<a href="shaka.extern.html#.Stream">shaka.extern.Stream</a>&gt;</span>
+|
+
+<span class="param-type">!Array&lt;!<a href="shaka.extern.html#.Track">shaka.extern.Track</a>&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>preferences</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array&lt;!<a href="shaka.extern.html#.TextPreference">shaka.extern.TextPreference</a>&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1876">line 1876</a>
     </li></ul></dd>
     
 
@@ -4859,7 +5056,7 @@ before DrmEngine sets the mediaKeys.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1758">line 1758</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1759">line 1759</a>
     </li></ul></dd>
     
 
@@ -5020,7 +5217,7 @@ before DrmEngine sets the mediaKeys.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1998">line 1998</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2028">line 2028</a>
     </li></ul></dd>
     
 
@@ -5181,7 +5378,7 @@ before DrmEngine sets the mediaKeys.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1910">line 1910</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1940">line 1940</a>
     </li></ul></dd>
     
 
@@ -5343,7 +5540,7 @@ and/or video streams for log printing.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1979">line 1979</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line2009">line 2009</a>
     </li></ul></dd>
     
 
@@ -6242,7 +6439,7 @@ and/or video streams for log printing.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1620">line 1620</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1621">line 1621</a>
     </li></ul></dd>
     
 
@@ -6560,7 +6757,7 @@ and/or video streams for log printing.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1886">line 1886</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1916">line 1916</a>
     </li></ul></dd>
     
 
@@ -6721,7 +6918,7 @@ and/or video streams for log printing.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1930">line 1930</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1960">line 1960</a>
     </li></ul></dd>
     
 
@@ -7039,7 +7236,7 @@ and/or video streams for log printing.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1746">line 1746</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1747">line 1747</a>
     </li></ul></dd>
     
 
@@ -7200,7 +7397,7 @@ and/or video streams for log printing.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1898">line 1898</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1928">line 1928</a>
     </li></ul></dd>
     
 
@@ -7736,7 +7933,7 @@ https://professionalsupport.dolby.com/s/article/How-to-signal-Dolby-Vision-in-MP
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1947">line 1947</a>
+        <a href="lib_util_stream_utils.js.html">lib/util/stream_utils.js</a>, <a href="lib_util_stream_utils.js.html#line1977">line 1977</a>
     </li></ul></dd>
     
 
@@ -8112,7 +8309,7 @@ https://professionalsupport.dolby.com/s/article/How-to-signal-Dolby-Vision-in-MP
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 04 2026 13:26:26 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 11 2026 10:55:48 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
