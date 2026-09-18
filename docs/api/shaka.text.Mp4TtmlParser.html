@@ -234,10 +234,300 @@
 </div>
 
         
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="timescale_"><span class="type-signature"></span>timescale_<span class="type-signature"> :number</span></h4>
+
+
+
+
+<div class="description">
+    The media timescale, used to turn sample durations into seconds.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">number</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_mp4_ttml_parser.js.html">lib/text/mp4_ttml_parser.js</a>, <a href="lib_text_mp4_ttml_parser.js.html#line37">line 37</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
     
 
     
         <h3 class="subsection-title">Methods</h3>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id="getSampleTimes_"><span class="type-signature"></span>getSampleTimes_<span class="signature">(sampleDecodeTimes<span class="signature-attributes">non-null</span>, sampleDurations<span class="signature-attributes">non-null</span>, time)</span><span class="type-signature"> &rarr; {Array&lt;<a href="shaka.extern.TextParser.html#.TimeContext">shaka.extern.TextParser.TimeContext</a>&gt;}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Gives each sample of the segment the part of the timeline that is its own,
+so that a document is clipped to its own sample rather than to the whole
+segment, per ISO/IEC 14496-30 Section 5.9(4).  With one sample per segment
+the two are the same thing, which is why this returns null for that case
+and for any fragment that does not give every sample a duration: the
+samples cannot be timed individually then, so the segment stays one unit.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>sampleDecodeTimes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array&lt;number&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">in timescale units</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>sampleDurations</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array&lt;?number&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">in timescale units</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>time</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.TextParser.html#.TimeContext">shaka.extern.TextParser.TimeContext</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_mp4_ttml_parser.js.html">lib/text/mp4_ttml_parser.js</a>, <a href="lib_text_mp4_ttml_parser.js.html#line251">line 251</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array&lt;<a href="shaka.extern.TextParser.html#.TimeContext">shaka.extern.TextParser.TimeContext</a>&gt;</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
 
         
             
@@ -358,7 +648,7 @@ segments so this won't always be called.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_ttml_parser.js.html">lib/text/mp4_ttml_parser.js</a>, <a href="lib_text_mp4_ttml_parser.js.html#line36">line 36</a>
+        <a href="lib_text_mp4_ttml_parser.js.html">lib/text/mp4_ttml_parser.js</a>, <a href="lib_text_mp4_ttml_parser.js.html#line44">line 44</a>
     </li></ul></dd>
     
 
@@ -617,7 +907,7 @@ segments so this won't always be called.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_ttml_parser.js.html">lib/text/mp4_ttml_parser.js</a>, <a href="lib_text_mp4_ttml_parser.js.html#line69">line 69</a>
+        <a href="lib_text_mp4_ttml_parser.js.html">lib/text/mp4_ttml_parser.js</a>, <a href="lib_text_mp4_ttml_parser.js.html#line86">line 86</a>
     </li></ul></dd>
     
 
@@ -785,7 +1075,7 @@ segments so this won't always be called.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_ttml_parser.js.html">lib/text/mp4_ttml_parser.js</a>, <a href="lib_text_mp4_ttml_parser.js.html#line61">line 61</a>
+        <a href="lib_text_mp4_ttml_parser.js.html">lib/text/mp4_ttml_parser.js</a>, <a href="lib_text_mp4_ttml_parser.js.html#line78">line 78</a>
     </li></ul></dd>
     
 
@@ -847,7 +1137,7 @@ segments so this won't always be called.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 11 2026 10:55:43 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 18 2026 12:15:12 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
