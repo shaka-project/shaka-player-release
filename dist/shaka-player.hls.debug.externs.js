@@ -3293,7 +3293,7 @@ shaka.media.SegmentIndex = class {
 };
 /**
  * An iterator over a SegmentIndex's references.
- * @implements {Iterator<?shaka.media.SegmentReference>}
+ * @implements {IteratorLike<?shaka.media.SegmentReference>}
  */
 shaka.media.SegmentIterator = class {
   /**

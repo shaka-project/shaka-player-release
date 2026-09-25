@@ -1,3 +1,3 @@
 # Shaka Player Demo - Release Version
 
-Version v5.2.11
+Version v5.2.12

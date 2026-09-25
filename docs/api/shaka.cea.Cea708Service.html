@@ -264,7 +264,7 @@ to 63 services. Each service owns eight windows.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line668">line 668</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line678">line 678</a>
     </li></ul></dd>
     
 
@@ -342,7 +342,7 @@ to 63 services. Each service owns eight windows.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line678">line 678</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line688">line 688</a>
     </li></ul></dd>
     
 
@@ -420,7 +420,7 @@ to 63 services. Each service owns eight windows.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line673">line 673</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line683">line 683</a>
     </li></ul></dd>
     
 
@@ -498,7 +498,7 @@ to 63 services. Each service owns eight windows.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line683">line 683</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line693">line 693</a>
     </li></ul></dd>
     
 
@@ -576,7 +576,7 @@ to 63 services. Each service owns eight windows.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line707">line 707</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line717">line 717</a>
     </li></ul></dd>
     
 
@@ -654,7 +654,7 @@ to 63 services. Each service owns eight windows.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line689">line 689</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line699">line 699</a>
     </li></ul></dd>
     
 
@@ -732,7 +732,7 @@ to 63 services. Each service owns eight windows.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line695">line 695</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line705">line 705</a>
     </li></ul></dd>
     
 
@@ -3841,7 +3841,7 @@ deletes all windows, cancels all delays, reinitializes the service.
     
 
     
-    <h4 class="name" id="rgbColorToCssColor_"><span class="type-signature"></span>rgbColorToCssColor_<span class="signature">(red, green, blue)</span><span class="type-signature"> &rarr; {string}</span></h4>
+    <h4 class="name" id="rgbColorToCssColor_"><span class="type-signature"></span>rgbColorToCssColor_<span class="signature">(red, green, blue, opacity<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {string}</span></h4>
     
 
     
@@ -3873,7 +3873,11 @@ deletes all windows, cancels all delays, reinitializes the service.
         <th>Type</th>
 
         
+        <th>Attributes</th>
+        
 
+        
+        <th>Default</th>
         
 
         <th class="last">Description</th>
@@ -3898,7 +3902,19 @@ deletes all windows, cancels all delays, reinitializes the service.
             </td>
 
             
+                <td class="attributes">
+                
 
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
             
 
             <td class="description last">value from 0-3</td>
@@ -3921,7 +3937,19 @@ deletes all windows, cancels all delays, reinitializes the service.
             </td>
 
             
+                <td class="attributes">
+                
 
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
             
 
             <td class="description last">value from 0-3</td>
@@ -3944,10 +3972,61 @@ deletes all windows, cancels all delays, reinitializes the service.
             </td>
 
             
+                <td class="attributes">
+                
 
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
             
 
             <td class="description last">value from 0-3</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>opacity</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    0
+                
+                </td>
+            
+
+            <td class="description last">CEA-708 two-bit opacity</td>
         </tr>
 
     
@@ -3990,7 +4069,7 @@ deletes all windows, cancels all delays, reinitializes the service.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line651">line 651</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line652">line 652</a>
     </li></ul></dd>
     
 
@@ -5185,7 +5264,7 @@ deletes all windows, cancels all delays, reinitializes the service.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line730">line 730</a>
+        <a href="lib_cea_cea708_service.js.html">lib/cea/cea708_service.js</a>, <a href="lib_cea_cea708_service.js.html#line740">line 740</a>
     </li></ul></dd>
     
 
@@ -5231,7 +5310,7 @@ deletes all windows, cancels all delays, reinitializes the service.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 18 2026 12:15:09 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 12:30:41 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
