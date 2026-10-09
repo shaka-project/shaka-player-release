@@ -658,13 +658,13 @@
 
         
             
-<div class="access-container access-private">
+<div class="access-container access-public">
 
 
     
 
     
-    <h4 class="name" id=".areAudiosCompatible_"><span class="type-signature"></span>areAudiosCompatible_<span class="signature">(a, b, compareCodecs)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    <h4 class="name" id=".areAudiosCompatible"><span class="type-signature"></span>areAudiosCompatible<span class="signature">(a, b, compareCodecs)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
     
 
     
@@ -813,7 +813,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line136">line 136</a>
+        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line168">line 168</a>
     </li></ul></dd>
     
 
@@ -998,7 +998,7 @@ unique behaviours when comparing roles.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line232">line 232</a>
+        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line273">line 273</a>
     </li></ul></dd>
     
 
@@ -1205,7 +1205,7 @@ unique behaviours when comparing roles.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line182">line 182</a>
+        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line223">line 223</a>
     </li></ul></dd>
     
 
@@ -1390,7 +1390,195 @@ type.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line207">line 207</a>
+        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line248">line 248</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-public">
+
+
+    
+
+    
+    <h4 class="name" id=".haveSameAudio"><span class="type-signature"></span>haveSameAudio<span class="signature">(a, b)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Check if two variants carry what the user perceives as the same audio,
+so that changing between them (e.g. as part of a video change) does not
+change the audio track.  Unlike the adaptation rules, this ignores the
+codec profile within a codec family (e.g. HE-AAC and AAC-LC), which is
+how HLS content usually pairs each video with its own audio group.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>a</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.Variant">shaka.extern.Variant</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>b</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.Variant">shaka.extern.Variant</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_media_adaptation_set.js.html">lib/media/adaptation_set.js</a>, <a href="lib_media_adaptation_set.js.html#line138">line 138</a>
     </li></ul></dd>
     
 
@@ -1975,7 +2163,7 @@ type.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 12:30:44 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 09 2026 10:40:45 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

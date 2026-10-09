@@ -2333,6 +2333,24 @@ shaka.util.Mp4Parser = class {
  */
 shaka.util.Mp4Parser.CallbackType;
 /**
+ * A set of variants that we want to adapt between.
+ * @final
+ */
+shaka.media.AdaptationSet = class {
+  /**
+   * @param {shaka.extern.Variant} root
+   *    The variant that all other variants will be tested against when being
+   *    added to the adaptation set. If a variant is not compatible with the
+   *    root, it will not be added.
+   * @param {!Iterable<shaka.extern.Variant>=} candidates
+   *    Variants that may be compatible with the root and should be added if
+   *    compatible. If a candidate is not compatible, it will not end up in the
+   *    adaptation set.
+   * @param {boolean=} compareCodecs
+   */
+  constructor(root, candidates, compareCodecs) {}
+};
+/**
  * @enum {string}
  */
 shaka.config.CodecSwitchingStrategy = {
@@ -3587,24 +3605,6 @@ shaka.drm.FairPlay = class {
    * @return {undefined}
    */
   static commonFairPlayResponse(type, response, context) {}
-};
-/**
- * A set of variants that we want to adapt between.
- * @final
- */
-shaka.media.AdaptationSet = class {
-  /**
-   * @param {shaka.extern.Variant} root
-   *    The variant that all other variants will be tested against when being
-   *    added to the adaptation set. If a variant is not compatible with the
-   *    root, it will not be added.
-   * @param {!Iterable<shaka.extern.Variant>=} candidates
-   *    Variants that may be compatible with the root and should be added if
-   *    compatible. If a candidate is not compatible, it will not end up in the
-   *    adaptation set.
-   * @param {boolean=} compareCodecs
-   */
-  constructor(root, candidates, compareCodecs) {}
 };
 /**
  * @final

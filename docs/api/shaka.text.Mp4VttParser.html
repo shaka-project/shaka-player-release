@@ -109,7 +109,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line27">line 27</a>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line28">line 28</a>
     </li></ul></dd>
     
 
@@ -158,6 +158,84 @@
 
     
         <h3 class="subsection-title">Members</h3>
+
+        
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="regions_"><span class="type-signature"></span>regions_<span class="type-signature"> :Array&lt;!<a href="shaka.text.CueRegion.html">shaka.text.CueRegion</a>&gt;</span></h4>
+
+
+
+
+<div class="description">
+    The regions defined in the WebVTTConfigurationBox.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Array&lt;!<a href="shaka.text.CueRegion.html">shaka.text.CueRegion</a>&gt;</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line44">line 44</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
 
         
             
@@ -219,7 +297,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line35">line 35</a>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line36">line 36</a>
     </li></ul></dd>
     
 
@@ -251,7 +329,7 @@
     
 
     
-    <h4 class="name" id=".assembleCue_"><span class="type-signature"></span>assembleCue_<span class="signature">(payload, id<span class="signature-attributes">nullable</span>, settings<span class="signature-attributes">nullable</span>, startTime, endTime)</span><span class="type-signature"> &rarr; {<a href="shaka.text.Cue.html">shaka.text.Cue</a>}</span></h4>
+    <h4 class="name" id=".assembleCue_"><span class="type-signature"></span>assembleCue_<span class="signature">(payload, id<span class="signature-attributes">nullable</span>, settings<span class="signature-attributes">nullable</span>, startTime, endTime, regions<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {<a href="shaka.text.Cue.html">shaka.text.Cue</a>}</span></h4>
     
 
     
@@ -453,6 +531,37 @@
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>regions</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array&lt;!<a href="shaka.text.CueRegion.html">shaka.text.CueRegion</a>&gt;</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -492,7 +601,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line334">line 334</a>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line356">line 356</a>
     </li></ul></dd>
     
 
@@ -550,7 +659,7 @@
     
 
     
-    <h4 class="name" id=".parseVTTC_"><span class="type-signature"></span>parseVTTC_<span class="signature">(data<span class="signature-attributes">non-null</span>, startTime, endTime)</span><span class="type-signature"> &rarr; {<a href="shaka.text.Cue.html">shaka.text.Cue</a>}</span></h4>
+    <h4 class="name" id=".parseVTTC_"><span class="type-signature"></span>parseVTTC_<span class="signature">(data<span class="signature-attributes">non-null</span>, startTime, endTime, regions<span class="signature-attributes">non-null</span>)</span><span class="type-signature"> &rarr; {<a href="shaka.text.Cue.html">shaka.text.Cue</a>}</span></h4>
     
 
     
@@ -660,6 +769,29 @@
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>regions</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array&lt;!<a href="shaka.text.CueRegion.html">shaka.text.CueRegion</a>&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -699,7 +831,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line296">line 296</a>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line317">line 317</a>
     </li></ul></dd>
     
 
@@ -1028,7 +1160,7 @@ mdat that follows it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line200">line 200</a>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line219">line 219</a>
     </li></ul></dd>
     
 
@@ -1179,7 +1311,7 @@ segments so this won't always be called.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line42">line 42</a>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line51">line 51</a>
     </li></ul></dd>
     
 
@@ -1438,7 +1570,7 @@ segments so this won't always be called.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line94">line 94</a>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line113">line 113</a>
     </li></ul></dd>
     
 
@@ -1606,7 +1738,7 @@ segments so this won't always be called.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line86">line 86</a>
+        <a href="lib_text_mp4_vtt_parser.js.html">lib/text/mp4_vtt_parser.js</a>, <a href="lib_text_mp4_vtt_parser.js.html#line105">line 105</a>
     </li></ul></dd>
     
 
@@ -1668,7 +1800,7 @@ segments so this won't always be called.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 12:30:48 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 09 2026 10:40:48 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

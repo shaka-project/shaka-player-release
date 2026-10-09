@@ -109,7 +109,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line19">line 19</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line20">line 20</a>
     </li></ul></dd>
     
 
@@ -215,7 +215,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line22">line 22</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line23">line 23</a>
     </li></ul></dd>
     
 
@@ -289,7 +289,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line25">line 25</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line26">line 26</a>
     </li></ul></dd>
     
 
@@ -495,7 +495,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line89">line 89</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line149">line 149</a>
     </li></ul></dd>
     
 
@@ -679,7 +679,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line221">line 221</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line284">line 284</a>
     </li></ul></dd>
     
 
@@ -716,6 +716,195 @@ First entry with results wins. Falls back to primary then all variants.
     <dd>
         
 <span class="param-type">Array&lt;<a href="shaka.extern.html#.Variant">shaka.extern.Variant</a>&gt;</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id=".chooseVariantWithLargestLadder_"><span class="type-signature"></span>chooseVariantWithLargestLadder_<span class="signature">(variants<span class="signature-attributes">non-null</span>, compareCodecs)</span><span class="type-signature"> &rarr; {<a href="shaka.extern.html#.Variant">shaka.extern.Variant</a>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Choose the variant that the adaptation set is built around (its root).
+By default it's the first one, the most preferred.  But when codecs can't
+be switched smoothly, the adaptation set only holds the root's codecs, so
+pick the variant whose video codec leaves the most variants to adapt
+between.  Otherwise, a codec that is only used for a few resolutions
+would pin playback to those resolutions.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>variants</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array&lt;<a href="shaka.extern.html#.Variant">shaka.extern.Variant</a>&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>compareCodecs</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line93">line 93</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="shaka.extern.html#.Variant">shaka.extern.Variant</a></span>
 
 
     </dd>
@@ -859,7 +1048,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line302">line 302</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line365">line 365</a>
     </li></ul></dd>
     
 
@@ -1043,7 +1232,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line439">line 439</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line502">line 502</a>
     </li></ul></dd>
     
 
@@ -1101,7 +1290,7 @@ First entry with results wins. Falls back to primary then all variants.
     
 
     
-    <h4 class="name" id=".filterVariantsByAudioCodec_"><span class="type-signature"></span>filterVariantsByAudioCodec_<span class="signature">(variants<span class="signature-attributes">non-null</span>, audioCodec)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id=".filterVariantsByAudioCodec_"><span class="type-signature"></span>filterVariantsByAudioCodec_<span class="signature">(variants<span class="signature-attributes">non-null</span>, audioCodec, normalize)</span><span class="type-signature"></span></h4>
     
 
     
@@ -1188,6 +1377,29 @@ First entry with results wins. Falls back to primary then all variants.
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>normalize</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">If true, any codec of the same family matches.</td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -1227,7 +1439,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line535">line 535</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line599">line 599</a>
     </li></ul></dd>
     
 
@@ -1393,7 +1605,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line399">line 399</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line462">line 462</a>
     </li></ul></dd>
     
 
@@ -1577,7 +1789,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line332">line 332</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line395">line 395</a>
     </li></ul></dd>
     
 
@@ -1761,7 +1973,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line472">line 472</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line535">line 535</a>
     </li></ul></dd>
     
 
@@ -1927,7 +2139,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line518">line 518</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line581">line 581</a>
     </li></ul></dd>
     
 
@@ -2093,7 +2305,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line552">line 552</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line622">line 622</a>
     </li></ul></dd>
     
 
@@ -2259,7 +2471,7 @@ First entry with results wins. Falls back to primary then all variants.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line419">line 419</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line482">line 482</a>
     </li></ul></dd>
     
 
@@ -2445,7 +2657,7 @@ sign-language video tracks.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line378">line 378</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line441">line 441</a>
     </li></ul></dd>
     
 
@@ -2629,7 +2841,7 @@ sign-language video tracks.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line500">line 500</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line563">line 563</a>
     </li></ul></dd>
     
 
@@ -2795,7 +3007,7 @@ sign-language video tracks.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line354">line 354</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line417">line 417</a>
     </li></ul></dd>
     
 
@@ -2963,7 +3175,7 @@ sign-language video tracks.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line31">line 31</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line32">line 32</a>
     </li></ul></dd>
     
 
@@ -3114,7 +3326,7 @@ adapted between.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line45">line 45</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line46">line 46</a>
     </li></ul></dd>
     
 
@@ -3233,7 +3445,7 @@ adapted between.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line38">line 38</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line39">line 39</a>
     </li></ul></dd>
     
 
@@ -3352,7 +3564,7 @@ adapted between.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line73">line 73</a>
+        <a href="lib_media_preference_based_criteria.js.html">lib/media/preference_based_criteria.js</a>, <a href="lib_media_preference_based_criteria.js.html#line76">line 76</a>
     </li></ul></dd>
     
 
@@ -3432,7 +3644,7 @@ adapted between.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 12:30:45 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 09 2026 10:40:45 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
