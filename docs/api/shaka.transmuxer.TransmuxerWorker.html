@@ -55,6 +55,7 @@ Response protocol (worker -> main):
   {cmd: 'transmuxed', id: number, reqId: number, output: Object,
    streamMutations: Object}
   {cmd: 'error', id: number, reqId: number, error: Object}
+  {cmd: 'unavailable', id: number, reqId: number}
   {cmd: 'destroyed', id: number}</div>
 
 
@@ -90,6 +91,7 @@ Response protocol (worker -> main):
   {cmd: 'transmuxed', id: number, reqId: number, output: Object,
    streamMutations: Object}
   {cmd: 'error', id: number, reqId: number, error: Object}
+  {cmd: 'unavailable', id: number, reqId: number}
   {cmd: 'destroyed', id: number}</p>
     
 
@@ -138,7 +140,7 @@ Response protocol (worker -> main):
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line36">line 36</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line37">line 37</a>
     </li></ul></dd>
     
 
@@ -244,7 +246,87 @@ Response protocol (worker -> main):
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line41">line 41</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line42">line 42</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="unavailable_"><span class="type-signature"></span>unavailable_<span class="type-signature"> :Set&lt;number&gt;</span></h4>
+
+
+
+
+<div class="description">
+    Instances whose init named a plugin this worker could not build. The
+main thread already holds a working transmuxer for them, so their
+transmux requests answer 'unavailable' rather than failing playback.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Set&lt;number&gt;</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line50">line 50</a>
     </li></ul></dd>
     
 
@@ -331,7 +413,7 @@ This is called at load time so the worker is ready immediately.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line258">line 258</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line285">line 285</a>
     </li></ul></dd>
     
 
@@ -474,7 +556,7 @@ This is called at load time so the worker is ready immediately.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line220">line 220</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line246">line 246</a>
     </li></ul></dd>
     
 
@@ -635,7 +717,7 @@ This is called at load time so the worker is ready immediately.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line242">line 242</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line268">line 268</a>
     </li></ul></dd>
     
 
@@ -778,7 +860,7 @@ This is called at load time so the worker is ready immediately.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line79">line 79</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line88">line 88</a>
     </li></ul></dd>
     
 
@@ -921,7 +1003,7 @@ This is called at load time so the worker is ready immediately.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line59">line 59</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line68">line 68</a>
     </li></ul></dd>
     
 
@@ -1064,7 +1146,7 @@ This is called at load time so the worker is ready immediately.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line104">line 104</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line125">line 125</a>
     </li></ul></dd>
     
 
@@ -1158,7 +1240,7 @@ This is called at load time so the worker is ready immediately.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line48">line 48</a>
+        <a href="lib_transmuxer_transmuxer_worker.js.html">lib/transmuxer/transmuxer_worker.js</a>, <a href="lib_transmuxer_transmuxer_worker.js.html#line57">line 57</a>
     </li></ul></dd>
     
 
@@ -1220,7 +1302,7 @@ This is called at load time so the worker is ready immediately.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 09 2026 10:40:48 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 16 2026 08:58:48 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

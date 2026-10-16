@@ -113,7 +113,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line18">line 18</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line19">line 19</a>
     </li></ul></dd>
     
 
@@ -224,7 +224,7 @@ a matching transmuxer plugin.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line190">line 190</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line235">line 235</a>
     </li></ul></dd>
     
 
@@ -473,7 +473,7 @@ highest-priority one is used.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line176">line 176</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line221">line 221</a>
     </li></ul></dd>
     
 
@@ -547,7 +547,7 @@ highest-priority one is used.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line165">line 165</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line210">line 210</a>
     </li></ul></dd>
     
 
@@ -705,7 +705,7 @@ highest-priority one is used.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line135">line 135</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line180">line 180</a>
     </li></ul></dd>
     
 
@@ -905,7 +905,7 @@ highest-priority one is used.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line60">line 60</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line61">line 61</a>
     </li></ul></dd>
     
 
@@ -1129,7 +1129,7 @@ null if none is registered at that level.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line90">line 90</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line110">line 110</a>
     </li></ul></dd>
     
 
@@ -1166,6 +1166,195 @@ null if none is registered at that level.
     <dd>
         
 <span class="param-type"><a href="shaka.extern.html#.TransmuxerPlugin">shaka.extern.TransmuxerPlugin</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-public">
+
+
+    
+
+    
+    <h4 class="name" id=".findTransmuxerPluginPriority"><span class="type-signature"></span>findTransmuxerPluginPriority<span class="signature">(mimeType, plugin)</span><span class="type-signature"> &rarr; {number}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Returns the priority at which |plugin| is registered for |mimeType|, or
+null if it is not registered for that type. A worker cannot share plugin
+identity with the main thread, but it shares the registrations, so the
+priority is what tells the worker which plugin the main thread chose.
+If the same plugin is registered at several priorities, the highest is
+returned, which is the one findTransmuxer probes first.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>mimeType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>plugin</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.TransmuxerPlugin">shaka.extern.TransmuxerPlugin</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line137">line 137</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">number</span>
 
 
     </dd>
@@ -1333,7 +1522,7 @@ null if none is registered at that level.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line120">line 120</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line165">line 165</a>
     </li></ul></dd>
     
 
@@ -1490,7 +1679,7 @@ null if none is registered at that level.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line110">line 110</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line155">line 155</a>
     </li></ul></dd>
     
 
@@ -1693,7 +1882,7 @@ null if none is registered at that level.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line32">line 32</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line33">line 33</a>
     </li></ul></dd>
     
 
@@ -1855,7 +2044,7 @@ null if none is registered at that level.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line47">line 47</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line48">line 48</a>
     </li></ul></dd>
     
 
@@ -1958,7 +2147,7 @@ is complete. This Promise should never be rejected.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line24">line 24</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line25">line 25</a>
     </li></ul></dd>
     
 
@@ -2157,7 +2346,7 @@ is complete. This Promise should never be rejected.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line159">line 159</a>
+        <a href="lib_transmuxer_transmuxer_engine.js.html">lib/transmuxer/transmuxer_engine.js</a>, <a href="lib_transmuxer_transmuxer_engine.js.html#line204">line 204</a>
     </li></ul></dd>
     
 
@@ -2203,7 +2392,7 @@ is complete. This Promise should never be rejected.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 09 2026 10:40:48 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 16 2026 08:58:48 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

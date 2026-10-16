@@ -83,6 +83,7 @@ shaka.text.TtmlTextParser = class {
   parseMedia(data, time, uri, images) {
     const TtmlTextParser = shaka.text.TtmlTextParser;
     const TXml = shaka.util.TXml;
+    const ns = TtmlTextParser.ttmlNs_;
     const ttpNs = TtmlTextParser.parameterNs_;
     const ttsNs = TtmlTextParser.styleNs_;
     const str = shaka.util.StringUtils.fromUTF8(data);
@@ -94,7 +95,8 @@ shaka.text.TtmlTextParser = class {
       return cues;
     }
 
-    const tt = TXml.parseXmlString(str, 'tt', /* includeParent= */ true);
+    const tt = TXml.parse(str, /* includeParent= */ true)
+        .find((node) => TXml.isElementNS(node, ns, 'tt'));
     if (!tt) {
       throw new shaka.util.Error(
           shaka.util.Error.Severity.CRITICAL,
@@ -103,7 +105,7 @@ shaka.text.TtmlTextParser = class {
           'Failed to parse TTML.');
     }
 
-    const body = TXml.getElementsByTagName(tt, 'body')[0];
+    const body = TXml.getElementsByTagNameNS(tt, ns, 'body')[0];
     if (!body) {
       return [];
     }
@@ -135,11 +137,11 @@ shaka.text.TtmlTextParser = class {
 
     const cellResolutionInfo = this.getCellResolution_(cellResolution);
 
-    const metadata = TXml.getElementsByTagName(tt, 'metadata')[0];
+    const metadata = TXml.getElementsByTagNameNS(tt, ns, 'metadata')[0];
     const metadataElements =
         (metadata ? metadata.children : []).filter((c) => c != '\n');
-    const styles = TXml.getElementsByTagName(tt, 'style');
-    const regionElements = TXml.getElementsByTagName(tt, 'region');
+    const styles = TXml.getElementsByTagNameNS(tt, ns, 'style');
+    const regionElements = TXml.getElementsByTagNameNS(tt, ns, 'region');
 
     const cueRegions = [];
     for (const region of regionElements) {
@@ -153,7 +155,7 @@ shaka.text.TtmlTextParser = class {
     // elements.  We used to allow this, but it is non-compliant, and the
     // loose nature of our previous parser made it difficult to implement TTML
     // nesting more fully.
-    if (TXml.findChildren(body, 'p').length) {
+    if (TXml.findChildrenNS(body, ns, 'p').length) {
       throw new shaka.util.Error(
           shaka.util.Error.Severity.CRITICAL,
           shaka.util.Error.Category.TEXT,
@@ -161,9 +163,9 @@ shaka.text.TtmlTextParser = class {
           '&lt;p> can only be inside &lt;div> in TTML');
     }
 
-    for (const div of TXml.findChildren(body, 'div')) {
+    for (const div of TXml.findChildrenNS(body, ns, 'div')) {
       // A &lt;div> element should only contain &lt;p>, not &lt;span>.
-      if (TXml.findChildren(div, 'span').length) {
+      if (TXml.findChildrenNS(div, ns, 'span').length) {
         throw new shaka.util.Error(
             shaka.util.Error.Severity.CRITICAL,
             shaka.util.Error.Category.TEXT,
@@ -214,6 +216,7 @@ shaka.text.TtmlTextParser = class {
       cueRegions, collapseMultipleSpaces, cellResolution, parentCueElement,
       isContent, uri, images) {
     const TXml = shaka.util.TXml;
+    const ns = shaka.text.TtmlTextParser.ttmlNs_;
     const StringUtils = shaka.util.StringUtils;
     /** @type {shaka.extern.xml.Node} */
     let cueElement;
@@ -274,7 +277,7 @@ shaka.text.TtmlTextParser = class {
       }
     }
 
-    if (cueNode.tagName == 'p' || imageElement || imageUri) {
+    if (TXml.isElementNS(cueNode, ns, 'p') || imageElement || imageUri) {
       isContent = true;
     }
 
@@ -328,7 +331,8 @@ shaka.text.TtmlTextParser = class {
         cueElement.attributes['end'] ||
         cueElement.attributes['dur'];
 
-    if (!hasTimeAttributes &amp;&amp; !hasTextContent &amp;&amp; cueElement.tagName != 'br' &amp;&amp;
+    if (!hasTimeAttributes &amp;&amp; !hasTextContent &amp;&amp;
+        !TXml.isElementNS(cueElement, ns, 'br') &amp;&amp;
         nestedCues.length == 0) {
       if (!isNested) {
         // Disregards empty &lt;p> elements without time attributes nor content.
@@ -347,7 +351,7 @@ shaka.text.TtmlTextParser = class {
     // Resolve local time relative to parent elements.  Time elements can appear
     // all the way up to 'body', but not 'tt'.
     while (parentElement &amp;&amp; TXml.isNode(parentElement) &amp;&amp;
-        parentElement.tagName != 'tt') {
+        !TXml.isElementNS(parentElement, ns, 'tt')) {
       ({start, end} = this.resolveTime_(parentElement, rateInfo, start, end));
       parentElement =
         /** @type {shaka.extern.xml.Node} */ (parentElement.parent);
@@ -386,7 +390,7 @@ shaka.text.TtmlTextParser = class {
       }
     }
 
-    if (cueElement.tagName == 'br') {
+    if (TXml.isElementNS(cueElement, ns, 'br')) {
       const cue = new shaka.text.Cue(start, end, '');
       cue.lineBreak = true;
       return cue;
@@ -1430,6 +1434,18 @@ shaka.text.TtmlTextParser.textAlignToPositionAlign_ = new Map()
     .set('end', shaka.text.Cue.positionAlign.RIGHT);
 
 /**
+ * Supported TTML element namespaces. The empty namespace preserves support for
+ * legacy documents that omit namespace declarations.
+ * @const {!Array&lt;string>}
+ * @private
+ */
+shaka.text.TtmlTextParser.ttmlNs_ = [
+  'http://www.w3.org/ns/ttml',
+  'http://www.w3.org/2006/10/ttaf1',
+  '',
+];
+
+/**
  * The namespace URL for TTML parameters.  Can be assigned any name in the TTML
  * document, not just "ttp:", so we use this with getAttributeNS() to ensure
  * that we support arbitrary namespace names.
@@ -1501,7 +1517,7 @@ shaka.text.TextEngine.registerParser(
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 09 2026 10:40:42 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 16 2026 08:58:39 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

@@ -1258,7 +1258,8 @@ shaka.text.Cue.prototype.backgroundImage;
      */
 shaka.text.Cue.prototype.border;
 /**
-     * Text font size in px or em (e.g. '100px'/'100em').
+     * Text font size in px, em, % or c (e.g. '100px'/'100em'/'90%'/'0.8c').
+     * % and c are relative to the cell height, as in TTML.
      * @type {string}
      */
 shaka.text.Cue.prototype.fontSize;
@@ -2731,8 +2732,14 @@ shaka.transmuxer.TransmuxerProxy = class {
    * @param {string=} workerUrl
    *   URL of the standalone transmuxer worker script. When empty, the proxy
    *   uses main-thread transmuxing.
+   * @param {?number=} pluginPriority
+   *   The registration priority of the plugin that built |innerTransmuxer|.
+   *   The worker builds its own transmuxer from the plugin registered at this
+   *   priority, so both threads use the plugin whose codecs the SourceBuffer
+   *   was created for. When null, the worker uses the highest-priority
+   *   registration.
    */
-  constructor(innerTransmuxer, workerUrl) {}
+  constructor(innerTransmuxer, workerUrl, pluginPriority) {}
   /**
    * @override
    */

@@ -2607,7 +2607,8 @@ declare namespace shaka.text {
      */
     fontFamily : string ;
     /**
-     * Text font size in px or em (e.g. '100px'/'100em').
+     * Text font size in px, em, % or c (e.g. '100px'/'100em'/'90%'/'0.8c').
+     * % and c are relative to the cell height, as in TTML.
      */
     fontSize : string ;
     /**
@@ -3233,7 +3234,7 @@ declare namespace shaka.transmuxer.TransmuxerEngine {
 declare namespace shaka.transmuxer {
   class TransmuxerProxy implements shaka.extern.Transmuxer {
     private noStructuralTyping_shaka_transmuxer_TransmuxerProxy : any;
-    constructor (innerTransmuxer : shaka.extern.Transmuxer , workerUrl ? : string ) ;
+    constructor (innerTransmuxer : shaka.extern.Transmuxer , workerUrl ? : string , pluginPriority ? : number | null ) ;
     convertCodecs (contentType : string , mimeType : string ) : string ;
     destroy ( ) : any ;
     getOriginalMimeType ( ) : string ;

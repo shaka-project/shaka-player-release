@@ -227,7 +227,7 @@ goog.addDependency('../../../../lib/transmuxer/mp3_transmuxer.js', ['shaka.trans
 goog.addDependency('../../../../lib/transmuxer/mpeg_audio.js', ['shaka.transmuxer.MpegAudio'], [], {'lang': 'es6'});
 goog.addDependency('../../../../lib/transmuxer/mpeg_ts_transmuxer.js', ['shaka.transmuxer.MpegTsTransmuxer'], ['shaka.media.Capabilities', 'shaka.transmuxer.MpegAudio', 'shaka.transmuxer.TransmuxerEngine', 'shaka.util.BufferUtils', 'shaka.util.Error', 'shaka.util.ManifestParserUtils', 'shaka.util.MimeUtils', 'shaka.util.TsParser', 'shaka.util.Uint8ArrayUtils'], {'lang': 'es6'});
 goog.addDependency('../../../../lib/transmuxer/opus.js', ['shaka.transmuxer.Opus'], [], {'lang': 'es6'});
-goog.addDependency('../../../../lib/transmuxer/transmuxer_engine.js', ['shaka.transmuxer.TransmuxerEngine'], ['shaka.util.IDestroyable'], {'lang': 'es6'});
+goog.addDependency('../../../../lib/transmuxer/transmuxer_engine.js', ['shaka.transmuxer.TransmuxerEngine'], ['shaka.log', 'shaka.util.IDestroyable'], {'lang': 'es6'});
 goog.addDependency('../../../../lib/transmuxer/transmuxer_proxy.js', ['shaka.transmuxer.TransmuxerProxy'], ['shaka.device.DeviceFactory', 'shaka.log', 'shaka.util.BufferUtils', 'shaka.util.Error', 'shaka.util.Timer', 'shaka.util.Uint8ArrayUtils'], {'lang': 'es8'});
 goog.addDependency('../../../../lib/transmuxer/transmuxer_utils.js', ['shaka.transmuxer.TransmuxerUtils'], [], {'lang': 'es6'});
 goog.addDependency('../../../../lib/transmuxer/transmuxer_worker.js', ['shaka.transmuxer.TransmuxerWorker'], ['shaka.log', 'shaka.transmuxer.TransmuxerEngine', 'shaka.util.BufferUtils', 'shaka.util.Error'], {'lang': 'es8'});
@@ -275,7 +275,7 @@ goog.addDependency('../../../../lib/util/stats.js', ['shaka.util.Stats'], ['shak
 goog.addDependency('../../../../lib/util/stream_utils.js', ['shaka.util.StreamUtils'], ['goog.asserts', 'shaka.device.DeviceFactory', 'shaka.device.IDevice', 'shaka.lcevc.Dec', 'shaka.log', 'shaka.media.ManifestParser', 'shaka.text.TextEngine', 'shaka.util.Functional', 'shaka.util.LanguageUtils', 'shaka.util.ManifestParserUtils', 'shaka.util.MimeUtils', 'shaka.util.MultiMap', 'shaka.util.ObjectUtils'], {'lang': 'es8'});
 goog.addDependency('../../../../lib/util/string_utils.js', ['shaka.util.StringUtils'], ['goog.asserts', 'shaka.device.DeviceFactory', 'shaka.log', 'shaka.util.BufferUtils', 'shaka.util.Error', 'shaka.util.Lazy'], {'lang': 'es6'});
 goog.addDependency('../../../../lib/util/switch_history.js', ['shaka.util.SwitchHistory'], [], {'lang': 'es6'});
-goog.addDependency('../../../../lib/util/tXml.js', ['shaka.util.TXml'], ['shaka.log', 'shaka.util.ObjectUtils', 'shaka.util.StringUtils'], {'lang': 'es6'});
+goog.addDependency('../../../../lib/util/tXml.js', ['shaka.util.TXml'], ['shaka.log', 'shaka.util.ObjectUtils', 'shaka.util.StringUtils'], {'lang': 'es_2020'});
 goog.addDependency('../../../../lib/util/text_parser.js', ['shaka.util.TextParser'], ['goog.asserts'], {'lang': 'es6'});
 goog.addDependency('../../../../lib/util/time_utils.js', ['shaka.util.TimeUtils'], [], {'lang': 'es6'});
 goog.addDependency('../../../../lib/util/timer.js', ['shaka.util.Timer'], [], {'lang': 'es_2020'});
