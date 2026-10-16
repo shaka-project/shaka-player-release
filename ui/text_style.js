@@ -10,6 +10,7 @@ goog.provide('shaka.ui.TextStyleMenu');
 goog.require('shaka.ui.SettingsMenu');
 goog.require('shaka.ui.Utils');
 goog.require('shaka.util.Dom');
+goog.requireType('shaka.Player');
 goog.requireType('shaka.ui.Controls');
 goog.requireType('shaka.ui.TextStylePreview');
 
@@ -48,12 +49,25 @@ shaka.ui.TextStyleMenu = class extends shaka.ui.SettingsMenu {
 
   /** @override */
   checkAvailability() {
-    const tracks = this.player.getTextTracks() || [];
-    const hasTrack = tracks.some((track) => track.active);
-    const available = hasTrack && !this.isSubMenuOpened &&
-        this.controls.getConfig().captionsStyles;
+    const available = !this.isSubMenuOpened &&
+        shaka.ui.TextStyleMenu.isStyleAvailable(this.player, this.controls);
     shaka.ui.Utils.setDisplay(this.button, available);
     this.button.ariaPressed = available ? 'true' : 'false';
+  }
+
+  /**
+   * Whether the subtitle style can be changed.  The style can be set before
+   * the text is enabled, so it is available as soon as there is any text
+   * track.  The preview shows an example subtitle even while the text is
+   * hidden.
+   *
+   * @param {shaka.Player} player
+   * @param {shaka.ui.Controls} controls
+   * @return {boolean}
+   */
+  static isStyleAvailable(player, controls) {
+    const tracks = player.getTextTracks() || [];
+    return tracks.length > 0 && controls.getConfig().captionsStyles;
   }
 
   /** @override */
@@ -99,6 +113,16 @@ shaka.ui.TextStyleMenu = class extends shaka.ui.SettingsMenu {
   getCurrentValueLabel() { return ''; }
 
   /**
+   * Returns the CSS color of the swatch shown next to the item, or null to
+   * not show a swatch.
+   *
+   * @param {T} item
+   * @return {?string}
+   * @protected
+   */
+  getSwatchColorForItem(item) { return null; }
+
+  /**
    * Clears and rebuilds the menu items, then refreshes the selection indicator.
    * Call from the subclass constructor and from updateLocalizedStrings() when
    * item labels are localized strings.
@@ -114,6 +138,15 @@ shaka.ui.TextStyleMenu = class extends shaka.ui.SettingsMenu {
       const span = shaka.util.Dom.createHTMLElement('span');
       span.textContent = this.getLabelForItem(item);
       button.appendChild(span);
+
+      const swatchColor = this.getSwatchColorForItem(item);
+      if (swatchColor) {
+        // Not a span, because the chosen item is looked up by its span.
+        const swatch = shaka.util.Dom.createHTMLElement('div');
+        swatch.classList.add('shaka-color-swatch');
+        swatch.style.backgroundColor = swatchColor;
+        button.appendChild(swatch);
+      }
 
       this.eventManager.listen(button, 'click', () => {
         this.onItemSelected(item);

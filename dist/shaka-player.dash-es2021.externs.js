@@ -403,10 +403,15 @@ shaka.util.Error.Code = {
   'MSF_VOD_CONTENT_NOT_SUPPORTED': 4058,
   'HLS_INVALID_KEY_IV_FOR_GCM': 4059,
   'HLS_INVALID_GCM_SEGMENT': 4060,
-  'DASH_INVALID_JSON': 4061,
-  'MSF_NO_CATALOG': 4062,
   'DASH_UNSUPPORTED_ESSENTIAL_PROPERTY': 4063,
   'MSF_CATALOG_TIMEOUT': 4064,
+  'MSF_CONNECTION_CLOSED': 4065,
+  'MSF_SUBSCRIBE_FAILED': 4066,
+  'MSF_UNSUPPORTED_COMPRESSION': 4067,
+  'MSF_UNSUPPORTED_CATALOG_VERSION': 4068,
+  'MKV_INVALID_FILE': 4069,
+  'MKV_MISSING_INDEX': 4070,
+  'MKV_NO_SUPPORTED_TRACKS': 4071,
   'STREAMING_ENGINE_STARTUP_INVALID_STATE': 5006,
   'NO_RECOGNIZED_KEY_SYSTEMS': 6000,
   'REQUESTED_KEY_SYSTEM_CONFIG_UNAVAILABLE': 6001,
@@ -867,6 +872,36 @@ shaka.text.CueRegion.prototype.viewportAnchorUnits;
      */
 shaka.text.CueRegion.prototype.scroll;
 /**
+     * The background color of the region, painted on its whole area.  An empty
+     * string means no background.
+     * @type {string}
+     */
+shaka.text.CueRegion.prototype.backgroundColor;
+/**
+     * The opacity of the region and of its content, from 0 to 1.
+     * @type {number}
+     */
+shaka.text.CueRegion.prototype.opacity;
+/**
+     * The padding of the region, as its top, right, bottom and left lengths,
+     * in pixels or in percentage of the height or width of the region, for
+     * example "10% 5px 0% 5px".  An empty string means no padding.
+     * @type {string}
+     */
+shaka.text.CueRegion.prototype.padding;
+/**
+     * The CSS overflow of the region, for example "hidden" to hide the content
+     * which overflows the region.  An empty string means the default overflow.
+     * @type {string}
+     */
+shaka.text.CueRegion.prototype.overflow;
+/**
+     * The stacking order of the region relative to the other regions, or null
+     * for the default order.
+     * @type {?number}
+     */
+shaka.text.CueRegion.prototype.zIndex;
+/**
  * @enum {number}
  */
 shaka.text.CueRegion.units = {
@@ -1098,6 +1133,14 @@ shaka.text.Cue.prototype.opacity;
      * @type {string}
      */
 shaka.text.Cue.prototype.textCombineUpright;
+/**
+     * The visibility of the cue: "visible", "hidden", or an empty string to
+     * inherit the visibility of the parent cue, so that a top-level cue is
+     * visible.  A hidden cue still takes its place, and its nested cues can
+     * be visible.
+     * @type {string}
+     */
+shaka.text.Cue.prototype.visibility;
 /**
      * Text decoration. A combination of underline, overline
      * and line through. Empty array means no decoration.
@@ -1941,6 +1984,17 @@ shaka.cea.TsCeaParser = class {
   constructor() {}
 };
 /**
+ * @enum {number}
+ */
+shaka.config.CharacterEdgeStyle = {
+  'DEFAULT': 0,
+  'NONE': 1,
+  'DROP_SHADOW': 2,
+  'RAISED': 3,
+  'DEPRESSED': 4,
+  'OUTLINE': 5
+};
+/**
  * @enum {string}
  */
 shaka.config.CodecSwitchingStrategy = {
@@ -1959,20 +2013,22 @@ shaka.config.CrossBoundaryStrategy = {
 /**
  * @enum {number}
  */
-shaka.config.MsfFilterType = {
-  'NONE': 0x0,
-  'NEXT_GROUP_START': 0x1,
-  'LARGEST_OBJECT': 0x2,
-  'ABSOLUTE_START': 0x3,
-  'ABSOLUTE_RANGE': 0x4
+shaka.config.FontFamily = {
+  'DEFAULT': 0,
+  'MONOSPACED_SERIF': 1,
+  'PROPORTIONAL_SERIF': 2,
+  'MONOSPACED_SANS_SERIF': 3,
+  'PROPORTIONAL_SANS_SERIF': 4
 };
 /**
  * @enum {string}
  */
 shaka.config.MsfVersion = {
   'AUTO': 'auto',
-  'DRAFT_14': 'draft-14',
-  'DRAFT_16': 'draft-16'
+  'DRAFT_18': 'draft-18',
+  'DRAFT_20': 'draft-20',
+  'DRAFT_21': 'draft-21',
+  'DRAFT_22': 'draft-22'
 };
 /**
  * @enum {number}
@@ -2350,7 +2406,9 @@ shaka.net.NetworkingEngine.AdvancedRequestType = {
   'MEDIATAILOR_TRACKING_EVENT': 10,
   'INTERSTITIAL_ASSET_LIST': 11,
   'INTERSTITIAL_AD_URL': 12,
-  'TRACKING_EVENT': 13
+  'TRACKING_EVENT': 13,
+  'XLINK': 14,
+  'LINKED_MPD': 15
 };
 /**
  * Priority level for network scheme plugins.
@@ -4218,6 +4276,11 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   getAllEmsgRegions() {}
   /**
+   * Get SCTE-35 messages retained on the presentation timeline.
+   * @return {!Array<shaka.extern.Scte35Event>}
+   */
+  getAllScte35Events() {}
+  /**
    * Returns the timeline region timeline, which contains all timeline regions.
    * MediaSource or when using src= without MSE. Returns an Array
    * of the regions, or an empty array if there are no regions.
@@ -4375,6 +4438,49 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   useTrickPlayTrackIfAvailable(on) {}
   /**
+   * Declares a range [start, end) to be skipped: its segments are not fetched
+   * or buffered, and buffering continues from <code>end</code> as if it
+   * followed <code>start</code>, with the gap-jumping logic carrying the
+   * playhead across.  Must be declared before the range buffers, and must not
+   * overlap an existing range.
+   * <p>
+   * May be called before load(); such ranges are applied when streaming
+   * starts, which lets a preroll be skipped before it buffers.  Recoverable
+   * via removeSkipRange / clearSkipRanges.  Segments-mode, non-live,
+   * MediaSource-only (not src=).
+   * @param {number} start
+   * @param {number} end
+   * @return {boolean} True if the range was accepted; false if it was rejected
+   *   (unsupported manifest, empty/reversed interval, overlaps an existing
+   *   range, or already buffered).  Before load() only the interval is checked;
+   *   the range is re-validated when streaming starts.
+   */
+  addSkipRange(start, end) {}
+  /**
+   * Removes a skip range previously added with <code>addSkipRange</code>
+   * (matched by the same start/end) and re-fetches it.  A removed range that
+   * is already behind the playhead is not re-fetched until the user seeks
+   * back across it.
+   * @param {number} start
+   * @param {number} end
+   * @return {undefined}
+   */
+  removeSkipRange(start, end) {}
+  /**
+   * Removes all skip ranges and re-fetches them.
+   * @return {undefined}
+   */
+  clearSkipRanges() {}
+  /**
+   * Gets the current skip ranges as a sorted, disjoint list of
+   * <code>{start, end}</code> intervals.  Reflects any merging done at
+   * <code>addSkipRange</code> time and any splitting/trimming done at
+   * <code>removeSkipRange</code> time.  The returned array is a copy; mutating
+   * it does not affect the player.
+   * @return {!Array<shaka.extern.BufferedRange>}
+   */
+  getSkipRanges() {}
+  /**
    * Enable trick play to skip through content without playing by repeatedly
    * seeking. For example, a rate of 2.5 would result in 2.5 seconds of content
    * being skipped every second. A negative rate will result in moving
@@ -4470,7 +4576,9 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   selectVariantTrack(track, clearBuffer, safeMargin) {}
   /**
-   * Select an audio track compatible with the current video track.
+   * Select one of the audio tracks returned by getAudioTracks().  This may
+   * change the video quality too, if the audio is only paired with other
+   * qualities.
    * If the player has not loaded any content, this will be a no-op.
    * @param {shaka.extern.AudioTrack} audioTrack
    * @param {number=} safeMargin Optional amount of buffer (in seconds) to
@@ -4482,7 +4590,8 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   selectAudioTrack(audioTrack, safeMargin) {}
   /**
-   * Return a list of audio tracks compatible with the current video track.
+   * Return a list of the audio tracks of the current video track, in any of
+   * its qualities.  Selecting one may change the video quality too.
    * @return {!Array<shaka.extern.AudioTrack>}
    */
   getAudioTracks() {}

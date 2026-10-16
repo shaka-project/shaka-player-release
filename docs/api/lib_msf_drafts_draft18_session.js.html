@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/msf/drafts/draft18/session.js</title>
+
+    <script src="scripts/prettify.js"> </script>
+    <script src="scripts/lang-css.js"> </script>
+    <script src="scripts/show-widget.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/tomorrow.min.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+
+    <h1 class="page-title">Source: lib/msf/drafts/draft18/session.js</h1>
+
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/*! @license
+ * Shaka Player
+ * Copyright 2016 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+goog.provide('shaka.msf.draft18.Session');
+
+goog.require('shaka.log');
+goog.require('shaka.msf.JoinGate');
+goog.require('shaka.msf.Reader');
+goog.require('shaka.msf.TrackAliasRegistry');
+goog.require('shaka.msf.Utils');
+goog.require('shaka.msf.Writer');
+goog.require('shaka.msf.draft18.MessageTypeId');
+goog.require('shaka.msf.draft18.MessageWriter');
+goog.require('shaka.util.Functional');
+
+
+/**
+ * A session for the draft-18 family of MoQT drafts, which includes draft-20
+ * and draft-21.
+ *
+ * The topology is what separates this from draft-16:
+ *
+ *  - Control messages travel on a *pair* of unidirectional streams, one
+ *    opened by each peer, each beginning with a SETUP message. Incoming
+ *    unidirectional streams therefore carry either the peer's control stream
+ *    or object data, told apart by the first message type on the stream.
+ *  - Every request gets its own bidirectional stream, and the response comes
+ *    back on that same stream. There is no Request ID on responses and no
+ *    dispatch table: the stream *is* the correlation, so a request is just an
+ *    await on its own reader.
+ *
+ * Draft-20 shares all of that, along with every message type ID this session
+ * reads and the whole data plane, so it reuses this class rather than copying
+ * it. The only draft-20 difference in reach here is the FETCH body, and the
+ * only draft-22 one is how LOCATION_FILTER is encoded; the message writer owns
+ * both, and the dialect supplies the writer.
+ *
+ * @implements {shaka.extern.MsfSession}
+ * @final
+ */
+shaka.msf.draft18.Session = class {
+  /**
+   * @param {!WebTransport} webTransport
+   * @param {!shaka.msf.Writer} controlWriter Our outgoing control stream,
+   *   already carrying our SETUP.
+   * @param {!shaka.extern.MsfDialect} dialect
+   * @param {!shaka.extern.MsfManifestConfiguration} config
+   * @param {function():!shaka.msf.draft18.MessageWriter} messageWriterFactory
+   *   Builds a writer for this draft's control messages.
+   */
+  constructor(webTransport, controlWriter, dialect, config,
+      messageWriterFactory) {
+    /** @private {!WebTransport} */
+    this.webTransport_ = webTransport;
+
+    /** @private {!shaka.msf.Writer} */
+    this.controlWriter_ = controlWriter;
+
+    /** @private {!shaka.extern.MsfDialect} */
+    this.dialect_ = dialect;
+
+    /** @private {!shaka.extern.MsfManifestConfiguration} */
+    this.config_ = config;
+
+    /** @private {function():!shaka.msf.draft18.MessageWriter} */
+    this.messageWriterFactory_ = messageWriterFactory;
+
+    /**
+     * Kept only to ask how this draft encodes each Message Parameter, which
+     * the message layer owns because draft-22 changed one of them.
+     *
+     * @private {!shaka.msf.draft18.MessageWriter}
+     */
+    this.parameterFormat_ = messageWriterFactory();
+
+    /** @private {!shaka.msf.TrackAliasRegistry} */
+    this.trackRegistry_ = new shaka.msf.TrackAliasRegistry();
+
+    /** @private {bigint} */
+    this.nextRequestId_ = BigInt(0);
+
+    /** @private {boolean} */
+    this.isClosing_ = false;
+
+    /** @private {!Set&lt;function(Array&lt;string>)>} */
+    this.publishNamespaceCallbacks_ = new Set();
+
+    /**
+     * The fetches in flight, by request ID. `accepted` settles once the
+     * FETCH_OK or REQUEST_ERROR arrives: a publisher may start sending Objects
+     * before it answers, and they are held until then, because the Track
+     * Properties that say how to read them are in the FETCH_OK.
+     *
+     * @private {!Map&lt;bigint, shaka.msf.draft18.Session.PendingFetch>}
+     */
+    this.fetches_ = new Map();
+
+    /**
+     * The Track Properties of each subscription's SUBSCRIBE_OK, by track
+     * alias, for subscriptions that had any.
+     *
+     * @private {!Map&lt;bigint, !Uint8Array>}
+     */
+    this.trackProperties_ = new Map();
+
+    /**
+     * The request stream each subscription lives on, by track alias. The
+     * stream IS the subscription, so it is what has to be torn down to
+     * withdraw one.
+     *
+     * @private {!Map&lt;bigint,
+     *           {reader: !shaka.msf.Reader, writer: !shaka.msf.Writer}>}
+     */
+    this.subscribeStreams_ = new Map();
+
+    /**
+     * The Request ID of the Joining FETCH sent for a subscription, by track
+     * alias, so that withdrawing the subscription withdraws it too.
+     *
+     * @private {!Map&lt;bigint, bigint>}
+     */
+    this.joiningFetches_ = new Map();
+
+    /**
+     * What puts the Objects of a subscription that joins the current Group in
+     * order, by track alias, until the subscription goes.
+     *
+     * @private {!Map&lt;bigint, !shaka.msf.JoinGate>}
+     */
+    this.joinGates_ = new Map();
+
+    this.watchForSessionEnd_();
+
+    this.startListeningForStreams_();
+  }
+
+  /**
+   * A session the peer hangs up on resets every stream on it at once, and
+   * each of those failures would otherwise be logged as an error of its own.
+   * Watch the transport instead: once the session is gone, its stream errors
+   * are expected, and the reason the session ended is the one worth reporting.
+   *
+   * @private
+   */
+  watchForSessionEnd_() {
+    const onEnd = (reason) => {
+      if (!this.isClosing_) {
+        this.isClosing_ = true;
+        shaka.log.warning(`MoQT session ended: ${reason}`);
+      }
+    };
+    this.webTransport_.closed.then(
+        (info) => {
+          const closeInfo = /** @type {{closeCode: number, reason: string}} */ (
+            info || {closeCode: 0, reason: ''});
+          onEnd(`code ${closeInfo.closeCode}` +
+              (closeInfo.reason ? `: ${closeInfo.reason}` : ''));
+        },
+        (error) => {
+          onEnd(String(error));
+        });
+  }
+
+  /** @override */
+  configure(config) {
+    this.config_ = config;
+  }
+
+  /**
+   * Client Request IDs are even and start at 0.
+   *
+   * @return {bigint}
+   * @private
+   */
+  getNextRequestId_() {
+    const requestId = this.nextRequestId_;
+    this.nextRequestId_ += BigInt(2);
+    return requestId;
+  }
+
+  /**
+   * Opens a bidirectional stream, writes a request onto it and returns both
+   * halves: the reader the response arrives on, and the writer, which is
+   * kept only so the stream can be torn down to withdraw the request. The
+   * stream is the correlation, so nothing is registered anywhere.
+   *
+   * @param {!Uint8Array} requestBytes
+   * @return {!Promise&lt;{reader: !shaka.msf.Reader, writer: !shaka.msf.Writer}>}
+   * @private
+   */
+  async openRequest_(requestBytes) {
+    const stream = await this.webTransport_.createBidirectionalStream();
+    const writer = new shaka.msf.Writer(stream.writable);
+    await writer.write(requestBytes);
+    const reader = new shaka.msf.Reader(
+        new Uint8Array([]), stream.readable, this.dialect_.getCodec());
+    return {reader, writer};
+  }
+
+  /**
+   * Reads one control message header from a stream.
+   *
+   * @param {!shaka.msf.Reader} reader
+   * @return {!Promise&lt;{type: number, length: number}>}
+   * @private
+   */
+  async readMessageHeader_(reader) {
+    const type = await reader.u53();
+    const lengthBytes = await reader.read(2);
+    return {type, length: (lengthBytes[0] &lt;&lt; 8) | lengthBytes[1]};
+  }
+
+  /**
+   * Waits for the response to a request, which is either a REQUEST_OK-shaped
+   * acknowledgement or a REQUEST_ERROR.
+   *
+   * @param {!shaka.msf.Reader} reader
+   * @param {number} okType The success message type for this request.
+   * @param {string} description Used in error messages.
+   * @return {!Promise&lt;{type: number, length: number}>} The response header.
+   *   The reader is left positioned just after it.
+   * @private
+   */
+  async awaitResponse_(reader, okType, description) {
+    const header = await this.readMessageHeader_(reader);
+
+    if (header.type == shaka.msf.draft18.MessageTypeId.REQUEST_ERROR) {
+      // REQUEST_ERROR: Error Code, Retry Interval, Reason, then an optional
+      // Redirect we do not act on.
+      const code = await reader.u62();
+      await reader.u62(); // Retry Interval
+      const reason = await reader.string();
+      throw new Error(
+          `${description} failed: code ${code}, reason "${reason}"`);
+    }
+
+    if (header.type != okType) {
+      throw new Error(`${description}: unexpected response type ` +
+          `0x${header.type.toString(16)}`);
+    }
+
+    return header;
+  }
+
+  /** @override */
+  async subscribe(namespace, trackName, callback, startLocation,
+      joinCurrentGroup) {
+    const description = `subscribe ${namespace.join('/')}:${trackName}`;
+    const requestId = this.getNextRequestId_();
+
+    const writer = this.messageWriterFactory_();
+    const params = this.buildSubscribeParams_(writer, startLocation);
+
+    // The current Group and the rest of the subscription arrive on different
+    // streams, and the gate puts them back in order.
+    const gate = joinCurrentGroup ?
+        new shaka.msf.JoinGate(callback, description) : null;
+
+    // Where the draft can ask for the current Group in the SUBSCRIBE itself,
+    // it arrives on a fill fetch stream that carries this request's ID, so it
+    // is expected like the answer to a FETCH.
+    /** @type {?shaka.msf.draft18.Session.PendingFetch} */
+    let fill = null;
+    if (gate) {
+      const fillParam = writer.fillCurrentGroupParam();
+      if (fillParam) {
+        params.push(fillParam);
+        fill = {
+          callback: (obj) => gate.fromFill(obj),
+          accepted: Promise.withResolvers(),
+          trackProperties: null,
+          onEnd: () => gate.open(),
+        };
+        this.fetches_.set(requestId, fill);
+      }
+    }
+
+    writer.marshalSubscribe({requestId, namespace, trackName, params});
+
+    let request;
+    let header;
+    try {
+      request = await this.openRequest_(writer.getBytes());
+      header = await this.awaitResponse_(request.reader,
+          shaka.msf.draft18.MessageTypeId.SUBSCRIBE_OK, description);
+    } catch (error) {
+      if (fill) {
+        this.forgetFetch_(requestId);
+      }
+      gate?.release();
+      throw error;
+    }
+    const reader = request.reader;
+
+    // SUBSCRIBE_OK leads with the Track Alias; draft-16 put a Request ID
+    // ahead of it, which is gone here.
+    const trackAlias = await reader.u62WithSize();
+
+    // Parameters and Track Properties follow. The whole payload has to be
+    // consumed either way: the stream stays open for PUBLISH_DONE, and the
+    // next message header would otherwise be read out of it.
+    const rest = await this.readRest_(reader, header, trackAlias.bytesRead);
+    const tail = this.readResponseTail_(
+        rest, /* offset= */ 0, /* leadingVarInts= */ 0, description);
+    const trackProperties = tail.trackProperties;
+    if (trackProperties) {
+      this.trackProperties_.set(trackAlias.value, trackProperties);
+    }
+
+    this.trackRegistry_.registerTrackWithAlias(
+        namespace, trackName, requestId, trackAlias.value);
+    this.trackRegistry_.registerCallback(trackAlias.value,
+        gate ? (obj) => gate.fromSubscription(obj) : callback);
+
+    shaka.log.debug(`Subscribed to ${description}, alias ${trackAlias.value}`);
+
+    // Hold the stream open: it is the subscription's lifetime, and
+    // REQUEST_UPDATE and PUBLISH_DONE arrive on it.
+    this.subscribeStreams_.set(trackAlias.value, request);
+    this.listenOnRequestStream_(reader, trackAlias.value);
+
+    if (gate) {
+      this.joinGates_.set(trackAlias.value, gate);
+      if (fill) {
+        // The fill ends at the Largest Object, and a track with none has
+        // nothing to fill, so no fill fetch stream is coming.
+        gate.expect(tail.largestObject,
+            shaka.msf.draft18.Session.JOIN_TIMEOUT_SEC_);
+        fill.trackProperties = trackProperties;
+        fill.accepted.resolve(true);
+      } else {
+        // The Joining FETCH is answered either way, so its answer is what
+        // says whether there is anything to fill, not a missing
+        // LARGEST_OBJECT: relays have been seen to leave it out of the
+        // SUBSCRIBE_OK and then deliver from the middle of a Group all the
+        // same.
+        gate.expect(tail.largestObject || undefined,
+            shaka.msf.draft18.Session.JOIN_TIMEOUT_SEC_);
+        this.joinSubscription_(requestId, trackAlias.value, gate, description);
+      }
+    }
+
+    return trackAlias.value;
+  }
+
+  /**
+   * Sends the Joining FETCH that delivers a subscription's current Group from
+   * its first Object, which the subscription itself starts after.
+   *
+   * Nothing waits on it. It fails when nothing has been published on the
+   * track yet, and then the subscription delivers everything there is.
+   *
+   * @param {bigint} subscribeRequestId
+   * @param {bigint} trackAlias
+   * @param {!shaka.msf.JoinGate} gate
+   * @param {string} description
+   * @return {!Promise}
+   * @private
+   */
+  async joinSubscription_(subscribeRequestId, trackAlias, gate, description) {
+    const requestId = this.getNextRequestId_();
+    const writer = this.messageWriterFactory_();
+    writer.marshalJoiningFetch({
+      requestId,
+      joiningRequestId: subscribeRequestId,
+      joiningStart: BigInt(0),
+      params: [],
+    });
+    this.joiningFetches_.set(trackAlias, requestId);
+    try {
+      await this.sendFetch_(writer.getBytes(), requestId,
+          (obj) => gate.fromFill(obj), `joining fetch for ${description}`,
+          () => gate.open());
+    } catch (error) {
+      shaka.log.debug(`Joining fetch for ${description} failed:`, error);
+    }
+  }
+
+  /**
+   * Reads whatever is left of a message payload the caller stopped reading
+   * part way through.
+   *
+   * @param {!shaka.msf.Reader} reader
+   * @param {{type: number, length: number}} header
+   * @param {number} bytesConsumed
+   * @return {!Promise&lt;!Uint8Array>}
+   * @private
+   */
+  readRest_(reader, header, bytesConsumed) {
+    const remaining = header.length - bytesConsumed;
+    if (remaining > 0) {
+      return reader.read(remaining);
+    }
+    return Promise.resolve(new Uint8Array([]));
+  }
+
+  /**
+   * Finds the Track Properties at the end of a SUBSCRIBE_OK or FETCH_OK
+   * payload, and the LARGEST_OBJECT parameter on the way. The Track
+   * Properties run to the end of the message with no length of their own, so
+   * they start wherever the Parameters before them end.
+   *
+   * Parameters are the obstacle: since draft-18 a Parameter's value is
+   * encoded however its type says, rather than by the parity rule Properties
+   * use, so an unknown type cannot be stepped over. Only EXPIRES and
+   * LARGEST_OBJECT may appear in these two responses at all; the others the
+   * message layer knows are stepped over too so that a lenient publisher
+   * costs us nothing.
+   *
+   * @param {!Uint8Array} payload
+   * @param {number} offset Where the fields still to be read begin.
+   * @param {number} leadingVarInts How many var int fields sit between the
+   *   offset and the Number of Parameters field.
+   * @param {string} description Used in log messages.
+   * @return {shaka.msf.draft18.Session.ResponseTail}
+   * @private
+   */
+  readResponseTail_(payload, offset, leadingVarInts, description) {
+    const codec = this.dialect_.getCodec();
+    /** @type {function(number):{value: bigint, bytesRead: number}} */
+    const readVi64At = (at) => shaka.msf.Utils.readVi64At(payload, at, codec);
+    const Encoding = shaka.msf.draft18.MessageWriter.ParameterEncoding;
+
+    /** @type {?shaka.msf.Utils.Location} */
+    let largestObject = null;
+
+    try {
+      for (let i = 0; i &lt; leadingVarInts; i++) {
+        offset += readVi64At(offset).bytesRead;
+      }
+
+      const count = readVi64At(offset);
+      offset += count.bytesRead;
+
+      let type = 0;
+      for (let i = 0; i &lt; Number(count.value); i++) {
+        const delta = readVi64At(offset);
+        offset += delta.bytesRead;
+        type += Number(delta.value);
+
+        switch (this.parameterFormat_.getParameterEncoding(type)) {
+          case Encoding.UINT8:
+            offset += 1;
+            break;
+          case Encoding.VARINT:
+            offset += readVi64At(offset).bytesRead;
+            break;
+          case Encoding.LOCATION: {
+            const group = readVi64At(offset);
+            offset += group.bytesRead;
+            const object = readVi64At(offset);
+            offset += object.bytesRead;
+            if (type == shaka.msf.draft18.Session.LARGEST_OBJECT_) {
+              largestObject = {group: group.value, object: object.value};
+            }
+            break;
+          }
+          case Encoding.LENGTH_PREFIXED: {
+            const length = readVi64At(offset);
+            offset += length.bytesRead + Number(length.value);
+            break;
+          }
+          case Encoding.LOCATION_FILTER: {
+            const filterType = readVi64At(offset);
+            offset += filterType.bytesRead;
+            const fields = shaka.msf.draft18.Session.LOCATION_FILTER_FIELDS_
+                .get(Number(filterType.value));
+            if (fields == null) {
+              throw new Error(
+                  `Unknown Location Filter Type ${filterType.value}`);
+            }
+            for (let j = 0; j &lt; fields; j++) {
+              offset += readVi64At(offset).bytesRead;
+            }
+            break;
+          }
+          default:
+            shaka.log.warning(`${description}: cannot step over parameter ` +
+                `0x${type.toString(16)}, ignoring its Track Properties`);
+            return {largestObject: undefined, trackProperties: null};
+        }
+      }
+    } catch (error) {
+      shaka.log.warning(`${description}: malformed response, ignoring ` +
+          'its Track Properties', error);
+      return {largestObject: undefined, trackProperties: null};
+    }
+
+    return {
+      largestObject,
+      trackProperties:
+          offset &lt; payload.byteLength ? payload.subarray(offset) : null,
+    };
+  }
+
+  /**
+   * Builds the parameter list carried by SUBSCRIBE. Draft-16 moved the
+   * subscriber priority, forward flag, filter and group order out of fixed
+   * fields into parameters, and draft-18 keeps them there. Every one of them
+   * has a default, so the shortest legal list is the empty one.
+   *
+   * @param {!shaka.msf.draft18.MessageWriter} writer The writer this
+   *   SUBSCRIBE is going out on, which owns how a start Location is encoded.
+   * @param {?shaka.msf.Utils.Location=} startLocation
+   * @return {!Array&lt;shaka.msf.Utils.KeyValuePair>}
+   * @private
+   */
+  buildSubscribeParams_(writer, startLocation) {
+    const Parameter = shaka.msf.draft18.MessageWriter.Parameter;
+
+    // GROUP_ORDER is deliberately absent. Draft-16 carried the publisher's
+    // own order as the value 0 of a fixed field; as a parameter that value
+    // no longer exists, and omitting the parameter is what asks for the
+    // publisher's preference (draft-18 section 10.2.8). Sending 0 is a
+    // protocol violation, and a publisher that rejects the SUBSCRIBE for it
+    // answers nothing at all, so the subscription just hangs.
+    const params = [
+      {type: BigInt(Parameter.FORWARD), value: BigInt(1)},
+      {type: BigInt(Parameter.SUBSCRIBER_PRIORITY), value: BigInt(0)},
+    ];
+
+    // A start at the origin is what an unfiltered subscription already means
+    // in both drafts, so it is sent as no filter at all. That is not merely
+    // shorter: draft-20 reads two zeroed filter fields as the Next Object,
+    // which is a different request.
+    if (startLocation &amp;&amp;
+        (startLocation.group || startLocation.object)) {
+      params.push(writer.locationFilterParam(startLocation));
+    }
+
+    return params;
+  }
+
+  /**
+   * Keeps reading a subscription's request stream after the SUBSCRIBE_OK so
+   * that PUBLISH_DONE closes the track.
+   *
+   * @param {!shaka.msf.Reader} reader
+   * @param {bigint} trackAlias
+   * @return {!Promise}
+   * @private
+   */
+  async listenOnRequestStream_(reader, trackAlias) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      while (!(await reader.done())) {
+        // eslint-disable-next-line no-await-in-loop
+        const header = await this.readMessageHeader_(reader);
+        if (header.type == shaka.msf.draft18.MessageTypeId.PUBLISH_DONE) {
+          shaka.log.debug(`PUBLISH_DONE for track ${trackAlias}`);
+          const trackInfo =
+              this.trackRegistry_.getTrackInfoFromAlias(trackAlias);
+          if (trackInfo) {
+            trackInfo.closed = true;
+            this.trackRegistry_.unregisterAllCallbacks(trackAlias);
+          }
+          this.subscribeStreams_.delete(trackAlias);
+          this.trackProperties_.delete(trackAlias);
+          return;
+        }
+        // Anything else on this stream is not something we act on; skip its
+        // payload so the stream stays framed.
+        // eslint-disable-next-line no-await-in-loop
+        await reader.read(header.length);
+      }
+    } catch (error) {
+      if (!this.isClosing_) {
+        shaka.log.debug(
+            `Request stream for track ${trackAlias} ended:`, error);
+      }
+    } finally {
+      this.subscribeStreams_.delete(trackAlias);
+    }
+  }
+
+  /** @override */
+  unsubscribe(trackAlias) {
+    const trackInfo = this.trackRegistry_.getTrackInfoFromAlias(trackAlias);
+    if (!trackInfo) {
+      throw new Error(`Cannot unsubscribe: unknown alias ${trackAlias}`);
+    }
+
+    // Draft-17 removed the cancel messages: a subscriber withdraws by
+    // resetting the request's bidirectional stream, so there is no
+    // UNSUBSCRIBE to send. Dropping the callbacks only makes us stop
+    // listening; until the stream goes away the publisher keeps sending, and
+    // every object it sends spends deliver_'s full retry budget looking for a
+    // callback that is never coming back.
+    trackInfo.closed = true;
+    this.trackRegistry_.unregisterAllCallbacks(trackAlias);
+
+    // The Objects of the current Group may still be on their way on a fetch
+    // stream, which the registry knows nothing about.
+    this.forgetFetch_(trackInfo.requestId);
+    const joiningRequestId = this.joiningFetches_.get(trackAlias);
+    if (joiningRequestId != null) {
+      this.forgetFetch_(joiningRequestId);
+      this.joiningFetches_.delete(trackAlias);
+    }
+    this.joinGates_.get(trackAlias)?.release();
+    this.joinGates_.delete(trackAlias);
+
+    const request = this.subscribeStreams_.get(trackAlias);
+    this.subscribeStreams_.delete(trackAlias);
+    this.trackProperties_.delete(trackAlias);
+    shaka.log.debug(`Unsubscribed from track ${trackAlias}`);
+    if (!request) {
+      return Promise.resolve();
+    }
+    // Both halves go: cancelling our side of the reads is not what tells the
+    // publisher to stop, tearing down the request stream is. close() on
+    // either half swallows its own errors, so there is nothing to handle
+    // here.
+    return Promise.all([request.reader.close(), request.writer.close()]);
+  }
+
+  /** @override */
+  fetch(namespace, trackName, callback) {
+    const description = `fetch ${namespace.join('/')}:${trackName}`;
+    const requestId = this.getNextRequestId_();
+
+    // The range defaults to the Object at {0, 0}. Each draft in the family
+    // spells that range differently, so how it is written is left to the
+    // writer.
+    const writer = this.messageWriterFactory_();
+    writer.marshalFetch({
+      requestId,
+      namespace,
+      trackName,
+      startLocation: undefined,
+      endLocation: undefined,
+      params: [],
+    });
+
+    return this.sendFetch_(writer.getBytes(), requestId, callback, description);
+  }
+
+  /**
+   * Sends a FETCH and waits for its answer. The Objects arrive on a stream of
+   * their own, which handleFetchStream_ hands to the callback.
+   *
+   * @param {!Uint8Array} requestBytes
+   * @param {bigint} requestId
+   * @param {shaka.msf.Utils.ObjectCallback} callback
+   * @param {string} description
+   * @param {?function()=} onEnd Called once no more Objects will be handed
+   *   to the callback.
+   * @return {!Promise}
+   * @private
+   */
+  async sendFetch_(requestBytes, requestId, callback, description, onEnd) {
+    /** @type {shaka.msf.draft18.Session.PendingFetch} */
+    const pending = {
+      callback,
+      accepted: Promise.withResolvers(),
+      trackProperties: null,
+      onEnd: onEnd || null,
+    };
+    this.fetches_.set(requestId, pending);
+
+    try {
+      const reader = (await this.openRequest_(requestBytes)).reader;
+      const header = await this.awaitResponse_(
+          reader, shaka.msf.draft18.MessageTypeId.FETCH_OK, description);
+      const payload = await this.readRest_(reader, header, 0);
+
+      // FETCH_OK: End Of Track (8) and End Location (Group, Object) come
+      // ahead of the Parameters and the Track Properties.
+      pending.trackProperties = this.readResponseTail_(
+          payload, /* offset= */ 1, /* leadingVarInts= */ 2, description)
+          .trackProperties;
+
+      shaka.log.debug(`${description} accepted`);
+      pending.accepted.resolve(true);
+    } catch (error) {
+      this.forgetFetch_(requestId);
+      pending.accepted.resolve(false);
+      throw error;
+    }
+  }
+
+  /**
+   * Stops handing on the Objects of a fetch, including the ones of a stream
+   * that is already being read.
+   *
+   * @param {bigint} requestId
+   * @private
+   */
+  forgetFetch_(requestId) {
+    const pending = this.fetches_.get(requestId);
+    if (pending) {
+      this.fetches_.delete(requestId);
+      pending.accepted.resolve(false);
+      pending.onEnd?.();
+    }
+  }
+
+  /** @override */
+  onNamespacePublished(callback) {
+    this.publishNamespaceCallbacks_.add(callback);
+    return () => {
+      this.publishNamespaceCallbacks_.delete(callback);
+    };
+  }
+
+  /**
+   * Reads incoming unidirectional streams. Each is either the peer's control
+   * stream, which begins with SETUP, or object data.
+   *
+   * @return {!Promise}
+   * @private
+   */
+  async startListeningForStreams_() {
+    try {
+      const streams =
+          this.webTransport_.incomingUnidirectionalStreams.getReader();
+
+      while (true) {
+        // eslint-disable-next-line no-await-in-loop
+        const {value: stream, done} = await streams.read();
+        if (done) {
+          return;
+        }
+
+        this.handleIncomingStream_(stream).catch((error) => {
+          this.logStreamFailure_('Error handling incoming stream', error);
+        });
+      }
+    } catch (error) {
+      this.logStreamFailure_('Stopped listening for incoming streams', error);
+    }
+  }
+
+  /**
+   * @param {!ReadableStream} stream
+   * @return {!Promise}
+   * @private
+   */
+  async handleIncomingStream_(stream) {
+    const reader = new shaka.msf.Reader(
+        new Uint8Array([]), stream, this.dialect_.getCodec());
+
+    try {
+      const streamType = await reader.u62();
+
+      if (streamType == BigInt(shaka.msf.draft18.MessageTypeId.SETUP)) {
+        await this.handlePeerControlStream_(reader);
+      } else if (this.isSubgroupStreamType_(streamType)) {
+        await this.handleSubgroupStream_(reader, streamType);
+      } else if (streamType == BigInt(shaka.msf.draft18.StreamType.FETCH)) {
+        await this.handleFetchStream_(reader);
+      } else {
+        shaka.log.warning(`Unknown stream type: ${streamType}`);
+      }
+    } catch (error) {
+      this.logStreamFailure_('Incoming stream ended', error);
+    } finally {
+      reader.close();
+    }
+  }
+
+  /**
+   * Streams end for reasons that are not a failure of ours: the peer resets
+   * one it no longer needs, and every stream on a session fails at once when
+   * the session goes away, which the session itself already reports. Neither
+   * is worth an error in the log.
+   *
+   * @param {string} context
+   * @param {*} error
+   * @private
+   */
+  logStreamFailure_(context, error) {
+    const isSessionGone = this.isClosing_ ||
+        (error &amp;&amp; error['source'] == 'session');
+    if (isSessionGone) {
+      shaka.log.debug(`${context}:`, error);
+    } else {
+      shaka.log.warning(`${context}:`, error);
+    }
+  }
+
+  /**
+   * Reads the peer's SETUP and then keeps the control stream open for GOAWAY
+   * and namespace announcements.
+   *
+   * @param {!shaka.msf.Reader} reader Positioned just after the SETUP type.
+   * @return {!Promise}
+   * @private
+   */
+  async handlePeerControlStream_(reader) {
+    const lengthBytes = await reader.read(2);
+    const length = (lengthBytes[0] &lt;&lt; 8) | lengthBytes[1];
+    // Setup Options span the payload; we do not need any of them yet.
+    await reader.read(length);
+    shaka.log.info(`Received peer SETUP (${this.dialect_.getName()})`);
+
+    // eslint-disable-next-line no-await-in-loop
+    while (!(await reader.done())) {
+      // eslint-disable-next-line no-await-in-loop
+      const header = await this.readMessageHeader_(reader);
+      // eslint-disable-next-line no-await-in-loop
+      const payload = await reader.read(header.length);
+
+      if (header.type == shaka.msf.draft18.MessageTypeId.GOAWAY) {
+        shaka.log.info('Received GOAWAY on the control stream');
+      } else {
+        shaka.log.debug(
+            `Ignoring control message type 0x${header.type.toString(16)} ` +
+            `(${payload.byteLength} bytes)`);
+      }
+    }
+  }
+
+  /**
+   * Draft-18 SUBGROUP_HEADER types have bit 4 set, spanning 0x10-0x1F,
+   * 0x30-0x3F, 0x50-0x5F and 0x70-0x7F.
+   *
+   * @param {bigint} streamType
+   * @return {boolean}
+   * @private
+   */
+  isSubgroupStreamType_(streamType) {
+    if (streamType > BigInt(0x7f)) {
+      return false;
+    }
+    return (streamType &amp; BigInt(0x10)) != BigInt(0);
+  }
+
+  /**
+   * @param {!shaka.msf.Reader} reader
+   * @param {bigint} streamType
+   * @return {!Promise}
+   * @private
+   */
+  async handleSubgroupStream_(reader, streamType) {
+    const PROPERTIES_BIT = BigInt(0x01);
+    const SUBGROUP_ID_MODE_MASK = BigInt(0x06);
+    const DEFAULT_PRIORITY_BIT = BigInt(0x20);
+
+    const hasProperties = (streamType &amp; PROPERTIES_BIT) != BigInt(0);
+    const subgroupIdMode =
+        (streamType &amp; SUBGROUP_ID_MODE_MASK) >> BigInt(1);
+
+    if (subgroupIdMode == BigInt(0x03)) {
+      throw new Error(`Reserved SUBGROUP_ID_MODE in type ${streamType}`);
+    }
+
+    const trackAlias = await reader.u62();
+    const groupId = await reader.u62();
+
+    /** @type {?bigint} */
+    let subgroupId = null;
+    if (subgroupIdMode == BigInt(0x00)) {
+      subgroupId = BigInt(0);
+    } else if (subgroupIdMode == BigInt(0x02)) {
+      subgroupId = await reader.u62();
+    }
+    // Mode 0x01 leaves it as the first Object ID, filled in below.
+
+    if ((streamType &amp; DEFAULT_PRIORITY_BIT) == BigInt(0)) {
+      await reader.u8(); // Publisher Priority, unused.
+    }
+
+    /** @type {bigint} */
+    let previousObjectId = BigInt(0);
+    let isFirstObject = true;
+
+    // eslint-disable-next-line no-await-in-loop
+    while (!(await reader.done())) {
+      const payloadReadStartMs = Date.now();
+
+      // Object IDs are delta encoded: the first is absolute, and each
+      // subsequent one is previous + delta + 1.
+      // eslint-disable-next-line no-await-in-loop
+      const objectIdDelta = await reader.u62();
+      const objectId = isFirstObject ?
+          objectIdDelta :
+          previousObjectId + objectIdDelta + BigInt(1);
+      previousObjectId = objectId;
+
+      if (isFirstObject &amp;&amp; subgroupId === null) {
+        subgroupId = objectId;
+      }
+      isFirstObject = false;
+
+      /** @type {?Uint8Array} */
+      let properties = null;
+      if (hasProperties) {
+        // eslint-disable-next-line no-await-in-loop
+        const propertiesLength = await reader.u62();
+        if (propertiesLength > BigInt(0)) {
+          // eslint-disable-next-line no-await-in-loop
+          properties = await reader.read(Number(propertiesLength));
+        }
+      }
+
+      // eslint-disable-next-line no-await-in-loop
+      const payloadLength = await reader.u62();
+
+      /** @type {?bigint} */
+      let objectStatus = null;
+      if (payloadLength == BigInt(0)) {
+        // eslint-disable-next-line no-await-in-loop
+        objectStatus = await reader.u62();
+      }
+
+      const data = payloadLength > BigInt(0) ?
+          // eslint-disable-next-line no-await-in-loop
+          await reader.read(Number(payloadLength)) :
+          new Uint8Array([]);
+
+      /** @type {shaka.msf.Utils.MOQObject} */
+      const obj = {
+        trackAlias,
+        location: {group: groupId, object: objectId, subgroup: subgroupId},
+        data,
+        extensions: properties,
+        status: objectStatus,
+        payloadReadStartMs,
+        receiveTimestampMs: Date.now(),
+      };
+
+      // eslint-disable-next-line no-await-in-loop
+      await this.deliver_(trackAlias, obj);
+    }
+  }
+
+  /**
+   * Delivers an object, waiting briefly for the subscription to be registered
+   * if the data stream beat the SUBSCRIBE_OK.
+   *
+   * @param {bigint} trackAlias
+   * @param {shaka.msf.Utils.MOQObject} obj
+   * @return {!Promise}
+   * @private
+   */
+  async deliver_(trackAlias, obj) {
+    const RETRY_INTERVAL = 0.1;
+    const MAX_RETRIES = 5;
+
+    for (let attempt = 0; attempt &lt; MAX_RETRIES; attempt++) {
+      if (this.isClosing_) {
+        return;
+      }
+
+      const trackInfo = this.trackRegistry_.getTrackInfoFromAlias(trackAlias);
+      if (trackInfo?.closed) {
+        return;
+      }
+
+      if (trackInfo &amp;&amp; trackInfo.callbacks.length) {
+        // Stamped here rather than when the Object was read: the data stream
+        // can beat the SUBSCRIBE_OK that carries them, which is what the wait
+        // below is for.
+        obj.trackProperties = this.trackProperties_.get(trackAlias) || null;
+        for (const callback of trackInfo.callbacks) {
+          try {
+            callback(obj);
+          } catch (error) {
+            shaka.log.error(`Error in object callback for ${trackAlias}:`,
+                error);
+          }
+        }
+        return;
+      }
+
+      // eslint-disable-next-line no-await-in-loop
+      await shaka.util.Functional.delay(RETRY_INTERVAL);
+    }
+
+    if (!this.isClosing_) {
+      shaka.log.warning(
+          `Dropping object for unregistered track ${trackAlias}`);
+    }
+  }
+
+  /**
+   * Reads a fetch stream: a FETCH_HEADER naming the request, then Objects
+   * until the stream ends. The request is a FETCH, or a SUBSCRIBE whose
+   * FILL_PARAMETERS asked for Groups already published.
+   *
+   * @param {!shaka.msf.Reader} reader
+   * @return {!Promise}
+   * @private
+   */
+  async handleFetchStream_(reader) {
+    const requestId = await reader.u62();
+    const pending = this.fetches_.get(requestId);
+    if (!pending) {
+      shaka.log.warning(`No callback for fetch requestId ${requestId}`);
+      return;
+    }
+    // Objects can arrive ahead of the FETCH_OK, and the Track Properties that
+    // say how to read them are in it.
+    if (!(await pending.accepted.promise)) {
+      return;
+    }
+
+    try {
+      await this.readFetchObjects_(reader, requestId, pending);
+    } finally {
+      if (this.fetches_.get(requestId) == pending) {
+        this.fetches_.delete(requestId);
+      }
+      pending.onEnd?.();
+    }
+  }
+
+  /**
+   * Reads the Objects of a fetch stream, past its FETCH_HEADER, and hands
+   * them to the fetch's callback until the stream ends or the fetch is
+   * withdrawn.
+   *
+   * @param {!shaka.msf.Reader} reader
+   * @param {bigint} requestId
+   * @param {shaka.msf.draft18.Session.PendingFetch} pending
+   * @return {!Promise}
+   * @private
+   */
+  async readFetchObjects_(reader, requestId, pending) {
+    const Flags = shaka.msf.draft18.Session.FetchFlags_;
+    const one = BigInt(1);
+
+    // Every field an Object leaves out is the prior Object's, and the first
+    // one has to spell out its Location (draft-18 section 11.4.4.1).
+    let priorGroup = BigInt(0);
+    let priorObject = BigInt(0);
+    let priorSubgroup = BigInt(0);
+    let hasPrior = false;
+
+    // eslint-disable-next-line no-await-in-loop
+    while (!(await reader.done())) {
+      if (this.fetches_.get(requestId) != pending) {
+        // Withdrawn while its Objects were still arriving.
+        return;
+      }
+
+      const payloadReadStartMs = Date.now();
+      // eslint-disable-next-line no-await-in-loop
+      const flags = Number(await reader.u62());
+
+      if (flags > Flags.MAX) {
+        // An End of Range: a Location, and nothing else, past which the
+        // Objects up to it do not exist, are unknown or timed out. Only the
+        // Location moves on.
+        if (!shaka.msf.draft18.Session.END_OF_RANGE_.includes(flags)) {
+          throw new Error(
+              `Invalid fetch Serialization Flags 0x${flags.toString(16)}`);
+        }
+        // eslint-disable-next-line no-await-in-loop
+        priorGroup = await reader.u62();
+        // eslint-disable-next-line no-await-in-loop
+        priorObject = await reader.u62();
+        hasPrior = true;
+        continue;
+      }
+
+      const hasGroupDelta = (flags &amp; Flags.GROUP_ID_DELTA) != 0;
+      const hasObjectDelta = (flags &amp; Flags.OBJECT_ID_DELTA) != 0;
+      if (!hasPrior &amp;&amp; (!hasGroupDelta || !hasObjectDelta)) {
+        throw new Error('The first fetched Object has no Location');
+      }
+
+      let groupId = priorGroup;
+      if (hasGroupDelta) {
+        // eslint-disable-next-line no-await-in-loop
+        const delta = await reader.u62();
+        // Ascending, which is the only order this player asks for.
+        groupId = hasPrior ? priorGroup + delta + one : delta;
+      }
+
+      let subgroupId = BigInt(0);
+      if (!(flags &amp; Flags.DATAGRAM)) {
+        switch (flags &amp; Flags.SUBGROUP_MASK) {
+          case Flags.SUBGROUP_PRIOR:
+            subgroupId = priorSubgroup;
+            break;
+          case Flags.SUBGROUP_PRIOR_PLUS_ONE:
+            subgroupId = priorSubgroup + one;
+            break;
+          case Flags.SUBGROUP_PRESENT:
+            // eslint-disable-next-line no-await-in-loop
+            subgroupId = await reader.u62();
+            break;
+        }
+      }
+
+      let objectId = priorObject + one;
+      if (hasObjectDelta) {
+        // eslint-disable-next-line no-await-in-loop
+        const delta = await reader.u62();
+        // A new Group numbers its Objects afresh, so the delta is the ID
+        // itself; within a Group it is added to the prior ID as it is.
+        objectId = hasGroupDelta ? delta : priorObject + delta;
+      }
+
+      if (flags &amp; Flags.PRIORITY) {
+        // eslint-disable-next-line no-await-in-loop
+        await reader.u8(); // Publisher Priority, unused.
+      }
+
+      /** @type {?Uint8Array} */
+      let properties = null;
+      if (flags &amp; Flags.PROPERTIES) {
+        // eslint-disable-next-line no-await-in-loop
+        const propertiesLength = await reader.u62();
+        if (propertiesLength > BigInt(0)) {
+          // eslint-disable-next-line no-await-in-loop
+          properties = await reader.read(Number(propertiesLength));
+        }
+      }
+
+      // eslint-disable-next-line no-await-in-loop
+      const payloadLength = await reader.u62();
+      const data = payloadLength > BigInt(0) ?
+          // eslint-disable-next-line no-await-in-loop
+          await reader.read(Number(payloadLength)) :
+          new Uint8Array([]);
+
+      priorGroup = groupId;
+      priorObject = objectId;
+      priorSubgroup = subgroupId;
+      hasPrior = true;
+
+      if (this.fetches_.get(requestId) != pending) {
+        return;
+      }
+      pending.callback({
+        trackAlias: BigInt(0),
+        location: {group: groupId, object: objectId, subgroup: subgroupId},
+        data,
+        extensions: properties,
+        trackProperties: pending.trackProperties,
+        status: null,
+        payloadReadStartMs,
+        receiveTimestampMs: Date.now(),
+      });
+    }
+  }
+
+  /** @override */
+  async close(code = 0, reason = '') {
+    this.isClosing_ = true;
+    try {
+      this.webTransport_.close({closeCode: code, reason});
+      await this.webTransport_.closed;
+    } catch (error) {
+      // The session may already be closed, either because the peer went away
+      // or because we are closing twice. Either way it is gone, which is all
+      // the caller wanted.
+      shaka.log.debug('Ignoring error while closing the session:', error);
+    }
+  }
+
+  /** @override */
+  release() {
+    shaka.log.debug(`Releasing ${this.dialect_.getName()} session`);
+    this.isClosing_ = true;
+    this.publishNamespaceCallbacks_.clear();
+    for (const pending of this.fetches_.values()) {
+      pending.accepted.resolve(false);
+    }
+    this.fetches_.clear();
+    this.joiningFetches_.clear();
+    for (const gate of this.joinGates_.values()) {
+      gate.release();
+    }
+    this.joinGates_.clear();
+    this.trackProperties_.clear();
+    this.trackRegistry_.clear();
+  }
+};
+
+
+/**
+ * Unidirectional stream types that are not control streams.
+ *
+ * @enum {number}
+ */
+shaka.msf.draft18.StreamType = {
+  FETCH: 0x05,
+};
+
+
+/**
+ * The Serialization Flags of an Object on a fetch stream (draft-18 section
+ * 11.4.4.1; draft-20 and draft-21 are the same).
+ *
+ * @enum {number}
+ * @private
+ */
+shaka.msf.draft18.Session.FetchFlags_ = {
+  SUBGROUP_MASK: 0x03,
+  SUBGROUP_ZERO: 0x00,
+  SUBGROUP_PRIOR: 0x01,
+  SUBGROUP_PRIOR_PLUS_ONE: 0x02,
+  SUBGROUP_PRESENT: 0x03,
+  OBJECT_ID_DELTA: 0x04,
+  GROUP_ID_DELTA: 0x08,
+  PRIORITY: 0x10,
+  PROPERTIES: 0x20,
+  DATAGRAM: 0x40,
+  // Anything above this is not a set of flags but an End of Range.
+  MAX: 0x7f,
+};
+
+
+/**
+ * The Serialization Flags values that mark an End of Range: Objects that do
+ * not exist, whose status is unknown, and (from draft-20) that timed out.
+ *
+ * @private @const {!Array&lt;number>}
+ */
+shaka.msf.draft18.Session.END_OF_RANGE_ = [0x8c, 0x10c, 0x20c];
+
+
+/**
+ * @typedef {{
+ *   callback: shaka.msf.Utils.ObjectCallback,
+ *   accepted: !Promise.PromiseWithResolvers&lt;boolean>,
+ *   trackProperties: ?Uint8Array,
+ *   onEnd: ?function(),
+ * }}
+ *
+ * @property {shaka.msf.Utils.ObjectCallback} callback
+ *   Receives the fetched Objects.
+ * @property {!Promise.PromiseWithResolvers&lt;boolean>} accepted
+ *   Resolves with true on FETCH_OK and with false when the fetch fails or the
+ *   session is released. It never rejects, so nothing waiting on it can leave
+ *   a rejection unhandled.
+ * @property {?Uint8Array} trackProperties
+ *   The Track Properties of the FETCH_OK, once it has arrived.
+ * @property {?function()} onEnd
+ *   Called once no more Objects will be handed to the callback: the fetch
+ *   stream has ended or failed, or the fetch has been refused or withdrawn.
+ */
+shaka.msf.draft18.Session.PendingFetch;
+
+
+/**
+ * @typedef {{
+ *   largestObject: (?shaka.msf.Utils.Location|undefined),
+ *   trackProperties: ?Uint8Array,
+ * }}
+ *
+ * @property {(?shaka.msf.Utils.Location|undefined)} largestObject
+ *   The LARGEST_OBJECT parameter; null when the response has none, which
+ *   means nothing has been published on the track, and undefined when the
+ *   parameters could not be read.
+ * @property {?Uint8Array} trackProperties
+ *   The Track Properties block, or null when it is empty or cannot be
+ *   located.
+ */
+shaka.msf.draft18.Session.ResponseTail;
+
+
+/**
+ * The LARGEST_OBJECT Message Parameter type.
+ *
+ * @private @const {number}
+ */
+shaka.msf.draft18.Session.LARGEST_OBJECT_ = 0x09;
+
+
+/**
+ * How long a subscription that joins the current Group holds its own Objects
+ * back waiting for that Group, in seconds. Only a publisher that ignores the
+ * request runs into it.
+ *
+ * @private @const {number}
+ */
+shaka.msf.draft18.Session.JOIN_TIMEOUT_SEC_ = 2;
+
+
+/**
+ * How many var ints follow each draft-22 Location Filter Type (draft-22
+ * section 9.20.9): none for None (0x00) and Next Object (0x05), and for the
+ * rest as many as the type's own value.
+ *
+ * @private @const {!Map&lt;number, number>}
+ */
+shaka.msf.draft18.Session.LOCATION_FILTER_FIELDS_ = new Map([
+  [0x00, 0],
+  [0x01, 1],
+  [0x02, 2],
+  [0x03, 3],
+  [0x04, 4],
+  [0x05, 0],
+]);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <div id="showWidget">Show:
+        <select id="show" onchange="onShowChange()">
+            <option value="exported">exported</option>
+            <option value="public">public</option>
+            <option value="private">everything</option>
+        </select>
+    </div>
+
+    <h2><a href="index.html">Home</a></h2><h3>Tutorials</h3><ul><li class=""><a href="tutorial-welcome.html">Welcome to Shaka Player</a></li><li class=""><a href="tutorial-basic-usage.html">Basic Usage</a></li><li class=""><a href="tutorial-debugging.html">Debugging</a></li><li class=""><a href="tutorial-config.html">Configuration</a></li><li class=""><a href="tutorial-network-and-buffering-config.html">Network and Buffering Configuration</a></li><li class=""><a href="tutorial-drm-config.html">DRM Configuration</a></li><li class=""><a href="tutorial-license-server-auth.html">License Server Authentication</a></li><li class=""><a href="tutorial-license-wrapping.html">License Wrapping</a></li><li class=""><a href="tutorial-moq.html">MoQ</a></li><li class=""><a href="tutorial-preload.html">Preloading</a></li><li class=""><a href="tutorial-scte35.html">SCTE-35 Messages</a></li><li class=""><a href="tutorial-transmuxing-in-worker.html">Transmuxing in Worker</a></li><li class=""><a href="tutorial-ui.html">UI Library</a></li><li class=""><a href="tutorial-ui-customization.html">Configuring the UI</a></li><li class=""><a href="tutorial-text-displayer.html">Configuring text displayer</a></li><li class=""><a href="tutorial-screen-resolution-detection.html">Screen resolution detection</a></li><li class=""><a href="tutorial-errors.html">Error Handling</a></li><li class=""><a href="tutorial-a11y.html">Creating accessible buttons</a></li><li class=""><a href="tutorial-ad_monetization.html">Monetization with Ads</a></li><li class=""><a href="tutorial-plugins.html">Plugins and Customizing the Build</a></li><li class=""><a href="tutorial-manifest-parser.html">Manifest Parser Plugins</a></li><li class=""><a href="tutorial-architecture.html">Architecture Diagrams</a></li><li class=""><a href="tutorial-service-worker.html">Service Worker Caching</a></li><li class=""><a href="tutorial-offline.html">Offline Storage and Playback</a></li><li class=""><a href="tutorial-widevine-service-certs.html">Widevine Service Certificates</a></li><li class=""><a href="tutorial-fairplay.html">FairPlay support</a></li><li class=""><a href="tutorial-application-level-redirects.html">Application-Level Redirects</a></li><li class=""><a href="tutorial-blob-url.html">Blob URL</a></li><li class=""><a href="tutorial-selenium-grid-config.html">Selenium Grid Config</a></li><li class=""><a href="tutorial-faq.html">Frequently Asked Questions</a></li><li class=""><a href="tutorial-upgrade.html">Upgrade Guide</a></li><li class=""><a href="tutorial-upgrade-manifest.html">ManifestParser Upgrade Guide</a></li><li class=""><a href="tutorial-lcevc.html">LCEVC Quick Start</a></li><li class=""><a href="tutorial-preselection.html">DASH Preselections (Next Generation Audio)</a></li><li class=""><a href="tutorial-accessibility.html">Accessibility</a></li><li class=""><a href="tutorial-queue-manager.html">QueueManager</a></li></ul><h3>Classes</h3><ul><li class="access-public"><a href="goog.asserts.html">goog.asserts</a></li><li class="access-public"><a href="shaka.html">shaka</a></li><li class="access-public"><a href="shaka.abr.Ewma.html">shaka.abr.Ewma</a></li><li class="access-public"><a href="shaka.abr.EwmaBandwidthEstimator.html">shaka.abr.EwmaBandwidthEstimator</a></li><li class="access-export"><a href="shaka.abr.SimpleAbrManager.html">shaka.abr.SimpleAbrManager</a></li><li class="access-export"><a href="shaka.ads.AbstractAd.html">shaka.ads.AbstractAd</a></li><li class="access-export"><a href="shaka.ads.AdManager.html">shaka.ads.AdManager</a></li><li class="access-public"><a href="shaka.ads.AdsStats.html">shaka.ads.AdsStats</a></li><li class="access-export"><a href="shaka.ads.ClientSideAd.html">shaka.ads.ClientSideAd</a></li><li class="access-public"><a href="shaka.ads.ClientSideAdManager.html">shaka.ads.ClientSideAdManager</a></li><li class="access-public"><a href="shaka.ads.DashInterstitialParser.html">shaka.ads.DashInterstitialParser</a></li><li class="access-public"><a href="shaka.ads.HlsInterstitialParser.html">shaka.ads.HlsInterstitialParser</a></li><li class="access-export"><a href="shaka.ads.InterstitialAd.html">shaka.ads.InterstitialAd</a></li><li class="access-public"><a href="shaka.ads.InterstitialAdManager.html">shaka.ads.InterstitialAdManager</a></li><li class="access-public"><a href="shaka.ads.InterstitialAdSession.html">shaka.ads.InterstitialAdSession</a></li><li class="access-public"><a href="shaka.ads.InterstitialPreloadTask.html">shaka.ads.InterstitialPreloadTask</a></li><li class="access-export"><a href="shaka.ads.InterstitialStaticAd.html">shaka.ads.InterstitialStaticAd</a></li><li class="access-public"><a href="shaka.ads.InterstitialTracker.html">shaka.ads.InterstitialTracker</a></li><li class="access-export"><a href="shaka.ads.MediaTailorAd.html">shaka.ads.MediaTailorAd</a></li><li class="access-public"><a href="shaka.ads.MediaTailorAdManager.html">shaka.ads.MediaTailorAdManager</a></li><li class="access-export"><a href="shaka.ads.ServerSideAd.html">shaka.ads.ServerSideAd</a></li><li class="access-public"><a href="shaka.ads.ServerSideAdManager.html">shaka.ads.ServerSideAdManager</a></li><li class="access-public"><a href="shaka.ads.SvtaInterstitialParser.html">shaka.ads.SvtaInterstitialParser</a></li><li class="access-public"><a href="shaka.ads.SvtaInterstitialTracker.html">shaka.ads.SvtaInterstitialTracker</a></li><li class="access-public"><a href="shaka.ads.SvtaInterstitialTracker.SlotTracker.html">shaka.ads.SvtaInterstitialTracker.SlotTracker</a></li><li class="access-export"><a href="shaka.ads.Utils.html">shaka.ads.Utils</a></li><li class="access-public"><a href="shaka.ads.VastInterstitialParser.html">shaka.ads.VastInterstitialParser</a></li><li class="access-export"><a href="shaka.cast.CastProxy.html">shaka.cast.CastProxy</a></li><li class="access-export"><a href="shaka.cast.CastReceiver.html">shaka.cast.CastReceiver</a></li><li class="access-public"><a href="shaka.cast.CastSender.html">shaka.cast.CastSender</a></li><li class="access-public"><a href="shaka.cast.CastUtils.html">shaka.cast.CastUtils</a></li><li class="access-public"><a href="shaka.cea.Cea608DataChannel.html">shaka.cea.Cea608DataChannel</a></li><li class="access-public"><a href="shaka.cea.Cea608Memory.html">shaka.cea.Cea608Memory</a></li><li class="access-public"><a href="shaka.cea.Cea708Service.html">shaka.cea.Cea708Service</a></li><li class="access-public"><a href="shaka.cea.Cea708Window.html">shaka.cea.Cea708Window</a></li><li class="access-export"><a href="shaka.cea.CeaDecoder.html">shaka.cea.CeaDecoder</a></li><li class="access-public"><a href="shaka.cea.CeaUtils-shaka.cea.CeaUtils.StyledChar.html">shaka.cea.CeaUtils~shaka.cea.CeaUtils.StyledChar</a></li><li class="access-public"><a href="shaka.cea.DtvccPacketBuilder.html">shaka.cea.DtvccPacketBuilder</a></li><li class="access-public"><a href="shaka.cea.DummyCaptionDecoder.html">shaka.cea.DummyCaptionDecoder</a></li><li class="access-public"><a href="shaka.cea.DummyCeaParser.html">shaka.cea.DummyCeaParser</a></li><li class="access-export"><a href="shaka.cea.Mp4CeaParser.html">shaka.cea.Mp4CeaParser</a></li><li class="access-public"><a href="shaka.cea.SeiProcessor.html">shaka.cea.SeiProcessor</a></li><li class="access-export"><a href="shaka.cea.TsCeaParser.html">shaka.cea.TsCeaParser</a></li><li class="access-public"><a href="shaka.cea-shaka.cea.DtvccPacket.html">shaka.cea~shaka.cea.DtvccPacket</a></li><li class="access-public"><a href="shaka.codec.AAC.html">shaka.codec.AAC</a></li><li class="access-public"><a href="shaka.codec.Ac3.html">shaka.codec.Ac3</a></li><li class="access-public"><a href="shaka.codec.ADTS.html">shaka.codec.ADTS</a></li><li class="access-public"><a href="shaka.codec.AV1.html">shaka.codec.AV1</a></li><li class="access-public"><a href="shaka.codec.DolbyVision.html">shaka.codec.DolbyVision</a></li><li class="access-public"><a href="shaka.codec.Ec3.html">shaka.codec.Ec3</a></li><li class="access-public"><a href="shaka.codec.Flac.html">shaka.codec.Flac</a></li><li class="access-public"><a href="shaka.codec.H264.html">shaka.codec.H264</a></li><li class="access-public"><a href="shaka.codec.H265.html">shaka.codec.H265</a></li><li class="access-public"><a href="shaka.codec.MpegAudio.html">shaka.codec.MpegAudio</a></li><li class="access-public"><a href="shaka.codec.Opus.html">shaka.codec.Opus</a></li><li class="access-public"><a href="shaka.codec.Vorbis.html">shaka.codec.Vorbis</a></li><li class="access-public"><a href="shaka.codec.VP9.html">shaka.codec.VP9</a></li><li class="access-public"><a href="shaka.dash.ContentProtection.html">shaka.dash.ContentProtection</a></li><li class="access-export"><a href="shaka.dash.DashParser.html">shaka.dash.DashParser</a></li><li class="access-public"><a href="shaka.dash.MpdUtils.html">shaka.dash.MpdUtils</a></li><li class="access-public"><a href="shaka.dash.SegmentBase.html">shaka.dash.SegmentBase</a></li><li class="access-public"><a href="shaka.dash.SegmentList.html">shaka.dash.SegmentList</a></li><li class="access-public"><a href="shaka.dash.SegmentTemplate.html">shaka.dash.SegmentTemplate</a></li><li class="access-private"><a href="shaka.dash.SegmentTemplate.FixedDurationSegmentIndex_.html">shaka.dash.SegmentTemplate.FixedDurationSegmentIndex_</a></li><li class="access-public"><a href="shaka.dash.ServiceDescriptionParser.html">shaka.dash.ServiceDescriptionParser</a></li><li class="access-private"><a href="shaka.dash.TimelineSegmentIndex.html">shaka.dash.TimelineSegmentIndex</a></li><li class="access-public"><a href="shaka.Deprecate.html">shaka.Deprecate</a></li><li class="access-public"><a href="shaka.deprecate.Enforcer.html">shaka.deprecate.Enforcer</a></li><li class="access-public"><a href="shaka.deprecate.Version.html">shaka.deprecate.Version</a></li><li class="access-public"><a href="shaka.device.AbstractDevice.html">shaka.device.AbstractDevice</a></li><li class="access-public"><a href="shaka.device.AppleBrowser.html">shaka.device.AppleBrowser</a></li><li class="access-public"><a href="shaka.device.Chromecast.html">shaka.device.Chromecast</a></li><li class="access-public"><a href="shaka.device.DefaultBrowser.html">shaka.device.DefaultBrowser</a></li><li class="access-public"><a href="shaka.device.Hisense.html">shaka.device.Hisense</a></li><li class="access-public"><a href="shaka.device.PlayStation.html">shaka.device.PlayStation</a></li><li class="access-public"><a href="shaka.device.TitanOS.html">shaka.device.TitanOS</a></li><li class="access-public"><a href="shaka.device.TiVoOS.html">shaka.device.TiVoOS</a></li><li class="access-public"><a href="shaka.device.Tizen.html">shaka.device.Tizen</a></li><li class="access-public"><a href="shaka.device.Vizio.html">shaka.device.Vizio</a></li><li class="access-public"><a href="shaka.device.WebKitSTB.html">shaka.device.WebKitSTB</a></li><li class="access-public"><a href="shaka.device.WebOS.html">shaka.device.WebOS</a></li><li class="access-public"><a href="shaka.device.Xbox.html">shaka.device.Xbox</a></li><li class="access-public"><a href="shaka.drm.DrmEngine.html">shaka.drm.DrmEngine</a></li><li class="access-export"><a href="shaka.drm.FairPlay.html">shaka.drm.FairPlay</a></li><li class="access-public"><a href="shaka.drm.PlayReady.html">shaka.drm.PlayReady</a></li><li class="access-public"><a href="shaka.extern.html">shaka.extern</a></li><li class="access-public"><a href="shaka.hls.Attribute.html">shaka.hls.Attribute</a></li><li class="access-export"><a href="shaka.hls.HlsParser.html">shaka.hls.HlsParser</a></li><li class="access-public"><a href="shaka.hls.ManifestTextParser.html">shaka.hls.ManifestTextParser</a></li><li class="access-public"><a href="shaka.hls.Playlist.html">shaka.hls.Playlist</a></li><li class="access-public"><a href="shaka.hls.Segment.html">shaka.hls.Segment</a></li><li class="access-public"><a href="shaka.hls.Tag.html">shaka.hls.Tag</a></li><li class="access-export"><a href="shaka.lcevc.Dec.html">shaka.lcevc.Dec</a></li><li class="access-export"><a href="shaka.log.html">shaka.log</a></li><li class="access-export"><a href="shaka.media.AdaptationSet.html">shaka.media.AdaptationSet</a></li><li class="access-public"><a href="shaka.media.BufferingObserver.html">shaka.media.BufferingObserver</a></li><li class="access-public"><a href="shaka.media.Capabilities.html">shaka.media.Capabilities</a></li><li class="access-public"><a href="shaka.media.ClearKeyWebCryptoDecryptor.html">shaka.media.ClearKeyWebCryptoDecryptor</a></li><li class="access-export"><a href="shaka.media.ClosedCaptionParser.html">shaka.media.ClosedCaptionParser</a></li><li class="access-public"><a href="shaka.media.ContentWorkarounds.html">shaka.media.ContentWorkarounds</a></li><li class="access-public"><a href="shaka.media.GapJumpingController.html">shaka.media.GapJumpingController</a></li><li class="access-export"><a href="shaka.media.InitSegmentReference.html">shaka.media.InitSegmentReference</a></li><li class="access-public"><a href="shaka.media.ManifestFilterer.html">shaka.media.ManifestFilterer</a></li><li class="access-export"><a href="shaka.media.ManifestParser.html">shaka.media.ManifestParser</a></li><li class="access-public"><a href="shaka.media.MediaSourceEngine.html">shaka.media.MediaSourceEngine</a></li><li class="access-public"><a href="shaka.media.MediaSourcePlayhead.html">shaka.media.MediaSourcePlayhead</a></li><li class="access-export"><a href="shaka.media.MetaSegmentIndex.html">shaka.media.MetaSegmentIndex</a></li><li class="access-public"><a href="shaka.media.PlayheadObserverManager.html">shaka.media.PlayheadObserverManager</a></li><li class="access-public"><a href="shaka.media.PlayRateController.html">shaka.media.PlayRateController</a></li><li class="access-public"><a href="shaka.media.PreferenceBasedCriteria.html">shaka.media.PreferenceBasedCriteria</a></li><li class="access-export"><a href="shaka.media.PreloadManager.html">shaka.media.PreloadManager</a></li><li class="access-export"><a href="shaka.media.PresentationTimeline.html">shaka.media.PresentationTimeline</a></li><li class="access-public"><a href="shaka.media.ProgramDateTimeObserver.html">shaka.media.ProgramDateTimeObserver</a></li><li class="access-public"><a href="shaka.media.QualityObserver.html">shaka.media.QualityObserver</a></li><li class="access-public"><a href="shaka.media.RegionObserver.html">shaka.media.RegionObserver</a></li><li class="access-public"><a href="shaka.media.RegionTimeline.html">shaka.media.RegionTimeline</a></li><li class="access-export"><a href="shaka.media.SegmentIndex.html">shaka.media.SegmentIndex</a></li><li class="access-export"><a href="shaka.media.SegmentIterator.html">shaka.media.SegmentIterator</a></li><li class="access-public"><a href="shaka.media.SegmentPrefetch.html">shaka.media.SegmentPrefetch</a></li><li class="access-public"><a href="shaka.media.SegmentPrefetchOperation.html">shaka.media.SegmentPrefetchOperation</a></li><li class="access-export"><a href="shaka.media.SegmentReference.html">shaka.media.SegmentReference</a></li><li class="access-public"><a href="shaka.media.SegmentUtils.html">shaka.media.SegmentUtils</a></li><li class="access-public"><a href="shaka.media.SkipRangeController.html">shaka.media.SkipRangeController</a></li><li class="access-public"><a href="shaka.media.SrcEqualsPlayhead.html">shaka.media.SrcEqualsPlayhead</a></li><li class="access-public"><a href="shaka.media.StallDetector.html">shaka.media.StallDetector</a></li><li class="access-public"><a href="shaka.media.StallDetector.MediaElementImplementation.html">shaka.media.StallDetector.MediaElementImplementation</a></li><li class="access-public"><a href="shaka.media.StreamingEngine.html">shaka.media.StreamingEngine</a></li><li class="access-public"><a href="shaka.media.TimeRangesUtils.html">shaka.media.TimeRangesUtils</a></li><li class="access-public"><a href="shaka.media.VideoWrapper.html">shaka.media.VideoWrapper</a></li><li class="access-public"><a href="shaka.media.VideoWrapper.PlayheadMover.html">shaka.media.VideoWrapper.PlayheadMover</a></li><li class="access-export"><a href="shaka.metadata.Id3Utils.html">shaka.metadata.Id3Utils</a></li><li class="access-export"><a href="shaka.metadata.Id3V1Utils.html">shaka.metadata.Id3V1Utils</a></li><li class="access-export"><a href="shaka.metadata.IlstUtils.html">shaka.metadata.IlstUtils</a></li><li class="access-export"><a href="shaka.metadata.Metadata.html">shaka.metadata.Metadata</a></li><li class="access-export"><a href="shaka.metadata.VorbisUtils.html">shaka.metadata.VorbisUtils</a></li><li class="access-public"><a href="shaka.mkv.MatroskaClusterParser.html">shaka.mkv.MatroskaClusterParser</a></li><li class="access-public"><a href="shaka.mkv.MatroskaCodecs.html">shaka.mkv.MatroskaCodecs</a></li><li class="access-public"><a href="shaka.mkv.MatroskaIndexParser.html">shaka.mkv.MatroskaIndexParser</a></li><li class="access-export"><a href="shaka.mkv.MatroskaParser.html">shaka.mkv.MatroskaParser</a></li><li class="access-public"><a href="shaka.msf.CatalogStore.html">shaka.msf.CatalogStore</a></li><li class="access-public"><a href="shaka.msf.Compression.html">shaka.msf.Compression</a></li><li class="access-export"><a href="shaka.msf.DialectRegistry.html">shaka.msf.DialectRegistry</a></li><li class="access-public"><a href="shaka.msf.draft18.Codec.html">shaka.msf.draft18.Codec</a></li><li class="access-public"><a href="shaka.msf.draft18.Dialect.html">shaka.msf.draft18.Dialect</a></li><li class="access-public"><a href="shaka.msf.draft18.MessageWriter.html">shaka.msf.draft18.MessageWriter</a></li><li class="access-public"><a href="shaka.msf.draft18.Session.html">shaka.msf.draft18.Session</a></li><li class="access-public"><a href="shaka.msf.draft20.Dialect.html">shaka.msf.draft20.Dialect</a></li><li class="access-public"><a href="shaka.msf.draft20.MessageWriter.html">shaka.msf.draft20.MessageWriter</a></li><li class="access-public"><a href="shaka.msf.draft22.Dialect.html">shaka.msf.draft22.Dialect</a></li><li class="access-public"><a href="shaka.msf.draft22.MessageWriter.html">shaka.msf.draft22.MessageWriter</a></li><li class="access-public"><a href="shaka.msf.EventTimeline.html">shaka.msf.EventTimeline</a></li><li class="access-public"><a href="shaka.msf.JoinGate.html">shaka.msf.JoinGate</a></li><li class="access-public"><a href="shaka.msf.LOCMAFParser.html">shaka.msf.LOCMAFParser</a></li><li class="access-public"><a href="shaka.msf.LOCParser.html">shaka.msf.LOCParser</a></li><li class="access-public"><a href="shaka.msf.MediaTimeline.html">shaka.msf.MediaTimeline</a></li><li class="access-export"><a href="shaka.msf.MSFParser.html">shaka.msf.MSFParser</a></li><li class="access-export"><a href="shaka.msf.MSFPresentationTimeline.html">shaka.msf.MSFPresentationTimeline</a></li><li class="access-export"><a href="shaka.msf.MSFTransport.html">shaka.msf.MSFTransport</a></li><li class="access-public"><a href="shaka.msf.packaging.Cmaf.html">shaka.msf.packaging.Cmaf</a></li><li class="access-public"><a href="shaka.msf.packaging.CmafSegmenter.html">shaka.msf.packaging.CmafSegmenter</a></li><li class="access-public"><a href="shaka.msf.packaging.Loc.html">shaka.msf.packaging.Loc</a></li><li class="access-public"><a href="shaka.msf.packaging.Locmaf.html">shaka.msf.packaging.Locmaf</a></li><li class="access-public"><a href="shaka.msf.packaging.LocmafSegmenter.html">shaka.msf.packaging.LocmafSegmenter</a></li><li class="access-public"><a href="shaka.msf.packaging.LocSegmenter.html">shaka.msf.packaging.LocSegmenter</a></li><li class="access-public"><a href="shaka.msf.packaging.M2ts.html">shaka.msf.packaging.M2ts</a></li><li class="access-public"><a href="shaka.msf.packaging.M2tsSegmenter.html">shaka.msf.packaging.M2tsSegmenter</a></li><li class="access-export"><a href="shaka.msf.PackagingRegistry.html">shaka.msf.PackagingRegistry</a></li><li class="access-public"><a href="shaka.msf.Reader.html">shaka.msf.Reader</a></li><li class="access-public"><a href="shaka.msf.TrackAliasRegistry.html">shaka.msf.TrackAliasRegistry</a></li><li class="access-public"><a href="shaka.msf.Writer.html">shaka.msf.Writer</a></li><li class="access-public"><a href="shaka.net.Backoff.html">shaka.net.Backoff</a></li><li class="access-export"><a href="shaka.net.DataUriPlugin.html">shaka.net.DataUriPlugin</a></li><li class="access-export"><a href="shaka.net.HttpFetchPlugin.html">shaka.net.HttpFetchPlugin</a></li><li class="access-export"><a href="shaka.net.HttpPluginUtils.html">shaka.net.HttpPluginUtils</a></li><li class="access-export"><a href="shaka.net.HttpXHRPlugin.html">shaka.net.HttpXHRPlugin</a></li><li class="access-export"><a href="shaka.net.NetworkingEngine.html">shaka.net.NetworkingEngine</a></li><li class="access-export"><a href="shaka.net.NetworkingEngine.NumBytesRemainingClass.html">shaka.net.NetworkingEngine.NumBytesRemainingClass</a></li><li class="access-export"><a href="shaka.net.NetworkingEngine.PendingRequest.html">shaka.net.NetworkingEngine.PendingRequest</a></li><li class="access-public"><a href="shaka.net.NetworkingUtils.html">shaka.net.NetworkingUtils</a></li><li class="access-public"><a href="shaka.offline.DownloadInfo.html">shaka.offline.DownloadInfo</a></li><li class="access-public"><a href="shaka.offline.DownloadManager.html">shaka.offline.DownloadManager</a></li><li class="access-public"><a href="shaka.offline.DownloadProgressEstimator.html">shaka.offline.DownloadProgressEstimator</a></li><li class="access-public"><a href="shaka.offline.indexeddb.BaseStorageCell.html">shaka.offline.indexeddb.BaseStorageCell</a></li><li class="access-public"><a href="shaka.offline.indexeddb.DBConnection.html">shaka.offline.indexeddb.DBConnection</a></li><li class="access-public"><a href="shaka.offline.indexeddb.DBOperation.html">shaka.offline.indexeddb.DBOperation</a></li><li class="access-public"><a href="shaka.offline.indexeddb.EmeSessionStorageCell.html">shaka.offline.indexeddb.EmeSessionStorageCell</a></li><li class="access-public"><a href="shaka.offline.indexeddb.StorageMechanism.html">shaka.offline.indexeddb.StorageMechanism</a></li><li class="access-public"><a href="shaka.offline.indexeddb.V1StorageCell.html">shaka.offline.indexeddb.V1StorageCell</a></li><li class="access-public"><a href="shaka.offline.indexeddb.V2StorageCell.html">shaka.offline.indexeddb.V2StorageCell</a></li><li class="access-public"><a href="shaka.offline.indexeddb.V5StorageCell.html">shaka.offline.indexeddb.V5StorageCell</a></li><li class="access-public"><a href="shaka.offline.ManifestConverter.html">shaka.offline.ManifestConverter</a></li><li class="access-public"><a href="shaka.offline.OfflineManifestParser.html">shaka.offline.OfflineManifestParser</a></li><li class="access-export"><a href="shaka.offline.OfflineScheme.html">shaka.offline.OfflineScheme</a></li><li class="access-public"><a href="shaka.offline.OfflineUri.html">shaka.offline.OfflineUri</a></li><li class="access-public"><a href="shaka.offline.SessionDeleter.html">shaka.offline.SessionDeleter</a></li><li class="access-export"><a href="shaka.offline.Storage.html">shaka.offline.Storage</a></li><li class="access-export"><a href="shaka.offline.StorageMuxer.html">shaka.offline.StorageMuxer</a></li><li class="access-public"><a href="shaka.offline.StoredContentUtils.html">shaka.offline.StoredContentUtils</a></li><li class="access-public"><a href="shaka.offline.StreamBandwidthEstimator.html">shaka.offline.StreamBandwidthEstimator</a></li><li class="access-export"><a href="shaka.Player.html">shaka.Player</a></li><li class="access-export"><a href="shaka.polyfill.html">shaka.polyfill</a></li><li class="access-export"><a href="shaka.polyfill.Aria.html">shaka.polyfill.Aria</a></li><li class="access-export"><a href="shaka.polyfill.EmeEncryptionScheme.html">shaka.polyfill.EmeEncryptionScheme</a></li><li class="access-public"><a href="shaka.polyfill.EmeEncryptionSchemePolyfillMediaKeySystemAccess.html">shaka.polyfill.EmeEncryptionSchemePolyfillMediaKeySystemAccess</a></li><li class="access-export"><a href="shaka.polyfill.Fullscreen.html">shaka.polyfill.Fullscreen</a></li><li class="access-export"><a href="shaka.polyfill.Map.html">shaka.polyfill.Map</a></li><li class="access-export"><a href="shaka.polyfill.MCapEncryptionScheme.html">shaka.polyfill.MCapEncryptionScheme</a></li><li class="access-export"><a href="shaka.polyfill.MediaCapabilities.html">shaka.polyfill.MediaCapabilities</a></li><li class="access-public"><a href="shaka.polyfill.MediaKeyStatusMap.html">shaka.polyfill.MediaKeyStatusMap</a></li><li class="access-export"><a href="shaka.polyfill.MediaSource.html">shaka.polyfill.MediaSource</a></li><li class="access-export"><a href="shaka.polyfill.Orientation.html">shaka.polyfill.Orientation</a></li><li class="access-export"><a href="shaka.polyfill.PatchedMediaKeysApple.html">shaka.polyfill.PatchedMediaKeysApple</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysApple.MediaKeys.html">shaka.polyfill.PatchedMediaKeysApple.MediaKeys</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysApple.MediaKeySession.html">shaka.polyfill.PatchedMediaKeysApple.MediaKeySession</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysApple.MediaKeySystemAccess.html">shaka.polyfill.PatchedMediaKeysApple.MediaKeySystemAccess</a></li><li class="access-export"><a href="shaka.polyfill.PatchedMediaKeysCert.html">shaka.polyfill.PatchedMediaKeysCert</a></li><li class="access-export"><a href="shaka.polyfill.PatchedMediaKeysWebkit.html">shaka.polyfill.PatchedMediaKeysWebkit</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysWebkit.MediaKeys.html">shaka.polyfill.PatchedMediaKeysWebkit.MediaKeys</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysWebkit.MediaKeySession.html">shaka.polyfill.PatchedMediaKeysWebkit.MediaKeySession</a></li><li class="access-public"><a href="shaka.polyfill.PatchedMediaKeysWebkit.MediaKeySystemAccess.html">shaka.polyfill.PatchedMediaKeysWebkit.MediaKeySystemAccess</a></li><li class="access-export"><a href="shaka.polyfill.PiPWebkit.html">shaka.polyfill.PiPWebkit</a></li><li class="access-export"><a href="shaka.polyfill.RandomUUID.html">shaka.polyfill.RandomUUID</a></li><li class="access-export"><a href="shaka.polyfill.Symbol.html">shaka.polyfill.Symbol</a></li><li class="access-export"><a href="shaka.polyfill.TypedArray.html">shaka.polyfill.TypedArray</a></li><li class="access-export"><a href="shaka.polyfill.URLSearchParams.html">shaka.polyfill.URLSearchParams</a></li><li class="access-private"><a href="shaka.polyfill.URLSearchParams.html#.URLSearchParams_">shaka.polyfill.URLSearchParams.URLSearchParams_</a></li><li class="access-export"><a href="shaka.polyfill.VideoFrameCallback.html">shaka.polyfill.VideoFrameCallback</a></li><li class="access-export"><a href="shaka.polyfill.VideoPlaybackQuality.html">shaka.polyfill.VideoPlaybackQuality</a></li><li class="access-export"><a href="shaka.polyfill.VideoPlayPromise.html">shaka.polyfill.VideoPlayPromise</a></li><li class="access-export"><a href="shaka.polyfill.VTTCue.html">shaka.polyfill.VTTCue</a></li><li class="access-export"><a href="shaka.queue.QueueManager.html">shaka.queue.QueueManager</a></li><li class="access-export"><a href="shaka.text.Cue.html">shaka.text.Cue</a></li><li class="access-export"><a href="shaka.text.CueRegion.html">shaka.text.CueRegion</a></li><li class="access-export"><a href="shaka.text.MatroskaTextParser.html">shaka.text.MatroskaTextParser</a></li><li class="access-export"><a href="shaka.text.Mp4TtmlParser.html">shaka.text.Mp4TtmlParser</a></li><li class="access-export"><a href="shaka.text.Mp4VttParser.html">shaka.text.Mp4VttParser</a></li><li class="access-export"><a href="shaka.text.NativeTextDisplayer.html">shaka.text.NativeTextDisplayer</a></li><li class="access-public"><a href="shaka.text.SpeechRecognitionController.html">shaka.text.SpeechRecognitionController</a></li><li class="access-public"><a href="shaka.text.SpeechRenderer.html">shaka.text.SpeechRenderer</a></li><li class="access-public"><a href="shaka.text.SpeechToText.html">shaka.text.SpeechToText</a></li><li class="access-public"><a href="shaka.text.SpeechTranslatorController.html">shaka.text.SpeechTranslatorController</a></li><li class="access-export"><a href="shaka.text.SrtTextParser.html">shaka.text.SrtTextParser</a></li><li class="access-export"><a href="shaka.text.SsaTextParser.html">shaka.text.SsaTextParser</a></li><li class="access-export"><a href="shaka.text.StubTextDisplayer.html">shaka.text.StubTextDisplayer</a></li><li class="access-export"><a href="shaka.text.TextEngine.html">shaka.text.TextEngine</a></li><li class="access-export"><a href="shaka.text.TtmlTextParser.html">shaka.text.TtmlTextParser</a></li><li class="access-private"><a href="shaka.text.TtmlTextParser.RateInfo_.html">shaka.text.TtmlTextParser.RateInfo_</a></li><li class="access-export"><a href="shaka.text.UITextDisplayer.html">shaka.text.UITextDisplayer</a></li><li class="access-export"><a href="shaka.text.VttTextParser.html">shaka.text.VttTextParser</a></li><li class="access-export"><a href="shaka.text.WebVttGenerator.html">shaka.text.WebVttGenerator</a></li><li class="access-export"><a href="shaka.transmuxer.AacTransmuxer.html">shaka.transmuxer.AacTransmuxer</a></li><li class="access-export"><a href="shaka.transmuxer.Ac3Transmuxer.html">shaka.transmuxer.Ac3Transmuxer</a></li><li class="access-export"><a href="shaka.transmuxer.BaseTransmuxer.html">shaka.transmuxer.BaseTransmuxer</a></li><li class="access-export"><a href="shaka.transmuxer.Ec3Transmuxer.html">shaka.transmuxer.Ec3Transmuxer</a></li><li class="access-export"><a href="shaka.transmuxer.LocTransmuxer.html">shaka.transmuxer.LocTransmuxer</a></li><li class="access-export"><a href="shaka.transmuxer.MatroskaTransmuxer.html">shaka.transmuxer.MatroskaTransmuxer</a></li><li class="access-export"><a href="shaka.transmuxer.Mp3Transmuxer.html">shaka.transmuxer.Mp3Transmuxer</a></li><li class="access-export"><a href="shaka.transmuxer.MpegTsTransmuxer.html">shaka.transmuxer.MpegTsTransmuxer</a></li><li class="access-export"><a href="shaka.transmuxer.TransmuxerEngine.html">shaka.transmuxer.TransmuxerEngine</a></li><li class="access-export"><a href="shaka.transmuxer.TransmuxerProxy.html">shaka.transmuxer.TransmuxerProxy</a></li><li class="access-public"><a href="shaka.transmuxer.TransmuxerUtils.html">shaka.transmuxer.TransmuxerUtils</a></li><li class="access-export"><a href="shaka.transmuxer.TransmuxerWorker.html">shaka.transmuxer.TransmuxerWorker</a></li><li class="access-export"><a href="shaka.transmuxer.TsTransmuxer.html">shaka.transmuxer.TsTransmuxer</a></li><li class="access-export"><a href="shaka.ui.AdInfo.html">shaka.ui.AdInfo</a></li><li class="access-export"><a href="shaka.ui.AdStatisticsButton.html">shaka.ui.AdStatisticsButton</a></li><li class="access-public"><a href="shaka.ui.AdStatisticsButton.Factory.html">shaka.ui.AdStatisticsButton.Factory</a></li><li class="access-export"><a href="shaka.ui.AudioLanguageSelection.html">shaka.ui.AudioLanguageSelection</a></li><li class="access-public"><a href="shaka.ui.AudioLanguageSelection.Factory.html">shaka.ui.AudioLanguageSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.AutoPlayNextButton.html">shaka.ui.AutoPlayNextButton</a></li><li class="access-public"><a href="shaka.ui.AutoPlayNextButton.Factory.html">shaka.ui.AutoPlayNextButton.Factory</a></li><li class="access-export"><a href="shaka.ui.CaptionsSettingsGroup.html">shaka.ui.CaptionsSettingsGroup</a></li><li class="access-public"><a href="shaka.ui.CaptionsSettingsGroup.Factory.html">shaka.ui.CaptionsSettingsGroup.Factory</a></li><li class="access-export"><a href="shaka.ui.CastButton.html">shaka.ui.CastButton</a></li><li class="access-public"><a href="shaka.ui.CastButton.Factory.html">shaka.ui.CastButton.Factory</a></li><li class="access-export"><a href="shaka.ui.ChapterSelection.html">shaka.ui.ChapterSelection</a></li><li class="access-public"><a href="shaka.ui.ChapterSelection.Factory.html">shaka.ui.ChapterSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.ContentTitle.html">shaka.ui.ContentTitle</a></li><li class="access-public"><a href="shaka.ui.ContentTitle.Factory.html">shaka.ui.ContentTitle.Factory</a></li><li class="access-export"><a href="shaka.ui.ContextMenu.html">shaka.ui.ContextMenu</a></li><li class="access-export"><a href="shaka.ui.Controls.html">shaka.ui.Controls</a></li><li class="access-export"><a href="shaka.ui.CopyVideoFrameButton.html">shaka.ui.CopyVideoFrameButton</a></li><li class="access-public"><a href="shaka.ui.CopyVideoFrameButton.Factory.html">shaka.ui.CopyVideoFrameButton.Factory</a></li><li class="access-export"><a href="shaka.ui.Element.html">shaka.ui.Element</a></li><li class="access-export"><a href="shaka.ui.FastForwardButton.html">shaka.ui.FastForwardButton</a></li><li class="access-public"><a href="shaka.ui.FastForwardButton.Factory.html">shaka.ui.FastForwardButton.Factory</a></li><li class="access-export"><a href="shaka.ui.FullscreenButton.html">shaka.ui.FullscreenButton</a></li><li class="access-public"><a href="shaka.ui.FullscreenButton.Factory.html">shaka.ui.FullscreenButton.Factory</a></li><li class="access-export"><a href="shaka.ui.HiddenFastForwardButton.html">shaka.ui.HiddenFastForwardButton</a></li><li class="access-export"><a href="shaka.ui.HiddenRewindButton.html">shaka.ui.HiddenRewindButton</a></li><li class="access-export"><a href="shaka.ui.HiddenSeekButton.html">shaka.ui.HiddenSeekButton</a></li><li class="access-export"><a href="shaka.ui.Icon.html">shaka.ui.Icon</a></li><li class="access-export"><a href="shaka.ui.IconRegistry.html">shaka.ui.IconRegistry</a></li><li class="access-export"><a href="shaka.ui.Localization.html">shaka.ui.Localization</a></li><li class="access-export"><a href="shaka.ui.LoopButton.html">shaka.ui.LoopButton</a></li><li class="access-public"><a href="shaka.ui.LoopButton.Factory.html">shaka.ui.LoopButton.Factory</a></li><li class="access-public"><a href="shaka.ui.Matrix4x4.html">shaka.ui.Matrix4x4</a></li><li class="access-public"><a href="shaka.ui.MatrixQuaternion.html">shaka.ui.MatrixQuaternion</a></li><li class="access-export"><a href="shaka.ui.MediaSession.html">shaka.ui.MediaSession</a></li><li class="access-export"><a href="shaka.ui.MenuBase.html">shaka.ui.MenuBase</a></li><li class="access-export"><a href="shaka.ui.MenuGroup.html">shaka.ui.MenuGroup</a></li><li class="access-export"><a href="shaka.ui.MuteButton.html">shaka.ui.MuteButton</a></li><li class="access-public"><a href="shaka.ui.MuteButton.Factory.html">shaka.ui.MuteButton.Factory</a></li><li class="access-export"><a href="shaka.ui.MuteVolumeBar.html">shaka.ui.MuteVolumeBar</a></li><li class="access-public"><a href="shaka.ui.MuteVolumeBar.Factory.html">shaka.ui.MuteVolumeBar.Factory</a></li><li class="access-export"><a href="shaka.ui.OverflowMenu.html">shaka.ui.OverflowMenu</a></li><li class="access-public"><a href="shaka.ui.OverflowMenu.Factory.html">shaka.ui.OverflowMenu.Factory</a></li><li class="access-export"><a href="shaka.ui.Overlay.html">shaka.ui.Overlay</a></li><li class="access-export"><a href="shaka.ui.PipButton.html">shaka.ui.PipButton</a></li><li class="access-public"><a href="shaka.ui.PipButton.Factory.html">shaka.ui.PipButton.Factory</a></li><li class="access-export"><a href="shaka.ui.PlaybackRateSelection.html">shaka.ui.PlaybackRateSelection</a></li><li class="access-public"><a href="shaka.ui.PlaybackRateSelection.Factory.html">shaka.ui.PlaybackRateSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.PlayButton.html">shaka.ui.PlayButton</a></li><li class="access-public"><a href="shaka.ui.PlayButton.BufferingFactory.html">shaka.ui.PlayButton.BufferingFactory</a></li><li class="access-public"><a href="shaka.ui.PlayButton.Factory.html">shaka.ui.PlayButton.Factory</a></li><li class="access-export"><a href="shaka.ui.PresentationTimeTracker.html">shaka.ui.PresentationTimeTracker</a></li><li class="access-public"><a href="shaka.ui.PresentationTimeTracker.Factory.html">shaka.ui.PresentationTimeTracker.Factory</a></li><li class="access-export"><a href="shaka.ui.QueueButton.html">shaka.ui.QueueButton</a></li><li class="access-public"><a href="shaka.ui.QueueButton.Factory.html">shaka.ui.QueueButton.Factory</a></li><li class="access-export"><a href="shaka.ui.RangeElement.html">shaka.ui.RangeElement</a></li><li class="access-export"><a href="shaka.ui.RecenterVRButton.html">shaka.ui.RecenterVRButton</a></li><li class="access-public"><a href="shaka.ui.RecenterVRButton.Factory.html">shaka.ui.RecenterVRButton.Factory</a></li><li class="access-export"><a href="shaka.ui.RemoteButton.html">shaka.ui.RemoteButton</a></li><li class="access-public"><a href="shaka.ui.RemoteButton.Factory.html">shaka.ui.RemoteButton.Factory</a></li><li class="access-export"><a href="shaka.ui.ResolutionSelection.html">shaka.ui.ResolutionSelection</a></li><li class="access-public"><a href="shaka.ui.ResolutionSelection.Factory.html">shaka.ui.ResolutionSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.RewindButton.html">shaka.ui.RewindButton</a></li><li class="access-public"><a href="shaka.ui.RewindButton.Factory.html">shaka.ui.RewindButton.Factory</a></li><li class="access-export"><a href="shaka.ui.SaveVideoFrameButton.html">shaka.ui.SaveVideoFrameButton</a></li><li class="access-public"><a href="shaka.ui.SaveVideoFrameButton.Factory.html">shaka.ui.SaveVideoFrameButton.Factory</a></li><li class="access-export"><a href="shaka.ui.SeekBar.html">shaka.ui.SeekBar</a></li><li class="access-export"><a href="shaka.ui.SeekBar.Factory.html">shaka.ui.SeekBar.Factory</a></li><li class="access-export"><a href="shaka.ui.SeekButton.html">shaka.ui.SeekButton</a></li><li class="access-public"><a href="shaka.ui.SeekButton.SeekBackwardFactory.html">shaka.ui.SeekButton.SeekBackwardFactory</a></li><li class="access-public"><a href="shaka.ui.SeekButton.SeekForwardFactory.html">shaka.ui.SeekButton.SeekForwardFactory</a></li><li class="access-export"><a href="shaka.ui.SettingsMenu.html">shaka.ui.SettingsMenu</a></li><li class="access-export"><a href="shaka.ui.SkipAdButton.html">shaka.ui.SkipAdButton</a></li><li class="access-export"><a href="shaka.ui.SkipNextButton.html">shaka.ui.SkipNextButton</a></li><li class="access-public"><a href="shaka.ui.SkipNextButton.AlwaysFactory.html">shaka.ui.SkipNextButton.AlwaysFactory</a></li><li class="access-public"><a href="shaka.ui.SkipNextButton.Factory.html">shaka.ui.SkipNextButton.Factory</a></li><li class="access-export"><a href="shaka.ui.SkipPreviousButton.html">shaka.ui.SkipPreviousButton</a></li><li class="access-public"><a href="shaka.ui.SkipPreviousButton.AlwaysFactory.html">shaka.ui.SkipPreviousButton.AlwaysFactory</a></li><li class="access-public"><a href="shaka.ui.SkipPreviousButton.Factory.html">shaka.ui.SkipPreviousButton.Factory</a></li><li class="access-export"><a href="shaka.ui.SkipQueueButton.html">shaka.ui.SkipQueueButton</a></li><li class="access-public"><a href="shaka.ui.SkipQueueButton.SkipNextAlwaysFactory.html">shaka.ui.SkipQueueButton.SkipNextAlwaysFactory</a></li><li class="access-public"><a href="shaka.ui.SkipQueueButton.SkipNextFactory.html">shaka.ui.SkipQueueButton.SkipNextFactory</a></li><li class="access-public"><a href="shaka.ui.SkipQueueButton.SkipPreviousAlwaysFactory.html">shaka.ui.SkipQueueButton.SkipPreviousAlwaysFactory</a></li><li class="access-public"><a href="shaka.ui.SkipQueueButton.SkipPreviousFactory.html">shaka.ui.SkipQueueButton.SkipPreviousFactory</a></li><li class="access-export"><a href="shaka.ui.Spacer.html">shaka.ui.Spacer</a></li><li class="access-public"><a href="shaka.ui.Spacer.Factory.html">shaka.ui.Spacer.Factory</a></li><li class="access-export"><a href="shaka.ui.StatisticsButton.html">shaka.ui.StatisticsButton</a></li><li class="access-public"><a href="shaka.ui.StatisticsButton.Factory.html">shaka.ui.StatisticsButton.Factory</a></li><li class="access-export"><a href="shaka.ui.StatisticsButtonBase.html">shaka.ui.StatisticsButtonBase</a></li><li class="access-export"><a href="shaka.ui.TextBackgroundColor.html">shaka.ui.TextBackgroundColor</a></li><li class="access-public"><a href="shaka.ui.TextBackgroundColor.Factory.html">shaka.ui.TextBackgroundColor.Factory</a></li><li class="access-export"><a href="shaka.ui.TextBackgroundOpacity.html">shaka.ui.TextBackgroundOpacity</a></li><li class="access-public"><a href="shaka.ui.TextBackgroundOpacity.Factory.html">shaka.ui.TextBackgroundOpacity.Factory</a></li><li class="access-export"><a href="shaka.ui.TextCharacterEdgeStyle.html">shaka.ui.TextCharacterEdgeStyle</a></li><li class="access-public"><a href="shaka.ui.TextCharacterEdgeStyle.Factory.html">shaka.ui.TextCharacterEdgeStyle.Factory</a></li><li class="access-export"><a href="shaka.ui.TextColorMenu.html">shaka.ui.TextColorMenu</a></li><li class="access-export"><a href="shaka.ui.TextFontColor.html">shaka.ui.TextFontColor</a></li><li class="access-public"><a href="shaka.ui.TextFontColor.Factory.html">shaka.ui.TextFontColor.Factory</a></li><li class="access-export"><a href="shaka.ui.TextFontFamily.html">shaka.ui.TextFontFamily</a></li><li class="access-public"><a href="shaka.ui.TextFontFamily.Factory.html">shaka.ui.TextFontFamily.Factory</a></li><li class="access-export"><a href="shaka.ui.TextFontOpacity.html">shaka.ui.TextFontOpacity</a></li><li class="access-public"><a href="shaka.ui.TextFontOpacity.Factory.html">shaka.ui.TextFontOpacity.Factory</a></li><li class="access-export"><a href="shaka.ui.TextOpacityMenu.html">shaka.ui.TextOpacityMenu</a></li><li class="access-export"><a href="shaka.ui.TextPosition.html">shaka.ui.TextPosition</a></li><li class="access-public"><a href="shaka.ui.TextPosition.Factory.html">shaka.ui.TextPosition.Factory</a></li><li class="access-export"><a href="shaka.ui.TextSelection.html">shaka.ui.TextSelection</a></li><li class="access-public"><a href="shaka.ui.TextSelection.Factory.html">shaka.ui.TextSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.TextSize.html">shaka.ui.TextSize</a></li><li class="access-public"><a href="shaka.ui.TextSize.Factory.html">shaka.ui.TextSize.Factory</a></li><li class="access-export"><a href="shaka.ui.TextStyleGroup.html">shaka.ui.TextStyleGroup</a></li><li class="access-public"><a href="shaka.ui.TextStyleGroup.Factory.html">shaka.ui.TextStyleGroup.Factory</a></li><li class="access-export"><a href="shaka.ui.TextStyleMenu.html">shaka.ui.TextStyleMenu</a></li><li class="access-public"><a href="shaka.ui.TextStylePreview.html">shaka.ui.TextStylePreview</a></li><li class="access-export"><a href="shaka.ui.TextStyleResetButton.html">shaka.ui.TextStyleResetButton</a></li><li class="access-public"><a href="shaka.ui.TextStyleResetButton.Factory.html">shaka.ui.TextStyleResetButton.Factory</a></li><li class="access-export"><a href="shaka.ui.ToggleStereoscopicButton.html">shaka.ui.ToggleStereoscopicButton</a></li><li class="access-public"><a href="shaka.ui.ToggleStereoscopicButton.Factory.html">shaka.ui.ToggleStereoscopicButton.Factory</a></li><li class="access-export"><a href="shaka.ui.TrickPlayButton.html">shaka.ui.TrickPlayButton</a></li><li class="access-public"><a href="shaka.ui.TrickPlayButton.FastForwardFactory.html">shaka.ui.TrickPlayButton.FastForwardFactory</a></li><li class="access-public"><a href="shaka.ui.TrickPlayButton.RewindFactory.html">shaka.ui.TrickPlayButton.RewindFactory</a></li><li class="access-export"><a href="shaka.ui.VideoTypeSelection.html">shaka.ui.VideoTypeSelection</a></li><li class="access-public"><a href="shaka.ui.VideoTypeSelection.Factory.html">shaka.ui.VideoTypeSelection.Factory</a></li><li class="access-export"><a href="shaka.ui.VolumeBar.html">shaka.ui.VolumeBar</a></li><li class="access-public"><a href="shaka.ui.VolumeBar.Factory.html">shaka.ui.VolumeBar.Factory</a></li><li class="access-public"><a href="shaka.ui.VRManager.html">shaka.ui.VRManager</a></li><li class="access-public"><a href="shaka.ui.VRWebgl.html">shaka.ui.VRWebgl</a></li><li class="access-export"><a href="shaka.ui.Watermark.html">shaka.ui.Watermark</a></li><li class="access-export"><a href="shaka.util.AbortableOperation.html">shaka.util.AbortableOperation</a></li><li class="access-public"><a href="shaka.util.ArrayUtils.html">shaka.util.ArrayUtils</a></li><li class="access-export"><a href="shaka.util.BufferUtils.html">shaka.util.BufferUtils</a></li><li class="access-public"><a href="shaka.util.CmcdManager.html">shaka.util.CmcdManager</a></li><li class="access-export"><a href="shaka.util.CmsdManager.html">shaka.util.CmsdManager</a></li><li class="access-export"><a href="shaka.util.ConfigUtils.html">shaka.util.ConfigUtils</a></li><li class="access-public"><a href="shaka.util.ContentSteeringManager.html">shaka.util.ContentSteeringManager</a></li><li class="access-export"><a href="shaka.util.DataViewReader.html">shaka.util.DataViewReader</a></li><li class="access-export"><a href="shaka.util.DataViewWriter.html">shaka.util.DataViewWriter</a></li><li class="access-public"><a href="shaka.util.Destroyer.html">shaka.util.Destroyer</a></li><li class="access-export"><a href="shaka.util.Dom.html">shaka.util.Dom</a></li><li class="access-public"><a href="shaka.util.EbmlParser.html">shaka.util.EbmlParser</a></li><li class="access-export"><a href="shaka.util.Error.html">shaka.util.Error</a></li><li class="access-export"><a href="shaka.util.EventManager.html">shaka.util.EventManager</a></li><li class="access-private"><a href="shaka.util.EventManager.Binding_.html">shaka.util.EventManager.Binding_</a></li><li class="access-export"><a href="shaka.util.ExpGolomb.html">shaka.util.ExpGolomb</a></li><li class="access-export"><a href="shaka.util.FakeEvent.html">shaka.util.FakeEvent</a></li><li class="access-export"><a href="shaka.util.FakeEventTarget.html">shaka.util.FakeEventTarget</a></li><li class="access-public"><a href="shaka.util.Functional.html">shaka.util.Functional</a></li><li class="access-public"><a href="shaka.util.Iterables.html">shaka.util.Iterables</a></li><li class="access-export"><a href="shaka.util.LanguageUtils.html">shaka.util.LanguageUtils</a></li><li class="access-public"><a href="shaka.util.Lazy.html">shaka.util.Lazy</a></li><li class="access-public"><a href="shaka.util.ManifestParserUtils.html">shaka.util.ManifestParserUtils</a></li><li class="access-public"><a href="shaka.util.MapUtils.html">shaka.util.MapUtils</a></li><li class="access-export"><a href="shaka.util.MimeUtils.html">shaka.util.MimeUtils</a></li><li class="access-public"><a href="shaka.util.Mp4Generator.html">shaka.util.Mp4Generator</a></li><li class="access-export"><a href="shaka.util.Mp4Parser.html">shaka.util.Mp4Parser</a></li><li class="access-public"><a href="shaka.util.MultiMap.html">shaka.util.MultiMap</a></li><li class="access-public"><a href="shaka.util.Mutex.html">shaka.util.Mutex</a></li><li class="access-export"><a href="shaka.util.ObjectUtils.html">shaka.util.ObjectUtils</a></li><li class="access-public"><a href="shaka.util.Obu.html">shaka.util.Obu</a></li><li class="access-public"><a href="shaka.util.OperationManager.html">shaka.util.OperationManager</a></li><li class="access-export"><a href="shaka.util.PeriodCombiner.html">shaka.util.PeriodCombiner</a></li><li class="access-export"><a href="shaka.util.PlayerConfiguration.html">shaka.util.PlayerConfiguration</a></li><li class="access-public"><a href="shaka.util.Pssh.html">shaka.util.Pssh</a></li><li class="access-public"><a href="shaka.util.Scte35.html">shaka.util.Scte35</a></li><li class="access-public"><a href="shaka.util.StateHistory.html">shaka.util.StateHistory</a></li><li class="access-public"><a href="shaka.util.Stats.html">shaka.util.Stats</a></li><li class="access-export"><a href="shaka.util.StreamUtils.html">shaka.util.StreamUtils</a></li><li class="access-export"><a href="shaka.util.StringUtils.html">shaka.util.StringUtils</a></li><li class="access-public"><a href="shaka.util.SwitchHistory.html">shaka.util.SwitchHistory</a></li><li class="access-public"><a href="shaka.util.TextParser.html">shaka.util.TextParser</a></li><li class="access-export"><a href="shaka.util.Timer.html">shaka.util.Timer</a></li><li class="access-export"><a href="shaka.util.TsParser.html">shaka.util.TsParser</a></li><li class="access-public"><a href="shaka.util.TXml.html">shaka.util.TXml</a></li><li class="access-export"><a href="shaka.util.Uint8ArrayUtils.html">shaka.util.Uint8ArrayUtils</a></li><li class="access-public"><a href="shaka.util.VideoFrameCallbackHandler.html">shaka.util.VideoFrameCallbackHandler</a></li><li class="access-public"><a href="shaka.util.WebmGenerator.html">shaka.util.WebmGenerator</a></li><li class="access-public"><a href="shaka.util-shaka.util.EbmlElement.html">shaka.util~shaka.util.EbmlElement</a></li></ul><h3>Enums</h3><ul><li class="access-public"><a href="shaka.cea.CeaUtils.CodecFamily.html">shaka.cea.CeaUtils.CodecFamily</a></li><li class="access-export"><a href="shaka.config.CharacterEdgeStyle.html">shaka.config.CharacterEdgeStyle</a></li><li class="access-export"><a href="shaka.config.CodecSwitchingStrategy.html">shaka.config.CodecSwitchingStrategy</a></li><li class="access-export"><a href="shaka.config.CrossBoundaryStrategy.html">shaka.config.CrossBoundaryStrategy</a></li><li class="access-export"><a href="shaka.config.FontFamily.html">shaka.config.FontFamily</a></li><li class="access-export"><a href="shaka.config.MsfVersion.html">shaka.config.MsfVersion</a></li><li class="access-export"><a href="shaka.config.PositionArea.html">shaka.config.PositionArea</a></li><li class="access-export"><a href="shaka.config.RepeatMode.html">shaka.config.RepeatMode</a></li><li class="access-public"><a href="shaka.hls.PlaylistType.html">shaka.hls.PlaylistType</a></li><li class="access-public"><a href="shaka.mkv.BlockAddType.html">shaka.mkv.BlockAddType</a></li><li class="access-public"><a href="shaka.mkv.BlockFlag.html">shaka.mkv.BlockFlag</a></li><li class="access-public"><a href="shaka.mkv.CodecId.html">shaka.mkv.CodecId</a></li><li class="access-public"><a href="shaka.mkv.ContentCompression.html">shaka.mkv.ContentCompression</a></li><li class="access-public"><a href="shaka.mkv.ElementId.html">shaka.mkv.ElementId</a></li><li class="access-public"><a href="shaka.mkv.Lacing.html">shaka.mkv.Lacing</a></li><li class="access-public"><a href="shaka.mkv.TrackType.html">shaka.mkv.TrackType</a></li><li class="access-public"><a href="shaka.msf.draft18.FetchType.html">shaka.msf.draft18.FetchType</a></li><li class="access-public"><a href="shaka.msf.draft18.MessageType.html">shaka.msf.draft18.MessageType</a></li><li class="access-public"><a href="shaka.msf.draft18.MessageTypeId.html">shaka.msf.draft18.MessageTypeId</a></li><li class="access-public"><a href="shaka.msf.draft18.StreamType.html">shaka.msf.draft18.StreamType</a></li><li class="access-public"><a href="shaka.msf.Utils.SetupOption.html">shaka.msf.Utils.SetupOption</a></li><li class="access-public"><a href="shaka.util.MediaElementEvent.html">shaka.util.MediaElementEvent</a></li></ul><h3>Interfaces</h3><ul><li class="access-public"><a href="shaka.ads.InterstitialAdSession.Tracker.html">shaka.ads.InterstitialAdSession.Tracker</a></li><li class="access-public"><a href="shaka.device.IDevice.html">shaka.device.IDevice</a></li><li class="access-export"><a href="shaka.extern.AbrManager.html">shaka.extern.AbrManager</a></li><li class="access-export"><a href="shaka.extern.AdaptationSetCriteria.html">shaka.extern.AdaptationSetCriteria</a></li><li class="access-public"><a href="shaka.extern.EmeSessionStorageCell.html">shaka.extern.EmeSessionStorageCell</a></li><li class="access-export"><a href="shaka.extern.Error.html">shaka.extern.Error</a></li><li class="access-export"><a href="shaka.extern.IAbortableOperation.html">shaka.extern.IAbortableOperation</a></li><li class="access-export"><a href="shaka.extern.IAd.html">shaka.extern.IAd</a></li><li class="access-export"><a href="shaka.extern.IAdManager.html">shaka.extern.IAdManager</a></li><li class="access-export"><a href="shaka.extern.ICaptionDecoder.html">shaka.extern.ICaptionDecoder</a></li><li class="access-export"><a href="shaka.extern.ICeaParser.html">shaka.extern.ICeaParser</a></li><li class="access-export"><a href="shaka.extern.IQueueManager.html">shaka.extern.IQueueManager</a></li><li class="access-export"><a href="shaka.extern.IUIElement.html">shaka.extern.IUIElement</a></li><li class="access-export"><a href="shaka.extern.IUIElement.Factory.html">shaka.extern.IUIElement.Factory</a></li><li class="access-export"><a href="shaka.extern.IUIMenuGroup.html">shaka.extern.IUIMenuGroup</a></li><li class="access-export"><a href="shaka.extern.IUIRangeElement.html">shaka.extern.IUIRangeElement</a></li><li class="access-export"><a href="shaka.extern.IUISeekBar.html">shaka.extern.IUISeekBar</a></li><li class="access-export"><a href="shaka.extern.IUISeekBar.Factory.html">shaka.extern.IUISeekBar.Factory</a></li><li class="access-export"><a href="shaka.extern.IUISettingsMenu.html">shaka.extern.IUISettingsMenu</a></li><li class="access-export"><a href="shaka.extern.ManifestParser.html">shaka.extern.ManifestParser</a></li><li class="access-export"><a href="shaka.extern.MetadataParser.html">shaka.extern.MetadataParser</a></li><li class="access-export"><a href="shaka.extern.MsfCodec.html">shaka.extern.MsfCodec</a></li><li class="access-export"><a href="shaka.extern.MsfDialect.html">shaka.extern.MsfDialect</a></li><li class="access-export"><a href="shaka.extern.MsfPackaging.html">shaka.extern.MsfPackaging</a></li><li class="access-export"><a href="shaka.extern.MsfSegmenter.html">shaka.extern.MsfSegmenter</a></li><li class="access-export"><a href="shaka.extern.MsfSession.html">shaka.extern.MsfSession</a></li><li class="access-export"><a href="shaka.extern.SegmentIndex.html">shaka.extern.SegmentIndex</a></li><li class="access-public"><a href="shaka.extern.StorageCell.html">shaka.extern.StorageCell</a></li><li class="access-public"><a href="shaka.extern.StorageMechanism.html">shaka.extern.StorageMechanism</a></li><li class="access-export"><a href="shaka.extern.TextDisplayer.html">shaka.extern.TextDisplayer</a></li><li class="access-export"><a href="shaka.extern.TextParser.html">shaka.extern.TextParser</a></li><li class="access-export"><a href="shaka.extern.Transmuxer.html">shaka.extern.Transmuxer</a></li><li class="access-public"><a href="shaka.media.IPlayheadObserver.html">shaka.media.IPlayheadObserver</a></li><li class="access-public"><a href="shaka.media.Playhead.html">shaka.media.Playhead</a></li><li class="access-public"><a href="shaka.media.StallDetector.Implementation.html">shaka.media.StallDetector.Implementation</a></li><li class="access-export"><a href="shaka.util.IDestroyable.html">shaka.util.IDestroyable</a></li><li class="access-export"><a href="shaka.util.IReleasable.html">shaka.util.IReleasable</a></li><li class="access-public"><a href="shaka.util.SegmentGenerator.html">shaka.util.SegmentGenerator</a></li></ul><h3>Events</h3><ul><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdBufferingEvent">shaka.ads.AdManager.AdBufferingEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdClickedEvent">shaka.ads.AdManager.AdClickedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdClickEvent">shaka.ads.AdManager.AdClickEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdClosedEvent">shaka.ads.AdManager.AdClosedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdCompleteEvent">shaka.ads.AdManager.AdCompleteEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdContentPauseRequestedEvent">shaka.ads.AdManager.AdContentPauseRequestedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdContentResumeRequestedEvent">shaka.ads.AdManager.AdContentResumeRequestedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdCuePointsChangedEvent">shaka.ads.AdManager.AdCuePointsChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdDurationChangedEvent">shaka.ads.AdManager.AdDurationChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdFirstQuartileEvent">shaka.ads.AdManager.AdFirstQuartileEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdImpressionEvent">shaka.ads.AdManager.AdImpressionEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdInteractionEvent">shaka.ads.AdManager.AdInteractionEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdLinearChangedEvent">shaka.ads.AdManager.AdLinearChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdLoadedEvent">shaka.ads.AdManager.AdLoadedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdMetadataEvent">shaka.ads.AdManager.AdMetadataEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdMidpointEvent">shaka.ads.AdManager.AdMidpointEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdMutedEvent">shaka.ads.AdManager.AdMutedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdPausedEvent">shaka.ads.AdManager.AdPausedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdPlayingEvent">shaka.ads.AdManager.AdPlayingEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdProgressEvent">shaka.ads.AdManager.AdProgressEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdRecoverableErrorEvent">shaka.ads.AdManager.AdRecoverableErrorEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdResumedEvent">shaka.ads.AdManager.AdResumedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdSkippedEvent">shaka.ads.AdManager.AdSkippedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdSkipStateChangedEvent">shaka.ads.AdManager.AdSkipStateChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdsLoadedEvent">shaka.ads.AdManager.AdsLoadedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdStartedEvent">shaka.ads.AdManager.AdStartedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdStoppedEvent">shaka.ads.AdManager.AdStoppedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdThirdQuartileEvent">shaka.ads.AdManager.AdThirdQuartileEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AdVolumeChangedEvent">shaka.ads.AdManager.AdVolumeChangedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#.event:AllAdsCompletedEvent">shaka.ads.AdManager.AllAdsCompletedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdBreakEndedEvent">shaka.ads.AdManager#AdBreakEndedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdBreakReadyEvent">shaka.ads.AdManager#AdBreakReadyEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdBreakStartedEvent">shaka.ads.AdManager#AdBreakStartedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdInterstitialPreloadedEvent">shaka.ads.AdManager#AdInterstitialPreloadedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:AdInterstitialPreloadEvent">shaka.ads.AdManager#AdInterstitialPreloadEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:ImaAdManagerLoadedEvent">shaka.ads.AdManager#ImaAdManagerLoadedEvent</a></li><li class="access-export"><a href="shaka.ads.AdManager.html#event:ImaStreamManagerLoadedEvent">shaka.ads.AdManager#ImaStreamManagerLoadedEvent</a></li><li class="access-export"><a href="shaka.ads.Utils.html#.event:AD_ERROR">shaka.ads.Utils.AD_ERROR</a></li><li class="access-export"><a href="shaka.cast.CastProxy.html#.event:CastStatusChangedEvent">shaka.cast.CastProxy.CastStatusChangedEvent</a></li><li class="access-export"><a href="shaka.net.NetworkingEngine.html#.event:RetryEvent">shaka.net.NetworkingEngine.RetryEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:AbrStatusChangedEvent">shaka.Player.AbrStatusChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:AdaptationEvent">shaka.Player.AdaptationEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:AudioTrackChangedEvent">shaka.Player.AudioTrackChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:AudioTracksChangedEvent">shaka.Player.AudioTracksChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:BoundaryCrossedEvent">shaka.Player.BoundaryCrossedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:BufferAppending">shaka.Player.BufferAppending</a></li><li class="access-export"><a href="shaka.Player.html#.event:BufferingEvent">shaka.Player.BufferingEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:CanUpdateStartTimeEvent">shaka.Player.CanUpdateStartTimeEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Complete">shaka.Player.Complete</a></li><li class="access-export"><a href="shaka.Player.html#.event:ConfigurationChangedEvent">shaka.Player.ConfigurationChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:DownloadCompleted">shaka.Player.DownloadCompleted</a></li><li class="access-export"><a href="shaka.Player.html#.event:DownloadFailed">shaka.Player.DownloadFailed</a></li><li class="access-export"><a href="shaka.Player.html#.event:DownloadHeadersReceived">shaka.Player.DownloadHeadersReceived</a></li><li class="access-export"><a href="shaka.Player.html#.event:DrmSessionUpdateEvent">shaka.Player.DrmSessionUpdateEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:EmsgEvent">shaka.Player.EmsgEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ErrorEvent">shaka.Player.ErrorEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ExpirationUpdatedEvent">shaka.Player.ExpirationUpdatedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:FirstQuartile">shaka.Player.FirstQuartile</a></li><li class="access-export"><a href="shaka.Player.html#.event:GapJumpedEvent">shaka.Player.GapJumpedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:KeyStatusChanged">shaka.Player.KeyStatusChanged</a></li><li class="access-export"><a href="shaka.Player.html#.event:LicenseRenewalEvent">shaka.Player.LicenseRenewalEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:LoadedEvent">shaka.Player.LoadedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:LoadingEvent">shaka.Player.LoadingEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ManifestParsedEvent">shaka.Player.ManifestParsedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ManifestUpdatedEvent">shaka.Player.ManifestUpdatedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:MediaQualityChangedEvent">shaka.Player.MediaQualityChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:MediaSourceRecoveredEvent">shaka.Player.MediaSourceRecoveredEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:MetadataAddedEvent">shaka.Player.MetadataAddedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:MetadataEvent">shaka.Player.MetadataEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Midpoint">shaka.Player.Midpoint</a></li><li class="access-export"><a href="shaka.Player.html#.event:NoSpatialVideoInfoEvent">shaka.Player.NoSpatialVideoInfoEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ProducerReferenceTimeEvent">shaka.Player.ProducerReferenceTimeEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ProgramInformationEvent">shaka.Player.ProgramInformationEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:RateChangeEvent">shaka.Player.RateChangeEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Scte35AddedEvent">shaka.Player.Scte35AddedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Scte35EnterEvent">shaka.Player.Scte35EnterEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Scte35ExitEvent">shaka.Player.Scte35ExitEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:SegmentAppended">shaka.Player.SegmentAppended</a></li><li class="access-export"><a href="shaka.Player.html#.event:SessionDataEvent">shaka.Player.SessionDataEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:SpatialVideoInfoEvent">shaka.Player.SpatialVideoInfoEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:StallDetectedEvent">shaka.Player.StallDetectedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:Started">shaka.Player.Started</a></li><li class="access-export"><a href="shaka.Player.html#.event:StateChanged">shaka.Player.StateChanged</a></li><li class="access-export"><a href="shaka.Player.html#.event:StateChangeEvent">shaka.Player.StateChangeEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:StreamingEvent">shaka.Player.StreamingEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TextChangedEvent">shaka.Player.TextChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:ThirdQuartile">shaka.Player.ThirdQuartile</a></li><li class="access-export"><a href="shaka.Player.html#.event:TimelineChangedEvent">shaka.Player.TimelineChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TimelineRegionAddedEvent">shaka.Player.TimelineRegionAddedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TimelineRegionEnterEvent">shaka.Player.TimelineRegionEnterEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TimelineRegionExitEvent">shaka.Player.TimelineRegionExitEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:TracksChangedEvent">shaka.Player.TracksChangedEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:UnloadingEvent">shaka.Player.UnloadingEvent</a></li><li class="access-export"><a href="shaka.Player.html#.event:VariantChangedEvent">shaka.Player.VariantChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:CaptionSelectionUpdatedEvent">shaka.ui.Controls.CaptionSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:CastStatusChangedEvent">shaka.ui.Controls.CastStatusChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:ChaptersUpdatedEvent">shaka.ui.Controls.ChaptersUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:ErrorEvent">shaka.ui.Controls.ErrorEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:LanguageSelectionUpdatedEvent">shaka.ui.Controls.LanguageSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:ResolutionSelectionUpdatedEvent">shaka.ui.Controls.ResolutionSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:SubMenuCloseEvent">shaka.ui.Controls.SubMenuCloseEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:SubMenuOpenEvent">shaka.ui.Controls.SubMenuOpenEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:TimeAndSeekRangeUpdatedEvent">shaka.ui.Controls.TimeAndSeekRangeUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#.event:UIUpdatedEvent">shaka.ui.Controls.UIUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:CaptionSelectionUpdatedEvent">shaka.ui.Controls#CaptionSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:CastStatusChangedEvent">shaka.ui.Controls#CastStatusChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:ChaptersUpdatedEvent">shaka.ui.Controls#ChaptersUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:ErrorEvent">shaka.ui.Controls#ErrorEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:LanguageSelectionUpdatedEvent">shaka.ui.Controls#LanguageSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:ResolutionSelectionUpdatedEvent">shaka.ui.Controls#ResolutionSelectionUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:SubMenuOpenEvent">shaka.ui.Controls#SubMenuOpenEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:TimeAndSeekRangeUpdatedEvent">shaka.ui.Controls#TimeAndSeekRangeUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:UIUpdatedEvent">shaka.ui.Controls#UIUpdatedEvent</a></li><li class="access-export"><a href="shaka.ui.Controls.html#event:VRStatusChangedEvent">shaka.ui.Controls#VRStatusChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Localization.html#.event:LocaleChangedEvent">shaka.ui.Localization.LocaleChangedEvent</a></li><li class="access-export"><a href="shaka.ui.Localization.html#.event:MissingLocalizationsEvent">shaka.ui.Localization.MissingLocalizationsEvent</a></li><li class="access-export"><a href="shaka.ui.Localization.html#.event:UnknownLocalesEvent">shaka.ui.Localization.UnknownLocalesEvent</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 16 2026 12:59:30 GMT+0000 (Coordinated Universal Time)
+</footer>
+
+<script> initShowWidget(); </script>
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

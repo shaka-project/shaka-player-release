@@ -261,6 +261,8 @@ module.exports = (config) => {
       {pattern: 'third_party/**/*.js', included: false},
       {pattern: 'test/**/*.js', included: false},
       {pattern: 'test/test/assets/*', included: false},
+      {pattern: 'test/test/assets/mkv/*', included: false},
+      {pattern: 'test/test/assets/audio-iamf/*', included: false},
       {pattern: 'test/test/assets/clear-encrypted/*', included: false},
       {pattern: 'test/test/assets/clear-encrypted-hls/*', included: false},
       {pattern: 'test/test/assets/dash-event-callback/*', included: false},
@@ -277,6 +279,7 @@ module.exports = (config) => {
       {pattern: 'test/test/assets/dash-aes-128/*', included: false},
       {pattern: 'test/test/assets/dash-audio-ac3/*', included: false},
       {pattern: 'test/test/assets/dash-clearkey/*', included: false},
+      {pattern: 'test/test/assets/dash-cmcd/*', included: false},
       {pattern: 'test/test/assets/dash-mpd-alternate/*', included: false},
       {pattern: 'test/test/assets/dash-vr/*', included: false},
       {pattern: 'test/test/assets/dv-p10-1-av1/*', included: false},
@@ -304,6 +307,7 @@ module.exports = (config) => {
       // eslint-disable-next-line @stylistic/max-len
       {pattern: 'test/test/assets/hls-ts-audio-muxed-in-video/*', included: false},
       {pattern: 'test/test/assets/hls-ts-ac3/*', included: false},
+      {pattern: 'test/test/assets/hls-ts-av1/*', included: false},
       {pattern: 'test/test/assets/hls-ts-b-frames/*', included: false},
       {pattern: 'test/test/assets/hls-ts-ec3/*', included: false},
       {pattern: 'test/test/assets/hls-ts-h264/*', included: false},
@@ -458,11 +462,22 @@ module.exports = (config) => {
         'ui/**/*.js': ['babel', 'sourcemap'],
         'test/**/*.js': ['babel', 'sourcemap'],
         'third_party/**/*.js': ['babel', 'sourcemap'],
+        // Since v4.6.0, the less browser bundle ships ES6+
+        // (classes, arrow functions), which older platforms such as Tizen 3
+        // cannot parse.  The AMD module would then never register and
+        // test/test/util/ui_utils.js would fail with "less is not defined".
+        'node_modules/less/dist/less.js': ['babel'],
       },
 
       babelPreprocessor: {
         // Cache results in .babel-cache
         cachePath: '.babel-cache',
+        // Per-file override (the preprocessor calls this with the karma file
+        // object).  We only want backtraces into our own code, and the inline
+        // map for the less bundle would be ~1.4MB of extra payload to ship to
+        // slow devices on every run.
+        sourceMap: (file) =>
+          file.originalPath.includes('/node_modules/') ? false : 'inline',
         options: {
           presets: ['@babel/preset-env'],
           // Add source maps so that backtraces refer to the original code.
@@ -479,6 +494,7 @@ module.exports = (config) => {
                 'lib/(debug|deprecate|polyfill)/*.js',
                 'test/**/*.js',
                 'third_party/**/*.js',
+                'node_modules/**/*.js',
               ],
             }],
           ],

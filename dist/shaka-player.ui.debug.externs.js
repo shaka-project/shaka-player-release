@@ -743,10 +743,15 @@ shaka.util.Error.Code = {
   'MSF_VOD_CONTENT_NOT_SUPPORTED': 4058,
   'HLS_INVALID_KEY_IV_FOR_GCM': 4059,
   'HLS_INVALID_GCM_SEGMENT': 4060,
-  'DASH_INVALID_JSON': 4061,
-  'MSF_NO_CATALOG': 4062,
   'DASH_UNSUPPORTED_ESSENTIAL_PROPERTY': 4063,
   'MSF_CATALOG_TIMEOUT': 4064,
+  'MSF_CONNECTION_CLOSED': 4065,
+  'MSF_SUBSCRIBE_FAILED': 4066,
+  'MSF_UNSUPPORTED_COMPRESSION': 4067,
+  'MSF_UNSUPPORTED_CATALOG_VERSION': 4068,
+  'MKV_INVALID_FILE': 4069,
+  'MKV_MISSING_INDEX': 4070,
+  'MKV_NO_SUPPORTED_TRACKS': 4071,
   'STREAMING_ENGINE_STARTUP_INVALID_STATE': 5006,
   'NO_RECOGNIZED_KEY_SYSTEMS': 6000,
   'REQUESTED_KEY_SYSTEM_CONFIG_UNAVAILABLE': 6001,
@@ -1064,6 +1069,36 @@ shaka.text.CueRegion.prototype.viewportAnchorUnits;
      */
 shaka.text.CueRegion.prototype.scroll;
 /**
+     * The background color of the region, painted on its whole area.  An empty
+     * string means no background.
+     * @type {string}
+     */
+shaka.text.CueRegion.prototype.backgroundColor;
+/**
+     * The opacity of the region and of its content, from 0 to 1.
+     * @type {number}
+     */
+shaka.text.CueRegion.prototype.opacity;
+/**
+     * The padding of the region, as its top, right, bottom and left lengths,
+     * in pixels or in percentage of the height or width of the region, for
+     * example "10% 5px 0% 5px".  An empty string means no padding.
+     * @type {string}
+     */
+shaka.text.CueRegion.prototype.padding;
+/**
+     * The CSS overflow of the region, for example "hidden" to hide the content
+     * which overflows the region.  An empty string means the default overflow.
+     * @type {string}
+     */
+shaka.text.CueRegion.prototype.overflow;
+/**
+     * The stacking order of the region relative to the other regions, or null
+     * for the default order.
+     * @type {?number}
+     */
+shaka.text.CueRegion.prototype.zIndex;
+/**
  * @enum {number}
  */
 shaka.text.CueRegion.units = {
@@ -1295,6 +1330,14 @@ shaka.text.Cue.prototype.opacity;
      * @type {string}
      */
 shaka.text.Cue.prototype.textCombineUpright;
+/**
+     * The visibility of the cue: "visible", "hidden", or an empty string to
+     * inherit the visibility of the parent cue, so that a top-level cue is
+     * visible.  A hidden cue still takes its place, and its nested cues can
+     * be visible.
+     * @type {string}
+     */
+shaka.text.Cue.prototype.visibility;
 /**
      * Text decoration. A combination of underline, overline
      * and line through. Empty array means no decoration.
@@ -1734,6 +1777,13 @@ shaka.ads.AbstractAd = class {
   constructor(video) {}
 };
 /**
+ * @enum {string}
+ */
+shaka.config.CodecSwitchingStrategy = {
+  'RELOAD': 'reload',
+  'SMOOTH': 'smooth'
+};
+/**
  * A utility to wrap abortable operations.  Note that these are not cancelable.
  * Cancellation implies undoing what has been done so far, whereas aborting only
  * means that further work is stopped.
@@ -2021,7 +2071,9 @@ shaka.net.NetworkingEngine.AdvancedRequestType = {
   'MEDIATAILOR_TRACKING_EVENT': 10,
   'INTERSTITIAL_ASSET_LIST': 11,
   'INTERSTITIAL_AD_URL': 12,
-  'TRACKING_EVENT': 13
+  'TRACKING_EVENT': 13,
+  'XLINK': 14,
+  'LINKED_MPD': 15
 };
 /**
  * Priority level for network scheme plugins.
@@ -2349,13 +2401,6 @@ shaka.media.AdaptationSet = class {
   constructor(root, candidates, compareCodecs) {}
 };
 /**
- * @enum {string}
- */
-shaka.config.CodecSwitchingStrategy = {
-  'RELOAD': 'reload',
-  'SMOOTH': 'smooth'
-};
-/**
  * Creates an InitSegmentReference, which provides the location to an
  * initialization segment.
  */
@@ -2641,6 +2686,19 @@ shaka.media.SegmentReference.ThumbnailSprite;
  */
 shaka.media.SegmentReference.Metadata;
 /**
+ * @summary
+ * Parser for exponential Golomb codes, a variable-bit width number encoding
+ * scheme used by h264.
+ * Based on https://github.com/videojs/mux.js/blob/main/lib/utils/exp-golomb.js
+ */
+shaka.util.ExpGolomb = class {
+  /**
+   * @param {!Uint8Array} data
+   * @param {boolean=} convertEbsp2rbsp
+   */
+  constructor(data, convertEbsp2rbsp) {}
+};
+/**
  */
 shaka.metadata.Metadata = class {
   /**
@@ -2710,89 +2768,6 @@ shaka.metadata.Id3Utils = class {
    * @override
    */
   parse(data) {}
-};
-/**
- * @summary A proxy transmuxer that delegates transmux() calls to a Web Worker.
- * Synchronous methods (isSupported, convertCodecs, getOriginalMimeType) are
- * handled on the main thread by the inner transmuxer. Only the heavy
- * transmux() work is offloaded to the worker.
- * The worker URL must be supplied by the integrating application via the
- * `mediaSource.transmuxWorkerUrl` config option. The library does not attempt
- * to discover it. If the URL is empty or the worker cannot be created, the
- * proxy falls back to main-thread transmuxing.
- * @implements {shaka.extern.Transmuxer}
- */
-shaka.transmuxer.TransmuxerProxy = class {
-  /**
-   * @param {!shaka.extern.Transmuxer} innerTransmuxer
-   *   The real transmuxer to use for sync methods and as fallback.
-   * @param {string=} workerUrl
-   *   URL of the standalone transmuxer worker script. When empty, the proxy
-   *   uses main-thread transmuxing.
-   * @param {?number=} pluginPriority
-   *   The registration priority of the plugin that built |innerTransmuxer|.
-   *   The worker builds its own transmuxer from the plugin registered at this
-   *   priority, so both threads use the plugin whose codecs the SourceBuffer
-   *   was created for. When null, the worker uses the highest-priority
-   *   registration.
-   */
-  constructor(innerTransmuxer, workerUrl, pluginPriority) {}
-  /**
-   * @override
-   */
-  destroy() {}
-  /**
-   * @param {string} mimeType
-   * @param {string=} contentType
-   * @return {boolean}
-   * @override
-   */
-  isSupported(mimeType, contentType) {}
-  /**
-   * @param {string} contentType
-   * @param {string} mimeType
-   * @return {string}
-   * @override
-   */
-  convertCodecs(contentType, mimeType) {}
-  /**
-   * @return {string}
-   * @override
-   */
-  getOriginalMimeType() {}
-  /**
-   * @override
-   */
-  transmux(data, stream, reference, duration, contentType) {}
-};
-/**  */
-shaka.util.Dom = class {
-  /**
-   * Remove all source elements and src attribute from a video element.
-   * Returns true if any change was made.
-   * @param {!HTMLMediaElement} video
-   * @return {boolean}
-   */
-  static clearSourceFromVideo(video) {}
-  /**
-   * Remove all of the child nodes of an element.
-   * @param {!Element} element
-   * @return {undefined}
-   */
-  static removeAllChildren(element) {}
-};
-/**
- * @summary
- * Parser for exponential Golomb codes, a variable-bit width number encoding
- * scheme used by h264.
- * Based on https://github.com/videojs/mux.js/blob/main/lib/utils/exp-golomb.js
- */
-shaka.util.ExpGolomb = class {
-  /**
-   * @param {!Uint8Array} data
-   * @param {boolean=} convertEbsp2rbsp
-   */
-  constructor(data, convertEbsp2rbsp) {}
 };
 /**
  * @see https://en.wikipedia.org/wiki/MPEG_transport_stream
@@ -2884,6 +2859,76 @@ shaka.util.TsParser = class {
  * @const {number}
  */
 shaka.util.TsParser.Timescale;
+/**
+ * @summary A proxy transmuxer that delegates transmux() calls to a Web Worker.
+ * Synchronous methods (isSupported, convertCodecs, getOriginalMimeType) are
+ * handled on the main thread by the inner transmuxer. Only the heavy
+ * transmux() work is offloaded to the worker.
+ * The worker URL must be supplied by the integrating application via the
+ * `mediaSource.transmuxWorkerUrl` config option. The library does not attempt
+ * to discover it. If the URL is empty or the worker cannot be created, the
+ * proxy falls back to main-thread transmuxing.
+ * @implements {shaka.extern.Transmuxer}
+ */
+shaka.transmuxer.TransmuxerProxy = class {
+  /**
+   * @param {!shaka.extern.Transmuxer} innerTransmuxer
+   *   The real transmuxer to use for sync methods and as fallback.
+   * @param {string=} workerUrl
+   *   URL of the standalone transmuxer worker script. When empty, the proxy
+   *   uses main-thread transmuxing.
+   * @param {?number=} pluginPriority
+   *   The registration priority of the plugin that built |innerTransmuxer|.
+   *   The worker builds its own transmuxer from the plugin registered at this
+   *   priority, so both threads use the plugin whose codecs the SourceBuffer
+   *   was created for. When null, the worker uses the highest-priority
+   *   registration.
+   */
+  constructor(innerTransmuxer, workerUrl, pluginPriority) {}
+  /**
+   * @override
+   */
+  destroy() {}
+  /**
+   * @param {string} mimeType
+   * @param {string=} contentType
+   * @return {boolean}
+   * @override
+   */
+  isSupported(mimeType, contentType) {}
+  /**
+   * @param {string} contentType
+   * @param {string} mimeType
+   * @return {string}
+   * @override
+   */
+  convertCodecs(contentType, mimeType) {}
+  /**
+   * @return {string}
+   * @override
+   */
+  getOriginalMimeType() {}
+  /**
+   * @override
+   */
+  transmux(data, stream, reference, duration, contentType) {}
+};
+/**  */
+shaka.util.Dom = class {
+  /**
+   * Remove all source elements and src attribute from a video element.
+   * Returns true if any change was made.
+   * @param {!HTMLMediaElement} video
+   * @return {boolean}
+   */
+  static clearSourceFromVideo(video) {}
+  /**
+   * Remove all of the child nodes of an element.
+   * @param {!Element} element
+   * @return {undefined}
+   */
+  static removeAllChildren(element) {}
+};
 /**
  * PresentationTimeline.
  */
@@ -3442,20 +3487,33 @@ shaka.util.ConfigUtils = class {
 /**
  * @enum {number}
  */
-shaka.config.MsfFilterType = {
-  'NONE': 0x0,
-  'NEXT_GROUP_START': 0x1,
-  'LARGEST_OBJECT': 0x2,
-  'ABSOLUTE_START': 0x3,
-  'ABSOLUTE_RANGE': 0x4
+shaka.config.CharacterEdgeStyle = {
+  'DEFAULT': 0,
+  'NONE': 1,
+  'DROP_SHADOW': 2,
+  'RAISED': 3,
+  'DEPRESSED': 4,
+  'OUTLINE': 5
+};
+/**
+ * @enum {number}
+ */
+shaka.config.FontFamily = {
+  'DEFAULT': 0,
+  'MONOSPACED_SERIF': 1,
+  'PROPORTIONAL_SERIF': 2,
+  'MONOSPACED_SANS_SERIF': 3,
+  'PROPORTIONAL_SANS_SERIF': 4
 };
 /**
  * @enum {string}
  */
 shaka.config.MsfVersion = {
   'AUTO': 'auto',
-  'DRAFT_14': 'draft-14',
-  'DRAFT_16': 'draft-16'
+  'DRAFT_18': 'draft-18',
+  'DRAFT_20': 'draft-20',
+  'DRAFT_21': 'draft-21',
+  'DRAFT_22': 'draft-22'
 };
 /**
  * @enum {number}
@@ -4186,6 +4244,11 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   getAllEmsgRegions() {}
   /**
+   * Get SCTE-35 messages retained on the presentation timeline.
+   * @return {!Array<shaka.extern.Scte35Event>}
+   */
+  getAllScte35Events() {}
+  /**
    * Returns the timeline region timeline, which contains all timeline regions.
    * MediaSource or when using src= without MSE. Returns an Array
    * of the regions, or an empty array if there are no regions.
@@ -4343,6 +4406,49 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   useTrickPlayTrackIfAvailable(on) {}
   /**
+   * Declares a range [start, end) to be skipped: its segments are not fetched
+   * or buffered, and buffering continues from <code>end</code> as if it
+   * followed <code>start</code>, with the gap-jumping logic carrying the
+   * playhead across.  Must be declared before the range buffers, and must not
+   * overlap an existing range.
+   * <p>
+   * May be called before load(); such ranges are applied when streaming
+   * starts, which lets a preroll be skipped before it buffers.  Recoverable
+   * via removeSkipRange / clearSkipRanges.  Segments-mode, non-live,
+   * MediaSource-only (not src=).
+   * @param {number} start
+   * @param {number} end
+   * @return {boolean} True if the range was accepted; false if it was rejected
+   *   (unsupported manifest, empty/reversed interval, overlaps an existing
+   *   range, or already buffered).  Before load() only the interval is checked;
+   *   the range is re-validated when streaming starts.
+   */
+  addSkipRange(start, end) {}
+  /**
+   * Removes a skip range previously added with <code>addSkipRange</code>
+   * (matched by the same start/end) and re-fetches it.  A removed range that
+   * is already behind the playhead is not re-fetched until the user seeks
+   * back across it.
+   * @param {number} start
+   * @param {number} end
+   * @return {undefined}
+   */
+  removeSkipRange(start, end) {}
+  /**
+   * Removes all skip ranges and re-fetches them.
+   * @return {undefined}
+   */
+  clearSkipRanges() {}
+  /**
+   * Gets the current skip ranges as a sorted, disjoint list of
+   * <code>{start, end}</code> intervals.  Reflects any merging done at
+   * <code>addSkipRange</code> time and any splitting/trimming done at
+   * <code>removeSkipRange</code> time.  The returned array is a copy; mutating
+   * it does not affect the player.
+   * @return {!Array<shaka.extern.BufferedRange>}
+   */
+  getSkipRanges() {}
+  /**
    * Enable trick play to skip through content without playing by repeatedly
    * seeking. For example, a rate of 2.5 would result in 2.5 seconds of content
    * being skipped every second. A negative rate will result in moving
@@ -4438,7 +4544,9 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   selectVariantTrack(track, clearBuffer, safeMargin) {}
   /**
-   * Select an audio track compatible with the current video track.
+   * Select one of the audio tracks returned by getAudioTracks().  This may
+   * change the video quality too, if the audio is only paired with other
+   * qualities.
    * If the player has not loaded any content, this will be a no-op.
    * @param {shaka.extern.AudioTrack} audioTrack
    * @param {number=} safeMargin Optional amount of buffer (in seconds) to
@@ -4450,7 +4558,8 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   selectAudioTrack(audioTrack, safeMargin) {}
   /**
-   * Return a list of audio tracks compatible with the current video track.
+   * Return a list of the audio tracks of the current video track, in any of
+   * its qualities.  Selecting one may change the video quality too.
    * @return {!Array<shaka.extern.AudioTrack>}
    */
   getAudioTracks() {}
@@ -4658,11 +4767,13 @@ shaka.ads.Utils = class {
 /**
  * The event name for when a sequence of ads has been loaded.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.ADS_LOADED;
 /**
  * The event name for when an ad has started playing.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_STARTED;
 /**
@@ -4673,26 +4784,31 @@ shaka.ads.Utils.AD_STARTED;
  * this event guarantees that the ad is truly rendering and advancing
  * its playhead.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_PLAYING;
 /**
  * The event name for when an ad playhead crosses first quartile.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_FIRST_QUARTILE;
 /**
  * The event name for when an ad playhead crosses midpoint.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_MIDPOINT;
 /**
  * The event name for when an ad playhead crosses third quartile.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_THIRD_QUARTILE;
 /**
  * The event name for when an ad has completed playing.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_COMPLETE;
 /**
@@ -4700,166 +4816,197 @@ shaka.ads.Utils.AD_COMPLETE;
  * (played all the way through, was skipped, or was unable to proceed
  * due to an error).
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_STOPPED;
 /**
  * The event name for when an ad is skipped by the user..
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_SKIPPED;
 /**
  * The event name for when the ad volume has changed.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_VOLUME_CHANGED;
 /**
  * The event name for when the ad was muted.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_MUTED;
 /**
  * The event name for when the ad was paused.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_PAUSED;
 /**
  * The event name for when the ad was resumed after a pause.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_RESUMED;
 /**
  * The event name for when the ad's skip status changes
  * (usually it becomes skippable when it wasn't before).
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_SKIP_STATE_CHANGED;
 /**
  * The event name for when the ad's cue points (start/end markers)
  * have changed.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.CUEPOINTS_CHANGED;
 /**
  * The event name for when the native IMA ad manager object has
  * loaded and become available.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.IMA_AD_MANAGER_LOADED;
 /**
  * The event name for when the native IMA stream manager object has
  * loaded and become available.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.IMA_STREAM_MANAGER_LOADED;
 /**
  * The event name for when the ad was clicked.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_CLICKED;
 /**
  * The event name for when there is an update to the current ad's progress.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_PROGRESS;
 /**
  * The event name for when the ad is buffering.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_BUFFERING;
 /**
  * The event name for when the ad's URL was hit.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_IMPRESSION;
 /**
  * The event name for when the ad's duration changed.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_DURATION_CHANGED;
 /**
  * The event name for when the ad was closed by the user.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_CLOSED;
 /**
  * The event name for when the ad data becomes available.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_LOADED;
 /**
  * The event name for when all the ads were completed.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.ALL_ADS_COMPLETED;
 /**
  * The event name for when the ad changes from or to linear.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_LINEAR_CHANGED;
 /**
  * The event name for when the ad's metadata becomes available.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_METADATA;
 /**
  * The event name for when the ad display encountered a recoverable
  * error.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_RECOVERABLE_ERROR;
 /**
  * The event name for when the ad manager dispatch errors.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_ERROR;
 /**
  * The event name for when the client side SDK signalled its readiness
  * to play a VPAID ad or an ad rule.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_BREAK_READY;
 /**
  * The event name for when the ad manager starts an ad break.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_BREAK_STARTED;
 /**
  * The event name for when the ad manager ends an ad break.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_BREAK_ENDED;
 /**
  * The event name for when the ad manager starts the preload of an interstitial.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_INTERSTITIAL_PRELOAD;
 /**
  * The event name for when the ad manager finish the preload of an interstitial.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_INTERSTITIAL_PRELOADED;
 /**
  * The event name for when the interaction callback for the ad was
  * triggered.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_INTERACTION;
 /**
  * The name of the event for when an ad requires the main content to be paused.
  * Fired when the platform does not support multiple media elements.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_CONTENT_PAUSE_REQUESTED;
 /**
  * The name of the event for when an ad requires the main content to be resumed.
  * Fired when the platform does not support multiple media elements.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_CONTENT_RESUME_REQUESTED;
 /**
  * The name of the event for when an ad requires the video of the main content
  * to be attached.
  * @const {string}
+ * @noinline
  */
 shaka.ads.Utils.AD_CONTENT_ATTACH_REQUESTED;
 /**
@@ -4905,15 +5052,6 @@ shaka.ads.ServerSideAd = class extends shaka.ads.AbstractAd {
    * @param {HTMLMediaElement} video
    */
   constructor(imaAd, video) {}
-};
-/**
- */
-shaka.ads.SvtaAd = class extends shaka.ads.AbstractAd {
-  /**
-   * @param {HTMLMediaElement} video
-   * @param {shaka.extern.AdTrackingInfo} info
-   */
-  constructor(video, info) {}
 };
 /**
  * A class responsible for ad-related interactions.
@@ -6033,7 +6171,7 @@ shaka.text.SrtTextParser = class extends shaka.text.VttTextParser {
   parseMedia(data, time, uri, images) {}
 };
 /**
- * A base class for transmuxers that package transmuxed samples into fMP4
+ * A base class for transmuxers that package transmuxed samples into media
  * segments.  It factors out the state and bookkeeping shared by every such
  * transmuxer (the original MIME type, the running frame index and the cache of
  * generated init segments), leaving subclasses to implement only the
@@ -6271,6 +6409,11 @@ shaka.ui.Element.prototype.adManager;
      */
 shaka.ui.Element.prototype.ad;
 /**
+     * True when the element is a child of a shaka.ui.MenuGroup.
+     * @protected {boolean}
+     */
+shaka.ui.Element.prototype.isInMenuGroup;
+/**
      * @protected {boolean}
      */
 shaka.ui.Element.prototype.isSubMenu;
@@ -6484,6 +6627,15 @@ shaka.ui.RangeElement = class extends shaka.ui.Element {
    * @override
    */
   changeTo(value) {}
+  /**
+   * Ends an in-progress mouse interaction, if there is one, as if the user had
+   * released the button with the bar where it currently is.
+   * This lets other controls, such as the keyboard ones, take over from a drag
+   * that is still in progress.  The pointer stops driving the bar until the
+   * button is pressed again, and the mouseup that ends the drag is ignored.
+   * @override
+   */
+  endMouseInteraction() {}
   /**
    * @override
    */
@@ -7014,6 +7166,53 @@ shaka.ui.AudioLanguageSelection = class extends shaka.ui.SettingsMenu {
   constructor(parent, controls) {}
 };
 /**
+ * Toggles <code>queue.autoPlayNext</code>, which controls whether the queue
+ * advances to the next item when the current one ends.
+ * Unlike the other elements of the control panel, this is drawn as a switch
+ * rather than an icon, because it reflects a persistent setting instead of an
+ * action.  The glyph inside the knob says what will happen when the current
+ * item ends: play the next one, or stop.
+ * @extends {shaka.ui.Element}
+ * @final
+ */
+shaka.ui.AutoPlayNextButton = class extends shaka.ui.Element {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * A menu button that opens a submenu holding other UI elements, which may be
+ * menu groups too.  Subclasses define the icon, the name and the elements
+ * inside the group.  The group is only shown when at least one of its
+ * elements is shown.
+ * @extends {shaka.ui.SettingsMenu}
+ * @implements {shaka.extern.IUIMenuGroup}
+ * @abstract
+ */
+shaka.ui.MenuGroup = class extends shaka.ui.SettingsMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   * @param {shaka.extern.UIIcon | string} icon
+   */
+  constructor(parent, controls, icon) {}
+};
+/**
+ * Groups the subtitle settings: the language and the style.  Its button shows
+ * the current language.
+ * @extends {shaka.ui.MenuGroup}
+ * @final
+ */
+shaka.ui.CaptionsSettingsGroup = class extends shaka.ui.MenuGroup {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
  * @extends {shaka.ui.Element}
  * @final
  */
@@ -7265,6 +7464,20 @@ shaka.ui.SaveVideoFrameButton = class extends shaka.ui.Element {
   constructor(parent, controls) {}
 };
 /**
+ * Button that seeks backward or forward a fixed number of seconds, set by
+ * the seekButtonDistance config.
+ * Pass isForward=true to seek forward, false to seek backward.
+ * @extends {shaka.ui.Element}
+ */
+shaka.ui.SeekButton = class extends shaka.ui.Element {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   * @param {boolean} isForward  true → seek forward; false → seek backward
+   */
+  constructor(parent, controls, isForward) {}
+};
+/**
  * Queue-navigation button that skips forward or backward one item.
  * Pass isNext=true for skip-next behaviour, false for skip-previous.
  * @extends {shaka.ui.Element}
@@ -7345,6 +7558,117 @@ shaka.ui.TextStyleMenu = class extends shaka.ui.SettingsMenu {
   constructor(parent, controls, icon) {}
 };
 /**
+ * Abstract base for the menus that select a subtitle color.  The first item,
+ * an empty string, keeps the color defined by the subtitle.
+ * @extends {shaka.ui.TextStyleMenu<string>}
+ * @abstract
+ */
+shaka.ui.TextColorMenu = class extends shaka.ui.TextStyleMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   * @param {string} icon
+   * @param {string} configName The name of the color in the text displayer
+   *   configuration.
+   * @param {string} nameId The localized name of the menu inside a menu
+   *   group.
+   * @param {string} longNameId The localized name of the menu elsewhere.
+   */
+  constructor(parent, controls, icon, configName, nameId, longNameId) {}
+};
+/**
+ * Selects the background color of the subtitles.
+ * @extends {shaka.ui.TextColorMenu}
+ * @final
+ */
+shaka.ui.TextBackgroundColor = class extends shaka.ui.TextColorMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * Abstract base for the menus that select a subtitle opacity.  The first
+ * item, NaN, keeps the opacity defined by the subtitle.
+ * @extends {shaka.ui.TextStyleMenu<number>}
+ * @abstract
+ */
+shaka.ui.TextOpacityMenu = class extends shaka.ui.TextStyleMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   * @param {string} icon
+   * @param {string} configName The name of the opacity in the text displayer
+   *   configuration.
+   * @param {!Array<number>} opacities
+   * @param {string} nameId The localized name of the menu inside a menu
+   *   group.
+   * @param {string} longNameId The localized name of the menu elsewhere.
+   */
+  constructor(parent, controls, icon, configName, opacities, nameId, longNameId) {}
+};
+/**
+ * Selects the background opacity of the subtitles.
+ * @extends {shaka.ui.TextOpacityMenu}
+ * @final
+ */
+shaka.ui.TextBackgroundOpacity = class extends shaka.ui.TextOpacityMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * Selects the style of the edges of the characters of the subtitles.
+ * @extends {shaka.ui.TextStyleMenu<shaka.config.CharacterEdgeStyle>}
+ * @final
+ */
+shaka.ui.TextCharacterEdgeStyle = class extends shaka.ui.TextStyleMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * Selects the font color of the subtitles.
+ * @extends {shaka.ui.TextColorMenu}
+ * @final
+ */
+shaka.ui.TextFontColor = class extends shaka.ui.TextColorMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * Selects the font family of the subtitles.
+ * @extends {shaka.ui.TextStyleMenu<shaka.config.FontFamily>}
+ * @final
+ */
+shaka.ui.TextFontFamily = class extends shaka.ui.TextStyleMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * Selects the font opacity of the subtitles.
+ * @extends {shaka.ui.TextOpacityMenu}
+ * @final
+ */
+shaka.ui.TextFontOpacity = class extends shaka.ui.TextOpacityMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
  * @extends {shaka.ui.TextStyleMenu<shaka.config.PositionArea>}
  * @final
  */
@@ -7371,6 +7695,31 @@ shaka.ui.TextSelection = class extends shaka.ui.SettingsMenu {
  * @final
  */
 shaka.ui.TextSize = class extends shaka.ui.TextStyleMenu {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * Groups the subtitle style options given by the captionsStyleElements
+ * configuration.
+ * @extends {shaka.ui.MenuGroup}
+ * @final
+ */
+shaka.ui.TextStyleGroup = class extends shaka.ui.MenuGroup {
+  /**
+   * @param {!HTMLElement} parent
+   * @param {!shaka.ui.Controls} controls
+   */
+  constructor(parent, controls) {}
+};
+/**
+ * Restores the default subtitle style.
+ * @extends {shaka.ui.Element}
+ * @final
+ */
+shaka.ui.TextStyleResetButton = class extends shaka.ui.Element {
   /**
    * @param {!HTMLElement} parent
    * @param {!shaka.ui.Controls} controls

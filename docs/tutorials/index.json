@@ -9,6 +9,7 @@
   { "license-wrapping": { "title": "License Wrapping" } },
   { "moq": { "title": "MoQ" } },
   { "preload": { "title": "Preloading" } },
+  { "scte35": { "title": "SCTE-35 Messages" } },
   { "transmuxing-in-worker": { "title": "Transmuxing in Worker" } },
   { "ui": { "title": "UI Library" } },
   { "ui-customization": { "title": "Configuring the UI" } },
@@ -31,6 +32,7 @@
   { "upgrade": { "title": "Upgrade Guide" } },
   { "upgrade-manifest": { "title": "ManifestParser Upgrade Guide" } },
   { "lcevc": { "title": "LCEVC Quick Start" } },
+  { "preselection": { "title": "DASH Preselections (Next Generation Audio)" } },
   { "accessibility": { "title": "Accessibility" } },
   { "queue-manager": { "title": "QueueManager" } }
 ]

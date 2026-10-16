@@ -170,7 +170,9 @@ shakaDemo.Config = class {
             /* canBeDecimal= */ false,
             /* canBeZero= */ true)
         .addArrayStringInput_('preferredKeySystems',
-            'drm.preferredKeySystems');
+            'drm.preferredKeySystems')
+        .addBoolInput_('Keep DRM engine on detach',
+            'drm.keepDrmEngineOnDetach');
     const advanced = shakaDemoMain.getConfiguration().drm.advanced || {};
     const addDRMAdvancedField = (name, valueName, suggestions,
         arrayString = false) => {
@@ -316,20 +318,13 @@ shakaDemo.Config = class {
 
   /** @private */
   addMsfManifestSection_() {
-    const msfFilterTypeOptions = shaka.config.MsfFilterType;
-    const msfFilterTypeOptionNames = {
-      'NONE': 'NONE',
-      'NEXT_GROUP_START': 'NEXT_GROUP_START',
-      'LARGEST_OBJECT': 'LARGEST_OBJECT',
-      'ABSOLUTE_START': 'ABSOLUTE_START',
-      'ABSOLUTE_RANGE': 'ABSOLUTE_RANGE',
-    };
-
     const msfVersionOptions = shaka.config.MsfVersion;
     const msfVersionOptionNames = {
       'AUTO': 'Auto',
-      'DRAFT_14': 'draft-14',
-      'DRAFT_16': 'draft-16',
+      'DRAFT_18': 'draft-18',
+      'DRAFT_20': 'draft-20',
+      'DRAFT_21': 'draft-21',
+      'DRAFT_22': 'draft-22',
     };
 
     const docLink = this.resolveExternLink_('.ManifestConfiguration');
@@ -340,12 +335,6 @@ shakaDemo.Config = class {
             'manifest.msf.namespaces')
         .addTextInput_('Authorization token',
             'manifest.msf.authorizationToken')
-        .addSelectInput_('Subscribe FilterType',
-            'manifest.msf.subscribeFilterType',
-            msfFilterTypeOptions,
-            msfFilterTypeOptionNames)
-        .addBoolInput_('Use FETCH to retrieve the catalog',
-            'manifest.msf.useFetchCatalog')
         .addSelectInput_('MoQ version used in the connection',
             'manifest.msf.version',
             msfVersionOptions,
@@ -395,6 +384,8 @@ shakaDemo.Config = class {
             'abr.preferNetworkInformationBandwidth')
         .addBoolInput_('Dropped Frames Protection Enabled',
             'abr.droppedFrames')
+        .addBoolInput_('Allow audio fallback to fewer channels',
+            'abr.allowAudioFallback')
         .addNumberInput_('Dropped Frames Threshold',
             'abr.advanced.droppedFramesThreshold',
             /* canBeDecimal= */ true)
@@ -422,6 +413,25 @@ shakaDemo.Config = class {
       'BOTTOM_RIGHT': 'bottom right',
     };
 
+    const fontFamilyOptions = shaka.config.FontFamily;
+    const fontFamilyOptionNames = {
+      'DEFAULT': 'Default',
+      'MONOSPACED_SERIF': 'Monospaced serif',
+      'PROPORTIONAL_SERIF': 'Proportional serif',
+      'MONOSPACED_SANS_SERIF': 'Monospaced sans-serif',
+      'PROPORTIONAL_SANS_SERIF': 'Proportional sans-serif',
+    };
+
+    const characterEdgeStyleOptions = shaka.config.CharacterEdgeStyle;
+    const characterEdgeStyleOptionNames = {
+      'DEFAULT': 'Default',
+      'NONE': 'None',
+      'DROP_SHADOW': 'Drop shadow',
+      'RAISED': 'Raised',
+      'DEPRESSED': 'Depressed',
+      'OUTLINE': 'Outline',
+    };
+
     const docLink = this.resolveExternLink_('.TextDisplayerConfiguration');
     this.addSection_('Text displayer', docLink)
         .addNumberInput_('Font scale factor',
@@ -431,6 +441,26 @@ shakaDemo.Config = class {
             'textDisplayer.positionArea',
             positionAreaOptions,
             positionAreaOptionNames)
+        .addSelectInput_('Font family',
+            'textDisplayer.fontFamily',
+            fontFamilyOptions,
+            fontFamilyOptionNames)
+        .addTextInput_('Font color', 'textDisplayer.fontColor')
+        .addNumberInput_('Font opacity',
+            'textDisplayer.fontOpacity',
+            /* canBeDecimal= */ true,
+            /* canBeZero= */ true,
+            /* canBeUnset= */ true)
+        .addTextInput_('Background color', 'textDisplayer.backgroundColor')
+        .addNumberInput_('Background opacity',
+            'textDisplayer.backgroundOpacity',
+            /* canBeDecimal= */ true,
+            /* canBeZero= */ true,
+            /* canBeUnset= */ true)
+        .addSelectInput_('Character edge style',
+            'textDisplayer.characterEdgeStyle',
+            characterEdgeStyleOptions,
+            characterEdgeStyleOptionNames)
         .addNumberInput_('Subtitle delay (seconds)',
             'textDisplayer.subtitleDelay',
             /* canBeDecimal= */ true)
@@ -449,7 +479,9 @@ shakaDemo.Config = class {
             /* canBeDecimal= */ false)
         .addNumberInput_('RTP safety Factor', 'cmcd.rtpSafetyFactor',
             /* canBeDecimal= */ true)
-        .addBoolInput_('Use Headers', 'cmcd.useHeaders');
+        .addBoolInput_('Use Headers', 'cmcd.useHeaders')
+        .addBoolInput_('Apply Parameters From Manifest',
+            'cmcd.applyParametersFromManifest');
 
     // CMCD v2 event-mode targets. JSON because the typedef is an
     // array of objects with several fields each; a per-field UI would
@@ -474,6 +506,23 @@ shakaDemo.Config = class {
       shakaDemoMain.getCurrentConfigValue('cmcd.eventTargets'));
     this.latestInput_.input().value =
         (current && current.length) ? JSON.stringify(current) : '';
+
+    // includeInRequests is an array of request-type tokens; a single
+    // space-separated text field mirrors the MPD attribute syntax.
+    const includeInRequestsTooltip =
+        'Space-separated ISO/IEC 23009-1 request types that carry CMCD, ' +
+        'e.g. "segment mpd steering" or "*". Leave empty for the default set.';
+    const onIncludeInRequestsChange = (input) => {
+      const tokens = input.value.trim().split(/\s+/).filter((t) => t);
+      shakaDemoMain.configure('cmcd.includeInRequests', tokens);
+      shakaDemoMain.remakeHash();
+    };
+    this.addCustomTextInput_('Include In Requests', onIncludeInRequestsChange,
+        includeInRequestsTooltip);
+    const currentTokens = /** @type {Array<string>} */ (
+      shakaDemoMain.getCurrentConfigValue('cmcd.includeInRequests'));
+    this.latestInput_.input().value =
+        (currentTokens && currentTokens.length) ? currentTokens.join(' ') : '';
   }
 
   /** @private */
@@ -515,6 +564,8 @@ shakaDemo.Config = class {
             'ads.disableHLSInterstitial')
         .addBoolInput_('Ignore DASH Interstitial',
             'ads.disableDASHInterstitial')
+        .addBoolInput_('Ignore SVTA ad creative signaling',
+            'ads.disableSVTA')
         .addBoolInput_('Allow preload on DOM elements',
             'ads.allowPreloadOnDomElements')
         .addBoolInput_('Allow start in the middle of an interstitial',
@@ -529,6 +580,10 @@ shakaDemo.Config = class {
             'ads.disableTrackingForPlayedLinearAds')
         .addNumberInput_('Interstitial preload ahead time',
             'ads.interstitialPreloadAheadTime',
+            /* canBeDecimal= */ true,
+            /* canBeZero= */ true)
+        .addNumberInput_('Interstitial cooldown',
+            'ads.interstitialCooldown',
             /* canBeDecimal= */ true,
             /* canBeZero= */ true);
   }
@@ -553,7 +608,9 @@ shakaDemo.Config = class {
         .addSelectInput_('Repeat mode',
             'queue.repeatMode',
             repeatModeOptions,
-            repeatModeOptionNames);
+            repeatModeOptionNames)
+        .addBoolInput_('Auto play next item',
+            'queue.autoPlayNext');
   }
 
   /** @private */
@@ -677,6 +734,8 @@ shakaDemo.Config = class {
             'streaming.preferNativeDash')
         .addBoolInput_('Prefer native HLS playback when available',
             'streaming.preferNativeHls')
+        .addBoolInput_('Fall back to native HLS on unsupported MSE encryption',
+            'streaming.fallbackToNativeHlsOnMseError')
         .addNumberInput_('Update interval seconds',
             'streaming.updateIntervalSeconds',
             /* canBeDecimal= */ true)
@@ -1195,6 +1254,8 @@ shakaDemo.Config = class {
         .addUIBoolInput_('Seek On Taps', 'seekOnTaps')
         .addUINumberInput_('Tap Seek Distance (sec)', 'tapSeekDistance',
             /* canBeDecimal= */ false)
+        .addUINumberInput_('Seek Button Distance (sec)', 'seekButtonDistance',
+            /* canBeDecimal= */ false)
         .addUINumberInput_('Refresh Tick (sec)', 'refreshTickInSeconds',
             /* canBeDecimal= */ true)
         .addUIBoolInput_('Show Audio Codec', 'showAudioCodec')
@@ -1210,7 +1271,6 @@ shakaDemo.Config = class {
         .addUIBoolInput_('Show UI Always On Audio Only',
             'showUIAlwaysOnAudioOnly')
         .addUIBoolInput_('Show UI On Paused', 'showUIOnPaused')
-        .addUIBoolInput_('Show menus on the right', 'showMenusOnTheRight')
         .addUIBoolInput_('Prefer Intl Display Names', 'preferIntlDisplayNames')
         .addUIBoolInput_('Captions Styles', 'captionsStyles')
         .addUIBoolInput_('Display In VR Mode', 'displayInVrMode')
@@ -1243,10 +1303,15 @@ shakaDemo.Config = class {
         .addUINumberInput_('Playback Rate Slider Max',
             'playbackRateSliderMax',
             /* canBeDecimal= */ true)
+        .addUINumberInput_('Playback Rate Slider Step',
+            'playbackRateSliderStep',
+            /* canBeDecimal= */ true)
         .addUIArrayNumberInput_('Fast Forward Rates', 'fastForwardRates')
         .addUIArrayNumberInput_('Rewind Rates', 'rewindRates')
         .addUIArrayNumberInput_('Captions Font Scale Factors',
             'captionsFontScaleFactors')
+        .addUIArrayStringInput_('Captions Style Elements',
+            'captionsStyleElements')
         .addUIBoolInput_('Show buffering spinner', 'showBufferingSpinner');
   }
 

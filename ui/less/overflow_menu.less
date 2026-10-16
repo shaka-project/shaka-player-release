@@ -212,6 +212,24 @@
 /* The submenus have somewhat different margins inside them. */
 .shaka-settings-menu,
 .shaka-sub-menu {
+  /* The swatch shown at the end of the items of the subtitle color menus. */
+  .shaka-color-swatch {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-left: auto;
+    padding: 0;
+    border-radius: 50%;
+
+    /* So dark colors are visible on the menu background. */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 50%);
+  }
+
+  /* Keep some space between the color names and the swatches. */
+  &.shaka-text-colors span {
+    margin-right: 16px;
+  }
+
   span {
     /* TODO(b/116651454): eliminate hard-coded offsets */
     margin-left: 28px;
@@ -299,6 +317,12 @@
     align-self: center;
     margin-left: 6px;
   }
+}
+
+/* The elements inside a menu group look like those in the overflow menu, so
+ * their labels don't take the offset of the submenu items. */
+.shaka-menu-group > button span {
+  margin-left: 0;
 }
 
 /* This is a button within each submenu that takes you back to the main overflow

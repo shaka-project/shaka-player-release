@@ -17,6 +17,7 @@ bufferappending
 canupdatestarttime
 captionselectionupdated
 caststatuschanged
+channelcount
 chaptersupdated
 clearlead
 configurationchanged
@@ -129,6 +130,7 @@ displayer
 displayers
 ewma
 externed
+extradata
 gendep
 gendeps
 golomb
@@ -155,6 +157,7 @@ nonprefixed
 overlayed
 playhead
 preflighted
+preflights
 preloaders
 prio
 programinformation
@@ -163,6 +166,7 @@ statelessly
 stringifiers
 styleable
 syncsafe
+syncword
 testcheckstamp
 textproto
 transmux
@@ -180,6 +184,8 @@ unpadding
 unregisters
 unstore
 unviewed
+varint
+varints
 vint
 vints
 xywh
@@ -206,10 +212,14 @@ Clearkey
 Clearkeys
 Clutz
 codem
+cooldown
 cssnano
 hbbtv
 Conax
+Consolas
 cvox
+Cutive
+dolbylaboratories
 expressjs
 Expressplay
 Eyevinn
@@ -223,6 +233,7 @@ isoboxer
 Jwplayer
 Kaltura
 Livesim
+Lucida
 moqlivemock
 moqtail
 muxjs
@@ -248,21 +259,25 @@ aach
 aacl
 aacp
 abgr
+altmpd
 apic
-appl
 apos
+appendable
+appl
 arib
 assetid
 atsc
-avcc
 audiodescription
+avcc
 bipred
+bitdepth
 bmff
 bsid
 buffersource
 cabac
 cbcs
 cdat
+cdef
 cdna
 cehx
 cenc
@@ -271,6 +286,8 @@ cicp
 cmaf
 cmcd
 cmfa
+cmfc
+cmfs
 cmft
 cmfv
 cmsd
@@ -285,7 +302,6 @@ cwip
 demuxer
 dfxp
 dinf
-dualmono
 dops
 dovi
 downmixing
@@ -297,6 +313,7 @@ dtsh
 dtsx
 dtsz
 dtvcc
+dualmono
 dvav
 dvcc
 dvhe
@@ -320,14 +337,18 @@ ftyp
 hdcp
 hdlr
 hvcc
+iacb
 iamf
 ilst
 imagetype
 imsa
 imsc
 inband
+interintra
+ipcm
 isom
 isrc
+itut
 keyids
 keysystem
 latm
@@ -356,6 +377,7 @@ mksa
 monoscopic
 moof
 moov
+mpdpatch
 mpegts
 mpegurl
 mspr
@@ -372,6 +394,7 @@ nalu
 nalus
 nclx
 notsmooth
+obus
 packetized
 pasp
 payl
@@ -390,14 +413,15 @@ radl
 rbsp
 regionanchor
 rltb
-samplerate
 saio
 saiz
+samplerate
 sbgp
 schi
 schm
 scte
 sdtp
+segs
 senc
 sepiff
 sgpd
@@ -423,17 +447,19 @@ stts
 styp
 subcues
 subframes
+substreams
 subt
 subviewer
+superres
 talb
 tblr
 tbpm
 tbrl
-tdrc
-tenc
 tcmp
 tcom
 tcop
+tdrc
+tenc
 tfdt
 tfhd
 tfrf
@@ -461,10 +487,12 @@ txxx
 tyer
 udta
 ufid
+unalignable
 unskippable
-mpdpatch
+mpdlink
 urlparam
 uslt
+uvlc
 valu
 vdms
 vexu
@@ -486,7 +514,6 @@ wvtt
 wxxx
 xlink
 xsdate
-altmpd
 xyzx
 
 # vr
@@ -512,7 +539,8 @@ xyzw
 # DASH
 dashif
 fontdownload
-isoff
+isobmff
+lowlatency
 querypart
 startnumber
 Xlinks
@@ -536,8 +564,17 @@ SQUEEZECURRENT
 
 # MSF (Media over QUIC Transport Streaming format)
 cmsf
+einarsson
+eventtimeline
+gregoire
+locmaf
+mediatimeline
 moqt
 msf
+msfts
+unparseable
+wallclock
+wilaw
 QUIC
 WEBTRANSPORT
 
@@ -593,15 +630,44 @@ SEEKTABLE
 servernum
 SGAI
 Shoutcast
+Sindarin
 sintel
 stardate
+subtags
 systeminfo
 templatized
+Telcontar
+Tengwar
 TRACKNUMBER
 UNLCK
 vaage
 webapis
 WHATWG
+MPEGH
+Xiph
+centiseconds
+FCFC
+Forzados
+HAABBGGRR
+mundo
+HDMV
+mkvmerge
+MUXING
+muxers
+remuxed
+STREAMINFO
+theora
+TRUEHD
+
+# VAST macros
+ADID
+ADPLAYHEAD
+ADTYPE
+ASSETURI
+CACHEBUSTING
+CONTENTPLAYHEAD
+PLAYERSIZE
+PLAYERSTATE
 
 # banned words
 !timmer

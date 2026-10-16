@@ -177,6 +177,8 @@ shakaAssets.Feature = {
 
   // Set if the asset requires APAC support.
   APAC: 'APAC',
+  // Set if the asset requires DD (AC-3) support.
+  DOLBY_DIGITAL: 'DD',
   // Set if the asset requires DD+ support.
   DOLBY_DIGITAL_PLUS: 'DD+',
   // Set if the asset requires AC-4 support.
@@ -196,6 +198,8 @@ shakaAssets.Feature = {
   HLS: 'HLS',
   // Set if the asset is an MSF.
   MSF: 'MSF',
+  // Set if the asset is a Matroska (MKV) file.
+  MKV: 'MKV',
 
   // Set if the asset has at least one image stream.
   THUMBNAILS: 'Thumbnails',
@@ -274,6 +278,35 @@ shakaAssets.UplynkRequestFilter = (type, request) => {
       request.uris[0] = shakaAssets.lastUplynkPrefix.concat('/pr');
     }
   }
+};
+
+
+/**
+ * An MSF catalog preprocessor that keeps the LOCMAF encoding of every track
+ * offered under more than one packaging.
+ *
+ * A CMSF publisher may offer one rendition twice, as a `cmaf` track and a
+ * `locmaf` track sharing a single initialization-data entry -- moqlivemock
+ * offers all of them that way. Those are one stream described twice, so
+ * leaving both in the catalog doubles the variant list with pairs identical in
+ * resolution and bitrate and leaves the ABR manager to choose between them
+ * arbitrarily. Which encoding to keep is the application's call, and this is
+ * where an application makes it.
+ *
+ * Tracks that no `locmaf` track shadows -- the subtitle tracks, which LOCMAF
+ * has no variant of -- are left alone.
+ *
+ * @param {!msfCatalog.Catalog} catalog
+ */
+shakaAssets.preferLocmafTracks = (catalog) => {
+  const shadowed = new Set();
+  for (const track of catalog.tracks) {
+    if (track.packaging == 'locmaf' && track.initRef) {
+      shadowed.add(track.initRef);
+    }
+  }
+  catalog.tracks = catalog.tracks.filter(
+      (track) => track.packaging != 'cmaf' || !shadowed.has(track.initRef));
 };
 // End custom callbacks }}}
 
@@ -499,6 +532,30 @@ shakaAssets.testAssets = [
       .addFeature(shakaAssets.Feature.SUBTITLES)
       .addFeature(shakaAssets.Feature.OFFLINE)
       .addExtraChapter(shakaAssets.ExternalChapters.SINTEL),
+  new ShakaDemoAssetInfo(
+      /* name= */ 'Sintel 720p (MKV, H.264, AC-3, SRT)',
+      /* iconUri= */ 'https://storage.googleapis.com/shaka-asset-icons/sintel.png',
+      /* manifestUri= */ 'https://storage.googleapis.com/shaka-demo-assets/Sintel.mkv/Sintel.2010.720p.mkv',
+      /* source= */ shakaAssets.Source.SHAKA)
+      .addFeature(shakaAssets.Feature.MKV)
+      .addFeature(shakaAssets.Feature.HIGH_DEFINITION)
+      .addFeature(shakaAssets.Feature.SURROUND)
+      .addFeature(shakaAssets.Feature.DOLBY_DIGITAL)
+      .addFeature(shakaAssets.Feature.SUBTITLES)
+      .addFeature(shakaAssets.Feature.MULTIPLE_LANGUAGES)
+      .setMimeType('video/x-matroska'),
+  new ShakaDemoAssetInfo(
+      /* name= */ 'Sintel 4k (MKV, H.264, AC-3, SRT)',
+      /* iconUri= */ 'https://storage.googleapis.com/shaka-asset-icons/sintel.png',
+      /* manifestUri= */ 'https://storage.googleapis.com/shaka-demo-assets/Sintel.mkv/Sintel.2010.4k.mkv',
+      /* source= */ shakaAssets.Source.SHAKA)
+      .addFeature(shakaAssets.Feature.MKV)
+      .addFeature(shakaAssets.Feature.ULTRA_HIGH_DEFINITION)
+      .addFeature(shakaAssets.Feature.SURROUND)
+      .addFeature(shakaAssets.Feature.DOLBY_DIGITAL)
+      .addFeature(shakaAssets.Feature.SUBTITLES)
+      .addFeature(shakaAssets.Feature.MULTIPLE_LANGUAGES)
+      .setMimeType('video/x-matroska'),
   new ShakaDemoAssetInfo(
       /* name= */ 'Sintel 4k (multicodec, Widevine)',
       /* iconUri= */ 'https://storage.googleapis.com/shaka-asset-icons/sintel.png',
@@ -2684,7 +2741,7 @@ shakaAssets.testAssets = [
       .setExtraConfig({
         manifest: {
           msf: {
-            namespaces: ['cmsf/clear'],
+            namespaces: ['mlm', 'cmsf', 'clear'],
           },
         },
       })
@@ -2704,7 +2761,7 @@ shakaAssets.testAssets = [
       .setExtraConfig({
         manifest: {
           msf: {
-            namespaces: ['cmsf/drm-cbcs'],
+            namespaces: ['mlm', 'cmsf', 'drm-cbcs'],
           },
         },
       })
@@ -2722,7 +2779,46 @@ shakaAssets.testAssets = [
       .setExtraConfig({
         manifest: {
           msf: {
-            namespaces: ['cmsf/eccp-cbcs'],
+            namespaces: ['mlm', 'cmsf', 'eccp-cbcs'],
+          },
+        },
+      })
+      .setMimeType('application/msf'),
+  new ShakaDemoAssetInfo(
+      /* name= */ 'moqlivemock LOCMAF',
+      /* iconUri= */ '',
+      /* manifestUri= */ 'https://moqlivemock.demo.osaas.io/moq',
+      /* source= */ shakaAssets.Source.EYEVINN)
+      .addFeature(shakaAssets.Feature.MSF)
+      .addFeature(shakaAssets.Feature.MP4)
+      .addFeature(shakaAssets.Feature.MULTIPLE_LANGUAGES)
+      .addFeature(shakaAssets.Feature.SUBTITLES)
+      .setExtraConfig({
+        manifest: {
+          msf: {
+            namespaces: ['mlm', 'cmsf', 'clear'],
+            catalogPreprocessor: shakaAssets.preferLocmafTracks,
+          },
+        },
+      })
+      .setMimeType('application/msf'),
+  new ShakaDemoAssetInfo(
+      /* name= */ 'moqlivemock LOCMAF Multi-DRM',
+      /* iconUri= */ '',
+      /* manifestUri= */ 'https://moqlivemock.demo.osaas.io/moq',
+      /* source= */ shakaAssets.Source.EYEVINN)
+      .addKeySystem(shakaAssets.KeySystem.PLAYREADY)
+      .addKeySystem(shakaAssets.KeySystem.WIDEVINE)
+      .addKeySystem(shakaAssets.KeySystem.FAIRPLAY)
+      .addFeature(shakaAssets.Feature.MSF)
+      .addFeature(shakaAssets.Feature.MP4)
+      .addFeature(shakaAssets.Feature.MULTIPLE_LANGUAGES)
+      .addFeature(shakaAssets.Feature.SUBTITLES)
+      .setExtraConfig({
+        manifest: {
+          msf: {
+            namespaces: ['mlm', 'cmsf', 'drm-cbcs'],
+            catalogPreprocessor: shakaAssets.preferLocmafTracks,
           },
         },
       })
@@ -2739,7 +2835,7 @@ shakaAssets.testAssets = [
       .setExtraConfig({
         manifest: {
           msf: {
-            namespaces: ['msf/clear'],
+            namespaces: ['mlm', 'msf', 'clear'],
           },
         },
       })

@@ -10,6 +10,7 @@ goog.provide('shaka.ui.Overlay.FailReasonCode');
 goog.provide('shaka.ui.Overlay.TrackLabelFormat');
 
 goog.require('goog.asserts');
+goog.require('shaka.Deprecate');
 goog.require('shaka.Player');
 goog.require('shaka.device.DeviceFactory');
 goog.require('shaka.device.IDevice');
@@ -189,6 +190,14 @@ shaka.ui.Overlay = class {
 
     goog.asserts.assert(typeof(config) == 'object', 'Should be an object!');
 
+    // Deprecate 'showMenusOnTheRight' configuration.
+    if ('showMenusOnTheRight' in config) {
+      shaka.Deprecate.deprecateFeature(6,
+          'showMenusOnTheRight configuration',
+          'Menus are now positioned next to the button that opens them.');
+      delete config['showMenusOnTheRight'];
+    }
+
     const newConfig = /** @type {!shaka.extern.UIConfiguration} */(
       Object.assign({}, this.config_));
     shaka.util.ConfigUtils.mergeConfigObjects(
@@ -281,6 +290,7 @@ shaka.ui.Overlay = class {
     if ('remote' in HTMLMediaElement.prototype) {
       controlPanelElements.push('remote');
     }
+    controlPanelElements.push('autoplay');
     controlPanelElements.push('overflow_menu');
     controlPanelElements.push('fullscreen');
 
@@ -308,8 +318,7 @@ shaka.ui.Overlay = class {
       ],
       bigButtons: [],
       overflowMenuButtons: [
-        'captions',
-        'captions-position',
+        'captions-settings',
         'quality',
         'video_type',
         'language',
@@ -357,8 +366,6 @@ shaka.ui.Overlay = class {
         'errors',
       ],
       contextMenuElements: [
-        'captions-position',
-        'captions-size',
         'loop',
         'picture_in_picture',
         'copy_video_frame',
@@ -367,6 +374,7 @@ shaka.ui.Overlay = class {
       playbackRates: [1, 1.25, 1.5, 2, 3],
       playbackRateSliderMin: 0.5,
       playbackRateSliderMax: 3,
+      playbackRateSliderStep: 0.05,
       fastForwardRates: [2, 4, 8, 1],
       rewindRates: [-1, -2, -4, -8],
       addSeekBar: true,
@@ -413,6 +421,7 @@ shaka.ui.Overlay = class {
       showAudioChannelCountVariants: true,
       seekOnTaps: false,
       tapSeekDistance: 10,
+      seekButtonDistance: 10,
       refreshTickInSeconds: 0.125,
       displayInVrMode: false,
       defaultVrProjectionMode: 'equirectangular',
@@ -458,13 +467,23 @@ shaka.ui.Overlay = class {
       },
       captionsStyles: true,
       captionsFontScaleFactors: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2],
+      captionsStyleElements: [
+        'captions-font-family',
+        'captions-font-color',
+        'captions-size',
+        'captions-background-color',
+        'captions-background-opacity',
+        'captions-character-edge-style',
+        'captions-font-opacity',
+        'captions-position',
+        'captions-style-reset',
+      ],
       documentPictureInPicture: {
         enabled: true,
         preferInitialWindowPlacement: false,
         disallowReturnToOpener: false,
       },
       showUIOnPaused: true,
-      showMenusOnTheRight: false,
       customTrackLabel: (defaultLabel, track, type) => '',
       showBufferingSpinner: true,
     };

@@ -22,6 +22,7 @@
  *   lcevc: typeof shaka.lcevc,
  *   media: typeof shaka.media,
  *   metadata: typeof shaka.metadata,
+ *   mkv: typeof shaka.mkv,
  *   msf: typeof shaka.msf,
  *   net: typeof shaka.net,
  *   offline: typeof shaka.offline,
