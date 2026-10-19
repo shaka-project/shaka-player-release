@@ -3381,14 +3381,17 @@ shaka.config.CharacterEdgeStyle = {
   'OUTLINE': 5
 };
 /**
- * @enum {number}
+ * Preset font families for the subtitles.  Each value is a CSS
+ * <code>font-family</code> that lists several fonts, so a similar one is
+ * found on every platform.
+ * @enum {string}
  */
 shaka.config.FontFamily = {
-  'DEFAULT': 0,
-  'MONOSPACED_SERIF': 1,
-  'PROPORTIONAL_SERIF': 2,
-  'MONOSPACED_SANS_SERIF': 3,
-  'PROPORTIONAL_SANS_SERIF': 4
+  'DEFAULT': '',
+  'MONOSPACED_SERIF': '"Courier New", Courier, "Nimbus Mono L", "Cutive Mono", monospace',
+  'PROPORTIONAL_SERIF': '"Times New Roman", Times, Georgia, Cambria, "PT Serif Caption", serif',
+  'MONOSPACED_SANS_SERIF': '"Deja Vu Sans Mono", "Lucida Console", Monaco, Consolas, "PT Mono", monospace',
+  'PROPORTIONAL_SANS_SERIF': 'Roboto, Arial, Helvetica, Verdana, "PT Sans Caption", sans-serif'
 };
 /**
  * @enum {string}

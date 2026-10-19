@@ -5397,7 +5397,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3322">line 3322</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3326">line 3326</a>
     </li></ul></dd>
     
 
@@ -7370,7 +7370,7 @@ packaging plugin from shaka.extern.MsfPackaging.describeTrack().
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3657">line 3657</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3661">line 3661</a>
     </li></ul></dd>
     
 
@@ -13276,7 +13276,7 @@ to be raised when the playhead enters or exits it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3719">line 3719</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3723">line 3723</a>
     </li></ul></dd>
     
 
@@ -13557,7 +13557,7 @@ to be raised when the playhead enters or exits it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3702">line 3702</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3706">line 3706</a>
     </li></ul></dd>
     
 
@@ -15060,7 +15060,7 @@ The content of the field.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3678">line 3678</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3682">line 3682</a>
     </li></ul></dd>
     
 
@@ -16002,7 +16002,7 @@ content.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3574">line 3574</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3578">line 3578</a>
     </li></ul></dd>
     
 
@@ -25813,7 +25813,7 @@ For use in <a href="shaka.util.PeriodCombiner.html">shaka.util.PeriodCombiner</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3519">line 3519</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3523">line 3523</a>
     </li></ul></dd>
     
 
@@ -26736,7 +26736,7 @@ segment.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3555">line 3555</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3559">line 3559</a>
     </li></ul></dd>
     
 
@@ -40938,7 +40938,7 @@ again.
     <ul>
         <li>
             
-<span class="param-type">{fontScaleFactor: number, positionArea: <a href="shaka.config.PositionArea.html">shaka.config.PositionArea</a>, fontFamily: <a href="shaka.config.FontFamily.html">shaka.config.FontFamily</a>, fontColor: string, fontOpacity: number, backgroundColor: string, backgroundOpacity: number, characterEdgeStyle: <a href="shaka.config.CharacterEdgeStyle.html">shaka.config.CharacterEdgeStyle</a>, subtitleDelay: number, suspendRenderingWhenHidden: boolean}</span>
+<span class="param-type">{fontScaleFactor: number, positionArea: <a href="shaka.config.PositionArea.html">shaka.config.PositionArea</a>, fontFamily: (<a href="shaka.config.FontFamily.html">shaka.config.FontFamily</a>|string), fontColor: string, fontOpacity: number, backgroundColor: string, backgroundOpacity: number, characterEdgeStyle: <a href="shaka.config.CharacterEdgeStyle.html">shaka.config.CharacterEdgeStyle</a>, subtitleDelay: number, suspendRenderingWhenHidden: boolean}</span>
 
 
         </li>
@@ -41051,6 +41051,9 @@ again.
             
                 
 <span class="param-type"><a href="shaka.config.FontFamily.html">shaka.config.FontFamily</a></span>
+|
+
+<span class="param-type">string</span>
 
 
             
@@ -41060,9 +41063,13 @@ again.
 
             
 
-            <td class="description last">The font family of the subtitles.  The default value indicates that the
-  font family defined by the subtitle is used, otherwise it is overwritten
-  with the given font family.
+            <td class="description last">The font family of the subtitles, as a CSS <code>font-family</code>
+  (e.g. <code>'OpenDyslexic, sans-serif'</code>).  An empty string
+  indicates that the font family defined by the subtitle is used, otherwise
+  it is overwritten with the given font family.
+  <code>shaka.config.FontFamily</code> lists some presets.  Fonts that are
+  not installed on the system can be loaded with
+  <code>player.addFont()</code>.
   <br>
   Only supported by <code>shaka.text.UITextDisplayer</code>.
   <br>
@@ -41353,7 +41360,7 @@ again.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3282">line 3282</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3286">line 3286</a>
     </li></ul></dd>
     
 
@@ -41654,7 +41661,7 @@ again.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3353">line 3353</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3357">line 3357</a>
     </li></ul></dd>
     
 
@@ -42933,7 +42940,7 @@ read-only as changing any values does not have any effect.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3633">line 3633</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3637">line 3637</a>
     </li></ul></dd>
     
 
@@ -51239,7 +51246,7 @@ variant.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3398">line 3398</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3402">line 3402</a>
     </li></ul></dd>
     
 
@@ -57570,7 +57577,7 @@ read-only as changing any values does not have any effect.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3322">line 3322</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3326">line 3326</a>
     </li></ul></dd>
     
 
@@ -59543,7 +59550,7 @@ packaging plugin from shaka.extern.MsfPackaging.describeTrack().
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3657">line 3657</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3661">line 3661</a>
     </li></ul></dd>
     
 
@@ -65449,7 +65456,7 @@ to be raised when the playhead enters or exits it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3719">line 3719</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3723">line 3723</a>
     </li></ul></dd>
     
 
@@ -65730,7 +65737,7 @@ to be raised when the playhead enters or exits it.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3702">line 3702</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3706">line 3706</a>
     </li></ul></dd>
     
 
@@ -67233,7 +67240,7 @@ The content of the field.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3678">line 3678</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3682">line 3682</a>
     </li></ul></dd>
     
 
@@ -68175,7 +68182,7 @@ content.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3574">line 3574</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3578">line 3578</a>
     </li></ul></dd>
     
 
@@ -77986,7 +77993,7 @@ For use in <a href="shaka.util.PeriodCombiner.html">shaka.util.PeriodCombiner</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3519">line 3519</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3523">line 3523</a>
     </li></ul></dd>
     
 
@@ -78909,7 +78916,7 @@ segment.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3555">line 3555</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3559">line 3559</a>
     </li></ul></dd>
     
 
@@ -93111,7 +93118,7 @@ again.
     <ul>
         <li>
             
-<span class="param-type">{fontScaleFactor: number, positionArea: <a href="shaka.config.PositionArea.html">shaka.config.PositionArea</a>, fontFamily: <a href="shaka.config.FontFamily.html">shaka.config.FontFamily</a>, fontColor: string, fontOpacity: number, backgroundColor: string, backgroundOpacity: number, characterEdgeStyle: <a href="shaka.config.CharacterEdgeStyle.html">shaka.config.CharacterEdgeStyle</a>, subtitleDelay: number, suspendRenderingWhenHidden: boolean}</span>
+<span class="param-type">{fontScaleFactor: number, positionArea: <a href="shaka.config.PositionArea.html">shaka.config.PositionArea</a>, fontFamily: (<a href="shaka.config.FontFamily.html">shaka.config.FontFamily</a>|string), fontColor: string, fontOpacity: number, backgroundColor: string, backgroundOpacity: number, characterEdgeStyle: <a href="shaka.config.CharacterEdgeStyle.html">shaka.config.CharacterEdgeStyle</a>, subtitleDelay: number, suspendRenderingWhenHidden: boolean}</span>
 
 
         </li>
@@ -93224,6 +93231,9 @@ again.
             
                 
 <span class="param-type"><a href="shaka.config.FontFamily.html">shaka.config.FontFamily</a></span>
+|
+
+<span class="param-type">string</span>
 
 
             
@@ -93233,9 +93243,13 @@ again.
 
             
 
-            <td class="description last">The font family of the subtitles.  The default value indicates that the
-  font family defined by the subtitle is used, otherwise it is overwritten
-  with the given font family.
+            <td class="description last">The font family of the subtitles, as a CSS <code>font-family</code>
+  (e.g. <code>'OpenDyslexic, sans-serif'</code>).  An empty string
+  indicates that the font family defined by the subtitle is used, otherwise
+  it is overwritten with the given font family.
+  <code>shaka.config.FontFamily</code> lists some presets.  Fonts that are
+  not installed on the system can be loaded with
+  <code>player.addFont()</code>.
   <br>
   Only supported by <code>shaka.text.UITextDisplayer</code>.
   <br>
@@ -93526,7 +93540,7 @@ again.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3282">line 3282</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3286">line 3286</a>
     </li></ul></dd>
     
 
@@ -93827,7 +93841,7 @@ again.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3353">line 3353</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3357">line 3357</a>
     </li></ul></dd>
     
 
@@ -95106,7 +95120,7 @@ read-only as changing any values does not have any effect.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3633">line 3633</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3637">line 3637</a>
     </li></ul></dd>
     
 
@@ -103412,7 +103426,7 @@ variant.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3398">line 3398</a>
+        <a href="externs_shaka_player.js.html">externs/shaka/player.js</a>, <a href="externs_shaka_player.js.html#line3402">line 3402</a>
     </li></ul></dd>
     
 
@@ -104387,7 +104401,7 @@ read-only as changing any values does not have any effect.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 16 2026 12:59:34 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Oct 19 2026 12:42:56 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

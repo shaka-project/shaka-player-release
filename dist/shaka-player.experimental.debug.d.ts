@@ -1090,12 +1090,22 @@ declare namespace shaka.config {
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/dist/shaka-player.experimental.debug.externs.js
 declare namespace shaka.config {
+  /**
+   * Preset font families for the subtitles.  Each value is a CSS
+   * <code>font-family</code> that lists several fonts, so a similar one is
+   * found on every platform.
+   */
+  /**
+   * Preset font families for the subtitles.  Each value is a CSS
+   * <code>font-family</code> that lists several fonts, so a similar one is
+   * found on every platform.
+   */
   enum FontFamily {
-    DEFAULT = 0.0 ,
-    MONOSPACED_SANS_SERIF = 3.0 ,
-    MONOSPACED_SERIF = 1.0 ,
-    PROPORTIONAL_SANS_SERIF = 4.0 ,
-    PROPORTIONAL_SERIF = 2.0 ,
+    DEFAULT = '' ,
+    MONOSPACED_SANS_SERIF = '\"Deja Vu Sans Mono\", \"Lucida Console\", Monaco, Consolas, \"PT Mono\", monospace' ,
+    MONOSPACED_SERIF = '\"Courier New\", Courier, \"Nimbus Mono L\", \"Cutive Mono\", monospace' ,
+    PROPORTIONAL_SANS_SERIF = 'Roboto, Arial, Helvetica, Verdana, \"PT Sans Caption\", sans-serif' ,
+    PROPORTIONAL_SERIF = '\"Times New Roman\", Times, Georgia, Cambria, \"PT Serif Caption\", serif' ,
   }
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/dist/shaka-player.experimental.debug.externs.js
@@ -4328,7 +4338,7 @@ declare namespace shaka.ui {
   /**
    * Selects the font family of the subtitles.
    */
-  class TextFontFamily extends shaka.ui.TextStyleMenu < shaka.config.FontFamily > {
+  class TextFontFamily extends shaka.ui.TextStyleMenu < string > {
     private noStructuralTyping_shaka_ui_TextFontFamily : any;
     /**
      * Selects the font family of the subtitles.
@@ -7006,7 +7016,7 @@ declare namespace shaka.extern {
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/player.js
 declare namespace shaka.extern {
-  type TextDisplayerConfiguration = { backgroundColor : string , backgroundOpacity : number , characterEdgeStyle : shaka.config.CharacterEdgeStyle , fontColor : string , fontFamily : shaka.config.FontFamily , fontOpacity : number , fontScaleFactor : number , positionArea : shaka.config.PositionArea , subtitleDelay : number , suspendRenderingWhenHidden : boolean } ;
+  type TextDisplayerConfiguration = { backgroundColor : string , backgroundOpacity : number , characterEdgeStyle : shaka.config.CharacterEdgeStyle , fontColor : string , fontFamily : string , fontOpacity : number , fontScaleFactor : number , positionArea : shaka.config.PositionArea , subtitleDelay : number , suspendRenderingWhenHidden : boolean } ;
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/player.js
 declare namespace shaka.extern {
