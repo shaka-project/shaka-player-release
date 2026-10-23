@@ -212,7 +212,7 @@
             
 <div class="access-container access-private">
 
-<h4 class="name" id="actionsHandled_"><span class="type-signature"></span>actionsHandled_<span class="type-signature"> :Set&lt;string&gt;</span></h4>
+<h4 class="name" id="actionsHandled_"><span class="type-signature"></span>actionsHandled_<span class="type-signature"> :Set&lt;MediaSessionAction&gt;</span></h4>
 
 
 
@@ -223,7 +223,7 @@
     <ul>
         <li>
             
-<span class="param-type">Set&lt;string&gt;</span>
+<span class="param-type">Set&lt;MediaSessionAction&gt;</span>
 
 
         </li>
@@ -1308,7 +1308,7 @@
             <td class="type">
             
                 
-<span class="param-type">string</span>
+<span class="param-type">MediaSessionAction</span>
 
 
             
@@ -1343,7 +1343,7 @@
             <td class="type">
             
                 
-<span class="param-type">?function()=</span>
+<span class="param-type">?function(!MediaSessionActionDetails)=</span>
 
 
             
@@ -1414,7 +1414,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line289">line 289</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line293">line 293</a>
     </li></ul></dd>
     
 
@@ -1504,7 +1504,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line385">line 385</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line389">line 389</a>
     </li></ul></dd>
     
 
@@ -1643,7 +1643,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line316">line 316</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line320">line 320</a>
     </li></ul></dd>
     
 
@@ -1822,7 +1822,7 @@
     
 
     
-    <h4 class="name" id="getMediaMetadata"><span class="type-signature"></span>getMediaMetadata<span class="signature">()</span><span class="type-signature"> &rarr; {!{title: string, artist: string, album: string, artwork: Object, chapterInfo: ?Object}}</span></h4>
+    <h4 class="name" id="getMediaMetadata"><span class="type-signature"></span>getMediaMetadata<span class="signature">()</span><span class="type-signature"> &rarr; {MediaMetadataInit}</span></h4>
     
 
     
@@ -1872,7 +1872,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line149">line 149</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line148">line 148</a>
     </li></ul></dd>
     
 
@@ -1908,7 +1908,7 @@
     </dt>
     <dd>
         
-<span class="param-type">!{title: string, artist: string, album: string, artwork: Object, chapterInfo: ?Object}</span>
+<span class="param-type">MediaMetadataInit</span>
 
 
     </dd>
@@ -2171,7 +2171,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line629">line 629</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line634">line 634</a>
     </li></ul></dd>
     
 
@@ -2588,7 +2588,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line252">line 252</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line253">line 253</a>
     </li></ul></dd>
     
 
@@ -2678,7 +2678,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line561">line 561</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line565">line 565</a>
     </li></ul></dd>
     
 
@@ -2768,7 +2768,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line397">line 397</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line401">line 401</a>
     </li></ul></dd>
     
 
@@ -2858,7 +2858,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line510">line 510</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line514">line 514</a>
     </li></ul></dd>
     
 
@@ -3365,7 +3365,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line640">line 640</a>
+        <a href="ui_media_session.js.html">ui/media_session.js</a>, <a href="ui_media_session.js.html#line645">line 645</a>
     </li></ul></dd>
     
 
@@ -3427,7 +3427,7 @@
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Oct 19 2026 12:43:05 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 23 2026 08:28:34 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

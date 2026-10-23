@@ -31,13 +31,20 @@ declare namespace shaka {
      * Declares a range [start, end) to be skipped: its segments are not fetched
      * or buffered, and buffering continues from <code>end</code> as if it
      * followed <code>start</code>, with the gap-jumping logic carrying the
-     * playhead across.  Must be declared before the range buffers, and must not
-     * overlap an existing range.
+     * playhead across.
+     * <p>
+     * A range that overlaps or touches an existing range is merged with it.  A
+     * range that is already buffered is accepted, but only takes effect once its
+     * span is no longer buffered.  A range is only skipped if both of its ends
+     * line up with segment boundaries of the video stream (or the audio stream
+     * for audio-only content); otherwise it is kept in the list but never
+     * skipped, and a warning is logged.
      * <p>
      * May be called before load(); such ranges are applied when streaming
      * starts, which lets a preroll be skipped before it buffers.  Recoverable
-     * via removeSkipRange / clearSkipRanges.  Segments-mode, non-live,
-     * MediaSource-only (not src=).
+     * via removeSkipRange / clearSkipRanges.  Supported for VOD content played
+     * through MediaSource in segments mode (DASH and HLS); not supported for
+     * live content, sequence mode or src= playback.
      */
     addSkipRange (start : number , end : number ) : boolean ;
     /**
@@ -337,9 +344,8 @@ declare namespace shaka {
      * Check if the manifest contains only audio-only content. If the player has
      * not loaded content, this will return <code>false</code>.
      * <p>
-     * The player does not support content that contain more than one type of
-     * variants (i.e. mixing audio-only, video-only, audio-video). Content will be
-     * filtered to only contain one type of variant.
+     * Content is considered audio-only only when none of its variants carries
+     * video.
      */
     isAudioOnly ( ) : boolean ;
     /**
@@ -379,9 +385,9 @@ declare namespace shaka {
      * Check if the manifest contains only video-only content. If the player has
      * not loaded content, this will return <code>false</code>.
      * <p>
-     * The player does not support content that contain more than one type of
-     * variants (i.e. mixing audio-only, video-only, audio-video). Content will be
-     * filtered to only contain one type of variant.
+     * Content is considered video-only only when every variant carries video
+     * and none of them carries audio, either as a separate stream or muxed into
+     * the video stream.
      */
     isVideoOnly ( ) : boolean ;
     /**
@@ -393,7 +399,7 @@ declare namespace shaka {
     /**
      * Loads a new stream.
      * If another stream was already playing, first unloads that stream.
-     * @param startTime When <code>startTime</code> is <code>null</code> or <code>undefined</code>, playback will start at the default start time (0 for VOD and liveEdge for LIVE).
+     * @param startTime The position at which playback should start, interpreted as follows: <ul> <li><code>null</code> or <code>undefined</code>: the default start time. If the manifest specifies a start position (e.g. HLS <code>EXT-X-START</code>), that is used; otherwise playback starts at the beginning of the seek range for VOD and at the end of the seek range (the live edge, minus the presentation delay) for live.</li> <li>A non-negative number: an absolute position in seconds on the presentation timeline, the same timeline used by <code>seekRange()</code> and <code>video.currentTime</code>. For live streams this is not an offset from the first available segment; use <code>seekRange()</code> (e.g. in a <code>canupdatestarttime</code> listener) to compute it.</li> <li>A negative number: an offset in seconds from the end of the seek range, e.g. <code>-10</code> starts 10 seconds before the live edge. With MediaSource this also works for VOD (10 seconds before the end).</li> <li>A <code>Date</code>: a wall-clock time, mapped to the timeline using the program date time (HLS) or the availability start time (DASH).</li> </ul> With MediaSource, the resulting position is clamped to the seek range (which honors <code>playRangeStart</code> and <code>playRangeEnd</code>), so values beyond either end start at that end. If <code>streaming.startAtSegmentBoundary</code> is enabled, it is then moved back to the start of the segment that contains it. <br> With src= (native playback), the start time is applied by seeking the media element once it reaches <code>HAVE_FUTURE_DATA</code>, so the browser may briefly start from its own default position. Numbers are not clamped, a negative number is relative to the position the browser chose (the live edge for native live HLS, 0 for VOD, so it has no effect on VOD), and a <code>Date</code> is only honored when the browser implements <code>getStartDate()</code> (e.g. Safari); otherwise it is ignored. The manifest start position is left to the browser. <br> When loading a <code>shaka.media.PreloadManager</code>, a non-<code>null</code> value overrides the start time given to <code>preload()</code>; <code>null</code> keeps it. <br> The start time can still be changed with <code>updateStartTime()</code> until the <code>canupdatestarttime</code> event has been handled.
      */
     load (assetUriOrPreloader : string | shaka.media.PreloadManager | null , startTime ? : number | null | Date , mimeType ? : string | null ) : Promise < any > ;
     /**
@@ -409,7 +415,7 @@ declare namespace shaka {
      * the |destroy| method on the manager if the preload is no longer necessary.
      * If this returns null rather than a PreloadManager, that indicates that the
      * asset must be played with src=, which cannot be preloaded.
-     * @param startTime When <code>startTime</code> is <code>null</code> or <code>undefined</code>, playback will start at the default start time (0 for VOD and liveEdge for LIVE).
+     * @param startTime The position at which playback should start once the PreloadManager is passed to <code>load()</code>. It is interpreted exactly like the <code>startTime</code> parameter of <code>load()</code> (see there), and it is ignored if <code>load()</code> is given a non-<code>null</code> start time of its own. <br> For VOD, a numeric start time also selects which media segment is preloaded: the one containing that position (with no start time, a negative number or a <code>Date</code>, the first segment). For live, only the initialization segment is preloaded, regardless of the start time.
      */
     preload (assetUri : string , startTime ? : number | null | Date , mimeType ? : string | null , config ? : shaka.extern.PlayerConfiguration | null , throwOnPreloadNotSupported ? : boolean ) : Promise < shaka.media.PreloadManager | null > ;
     /**
@@ -417,8 +423,10 @@ declare namespace shaka {
      */
     releaseAllMutexes ( ) : void ;
     /**
-     * Removes a skip range previously added with <code>addSkipRange</code>
-     * (matched by the same start/end) and re-fetches it.  A removed range that
+     * Removes the interval [start, end) from the skip ranges, so its content is
+     * fetched again.  This is interval subtraction, not an exact-match delete:
+     * removing part of a range trims it, and removing its middle splits it in
+     * two.  A removed range that
      * is already behind the playhead is not re-fetched until the user seeks
      * back across it.
      */
@@ -1515,6 +1523,19 @@ declare namespace shaka.media {
      * time, so we can move closer to the live edge.
      */
     setAvailabilityTimeOffset (offset : number ) : void ;
+    /**
+     * Sets whether the live edge is clamped to the segments reported via
+     * notifySegments().  Once the start time is locked, the live edge is a pure
+     * wall-clock extrapolation and drifts ahead of the content whenever the
+     * source lags, which makes seekRange().end point at segments that do not
+     * exist yet.  When clamped, the edge may run at most one segment duration
+     * past the newest known segment: that keeps it moving smoothly between
+     * playlist updates while the content keeps up, and only pins it once the
+     * content is actually behind.  DASH defines segment availability from the
+     * wall clock, so this is only appropriate for formats where the segment
+     * list is the sole authority (HLS).
+     */
+    setClampLiveEdgeToSegments (clamp : boolean ) : void ;
     /**
      * Sets the clock offset, which is the difference between the client's clock
      * and the server's clock, in milliseconds (i.e., serverTime = Date.now() +
@@ -3679,7 +3700,7 @@ declare namespace shaka.ui {
   class MediaSession implements shaka.util.IReleasable {
     private noStructuralTyping_shaka_ui_MediaSession : any;
     constructor (controls : shaka.ui.Controls ) ;
-    addMediaSessionHandler (type : string , callback ? : Function | null ) : void ;
+    addMediaSessionHandler (type : any | null , callback ? : ( (a : any ) => any ) | null ) : void ;
     commonActionHandler (details : any ) : void ;
     configure (config : shaka.extern.UIConfiguration ) : void ;
     release ( ) : void ;
@@ -5584,7 +5605,7 @@ declare namespace shaka.extern {
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/ads.js
 declare namespace shaka.extern {
-  type AdInterstitial = { adCreativeSignaling ? : shaka | null , background : string | null , canJump : boolean , clickThroughUrl : string | null , currentVideo : shaka.extern.AdPositionInfo | null , displayOnBackground : boolean , endTime : number | null , groupId : string | null , id : string | null , isSkippable : boolean , loop : boolean , mimeType : string | null , once : boolean , overlay : shaka.extern.AdPositionInfo | null , playbackMode ? : string , playoutLimit : number | null , pod ? : shaka | null , podOffset ? : number , podPosition ? : number , podSize ? : number , post : boolean , pre : boolean , resolutionTimeOffset ? : number , resumeOffset : number | null , skipFor : number | null , skipOffset : number | null , startOffset ? : number , startTime : number , timelineRange : boolean , tracking : shaka.extern.AdTrackingEvent | null , uri : string | null } ;
+  type AdInterstitial = { adCreativeSignaling ? : shaka.extern.AdCreativeSignaling.Slot | null , background : string | null , canJump : boolean , clickThroughUrl : string | null , currentVideo : shaka.extern.AdPositionInfo | null , displayOnBackground : boolean , endTime : number | null , groupId : string | null , id : string | null , isSkippable : boolean , loop : boolean , mimeType : string | null , once : boolean , overlay : shaka.extern.AdPositionInfo | null , playbackMode ? : string , playoutLimit : number | null , pod ? : shaka.extern.AdCreativeSignaling.Pod | null , podOffset ? : number , podPosition ? : number , podSize ? : number , post : boolean , pre : boolean , resolutionTimeOffset ? : number , resumeOffset : number | null , skipFor : number | null , skipOffset : number | null , startOffset ? : number , startTime : number , timelineRange : boolean , tracking : shaka.extern.AdTrackingEvent | null , uri : string | null } ;
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/ads.js
 declare namespace shaka.extern {
@@ -6936,6 +6957,34 @@ declare namespace shaka.extern {
 // Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/scte35.js
 declare namespace shaka.extern {
   type Scte35Event = { data : Uint8Array | null , endTime : number , id : string , kind : string , node : shaka.extern.xml.Node | null , schemeIdUri : string , source : string , startTime : number } ;
+}
+// Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/svta-ad-creative-signaling.js
+declare namespace shaka.extern.AdCreativeSignaling {
+  type AdIdentifier = { scheme : string , value : string } ;
+}
+// Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/svta-ad-creative-signaling.js
+declare namespace shaka.extern.AdCreativeSignaling {
+  type CarriageEnvelope = { features ? : { remoteFields : boolean } , payload : ( shaka.extern.AdCreativeSignaling.Slot | shaka.extern.AdCreativeSignaling.Pod | shaka.extern.AdCreativeSignaling.TrackingEvent | shaka.extern.AdCreativeSignaling.Verification ) [] , type ? : string , version ? : number } ;
+}
+// Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/svta-ad-creative-signaling.js
+declare namespace shaka.extern.AdCreativeSignaling {
+  type Pod = { $remote ? : shaka.extern.AdCreativeSignaling.RemoteFields , duration : number , slots : shaka.extern.AdCreativeSignaling.Slot [] , start ? : number , tracking ? : shaka.extern.AdCreativeSignaling.TrackingEvent [] } ;
+}
+// Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/svta-ad-creative-signaling.js
+declare namespace shaka.extern.AdCreativeSignaling {
+  type RemoteFields = { slots ? : string , tracking ? : string , verifications ? : string } ;
+}
+// Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/svta-ad-creative-signaling.js
+declare namespace shaka.extern.AdCreativeSignaling {
+  type Slot = { $remote ? : shaka.extern.AdCreativeSignaling.RemoteFields , clickThrough ? : string , duration : number , identifiers : shaka.extern.AdCreativeSignaling.AdIdentifier [] , skipOffset ? : number , start : number , tracking ? : shaka.extern.AdCreativeSignaling.TrackingEvent [] , type ? : string , verifications ? : shaka.extern.AdCreativeSignaling.Verification [] } ;
+}
+// Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/svta-ad-creative-signaling.js
+declare namespace shaka.extern.AdCreativeSignaling {
+  type TrackingEvent = { offset ? : number , type : string , urls : string [] } ;
+}
+// Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/svta-ad-creative-signaling.js
+declare namespace shaka.extern.AdCreativeSignaling {
+  type Verification = { parameters ? : string , resource ? : string , vendor : string } ;
 }
 // Generated from /home/runner/work/shaka-player/shaka-player/externs/shaka/text.js
 declare namespace shaka.extern {
