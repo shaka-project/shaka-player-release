@@ -1111,9 +1111,15 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
     this.preloadDueAdManagerTimer_ = new shaka.util.Timer(async () => {
       if (this.preloadDueAdManager_) {
         goog.asserts.assert(this.preloadDueAdManagerVideo_, 'Must have video');
-        await this.attach(
-            this.preloadDueAdManagerVideo_, /* initializeMediaSource= */ true);
-        await this.load(this.preloadDueAdManager_);
+        try {
+          await this.attach(
+              this.preloadDueAdManagerVideo_,
+              /* initializeMediaSource= */ true);
+          await this.load(this.preloadDueAdManager_);
+        } catch (error) {
+          this.onAdContentSwitchError_(error);
+          return;
+        }
         if (!this.preloadDueAdManagerVideoEnded_) {
           this.preloadDueAdManagerVideo_.play();
         } else {
@@ -1142,8 +1148,12 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
               if (this.isLive()) {
                 savePosition = saveLivePosition;
               }
-              this.preloadDueAdManager_ = await this.detachAndSavePreload(
-                  /* keepAdManager= */ true, savePosition);
+              try {
+                this.preloadDueAdManager_ = await this.detachAndSavePreload(
+                    /* keepAdManager= */ true, savePosition);
+              } catch (error) {
+                this.onAdContentSwitchError_(error);
+              }
             }
           });
 
@@ -1163,8 +1173,13 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
       this.adManagerEventManager_.listen(
           this.adManager_, 'ad-content-attach-requested', async (e) => {
             if (!this.video_ &amp;&amp; this.preloadDueAdManagerVideo_) {
-              await this.attach(this.preloadDueAdManagerVideo_,
-                  /* initializeMediaSource= */ true);
+              try {
+                await this.attach(this.preloadDueAdManagerVideo_,
+                    /* initializeMediaSource= */ true);
+              } catch (error) {
+                this.onAdContentSwitchError_(error);
+                return;
+              }
               this.preloadDueAdManagerVideo_ = null;
             }
           });
@@ -2715,7 +2730,9 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
           this.updateCmcdManifestParameters_();
         }
       },
-      getBandwidthEstimate: () => this.abrManager_.getBandwidthEstimate(),
+      // A preload can start before load() has created the AbrManager.
+      getBandwidthEstimate: () => this.abrManager_ ?
+          this.abrManager_.getBandwidthEstimate() : NaN,
       onMetadata: (type, startTime, endTime, values) => {
         let metadataType = type;
         if (type == 'com.apple.hls.interstitial' ||
@@ -7646,6 +7663,10 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
             'cause unwanted issues.');
       }
 
+      // The track URI is later used as a base (e.g. TTML background images),
+      // which the native URL constructor rejects when it is relative.
+      uri = shaka.util.URL.toAbsolute(uri);
+
       if (!mimeType) {
         mimeType = await this.getTextMimetype_(uri);
       }
@@ -7767,6 +7788,10 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
             shaka.util.Error.Category.PLAYER,
             shaka.util.Error.Code.CONTENT_NOT_LOADED);
       }
+
+      // The cue payloads are resolved against the track URI below, which
+      // the native URL constructor rejects when it is relative.
+      uri = shaka.util.URL.toAbsolute(uri);
 
       if (!mimeType) {
         mimeType = await this.getTextMimetype_(uri);
@@ -7906,6 +7931,9 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
             shaka.util.Error.Category.PLAYER,
             shaka.util.Error.Code.CONTENT_NOT_LOADED);
       }
+
+      // Keep the track URI absolute, like the text and thumbnails tracks.
+      uri = shaka.util.URL.toAbsolute(uri);
 
       if (!mimeType) {
         mimeType = await this.getTextMimetype_(uri);
@@ -9562,6 +9590,27 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
   }
 
   /**
+   * Handles an error from switching between ads and content.  The switch runs
+   * in ad manager event handlers, where nothing else could handle it.
+   *
+   * @param {*} error
+   * @private
+   */
+  onAdContentSwitchError_(error) {
+    // destroy(), unload(), or another load() interrupts the switch if it
+    // happens during an ad, which is expected.
+    if (error instanceof shaka.util.Error &amp;&amp;
+        error.code == shaka.util.Error.Code.LOAD_INTERRUPTED) {
+      return;
+    }
+    if (error instanceof shaka.util.Error) {
+      this.onError_(error);
+    } else {
+      shaka.log.error('Error switching between ads and content', error);
+    }
+  }
+
+  /**
    * @param {!shaka.util.Error} error
    * @private
    */
@@ -10204,7 +10253,7 @@ shaka.Player.TYPICAL_BUFFERING_THRESHOLD_ = 0.5;
  */
 shaka.Player.version = goog.define('shaka.Player.version',
     // eslint-disable-next-line no-useless-concat
-    'v5.3.2' + '-uncompiled');  // x-release-please-version
+    'v5.3.3' + '-uncompiled');  // x-release-please-version
 
 // Initialize the deprecation system using the version string we just set
 // on the player.
@@ -10251,7 +10300,7 @@ shaka.Player.TextTrackLabel = 'Shaka Player TextTrack';
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 23 2026 08:28:28 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Thu Oct 29 2026 15:43:52 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

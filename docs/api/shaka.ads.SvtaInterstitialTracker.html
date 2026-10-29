@@ -226,7 +226,86 @@ lives as long as the asset; each interstitial gets its own tracker.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line47">line 47</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line51">line 51</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="pods_"><span class="type-signature"></span>pods_<span class="type-signature"> :Map&lt;string, <a href="shaka.ads.SvtaInterstitialTracker.html#.PodEntry">shaka.ads.SvtaInterstitialTracker.PodEntry</a>&gt;</span></h4>
+
+
+
+
+<div class="description">
+    Pods whose slots are carried separately, by id. The first object seen
+is kept, so the pod state is shared by all its slots.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Map&lt;string, <a href="shaka.ads.SvtaInterstitialTracker.html#.PodEntry">shaka.ads.SvtaInterstitialTracker.PodEntry</a>&gt;</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line58">line 58</a>
     </li></ul></dd>
     
 
@@ -374,7 +453,7 @@ lives as long as the asset; each interstitial gets its own tracker.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line43">line 43</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line45">line 45</a>
     </li></ul></dd>
     
 
@@ -448,7 +527,7 @@ lives as long as the asset; each interstitial gets its own tracker.</div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line45">line 45</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line48">line 48</a>
     </li></ul></dd>
     
 
@@ -527,7 +606,165 @@ slot again (e.g. after seeking back) is not a new ad view.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line41">line 41</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line42">line 42</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="slotIds_"><span class="type-signature"></span>slotIds_<span class="type-signature"> :Set&lt;string&gt;</span></h4>
+
+
+
+
+<div class="description">
+    Ids of the standalone slots already seen. Duplicates, e.g. from a
+manifest update, are not scheduled again, so they are not linked.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Set&lt;string&gt;</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line65">line 65</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+<h4 class="name" id="unlinkedSlots_"><span class="type-signature"></span>unlinkedSlots_<span class="type-signature"> :Map&lt;string, <a href="shaka.extern.html#.AdInterstitial">shaka.extern.AdInterstitial</a>&gt;</span></h4>
+
+
+
+
+<div class="description">
+    Standalone slots not yet linked to a pod, by id. Their pod may arrive
+later.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Map&lt;string, <a href="shaka.extern.html#.AdInterstitial">shaka.extern.AdInterstitial</a>&gt;</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line72">line 72</a>
     </li></ul></dd>
     
 
@@ -550,6 +787,348 @@ slot again (e.g. after seeking back) is not a new ad view.
 
     
         <h3 class="subsection-title">Methods</h3>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id=".attach_"><span class="type-signature"></span>attach_<span class="signature">(entry, slot)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>entry</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.ads.SvtaInterstitialTracker.html#.PodEntry">shaka.ads.SvtaInterstitialTracker.PodEntry</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>slot</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.AdInterstitial">shaka.extern.AdInterstitial</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line176">line 176</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-private">
+
+
+    
+
+    
+    <h4 class="name" id=".contains_"><span class="type-signature"></span>contains_<span class="signature">(entry, slot)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>entry</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.ads.SvtaInterstitialTracker.html#.PodEntry">shaka.ads.SvtaInterstitialTracker.PodEntry</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>slot</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.extern.html#.AdInterstitial">shaka.extern.AdInterstitial</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line164">line 164</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+</div>
 
         
             
@@ -661,7 +1240,7 @@ slot again (e.g. after seeking back) is not a new ad view.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line114">line 114</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line226">line 226</a>
     </li></ul></dd>
     
 
@@ -887,7 +1466,7 @@ slot again (e.g. after seeking back) is not a new ad view.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line77">line 77</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line189">line 189</a>
     </li></ul></dd>
     
 
@@ -930,6 +1509,175 @@ slot again (e.g. after seeking back) is not a new ad view.
 </dl>
 
     
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-public">
+
+
+    
+
+    
+    <h4 class="name" id="linkPods"><span class="type-signature"></span>linkPods<span class="signature">(pods<span class="signature-attributes">non-null</span>, interstitials<span class="signature-attributes">non-null</span>)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Links slots to the pod whose interval contains them, when the pod and its
+slots are carried separately (SVTA2053 section 5.2.2). They may arrive in
+any order, so each new pod or slot is matched against the ones already
+seen. Slots already nested in a pod are left as they are.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>pods</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array&lt;!<a href="shaka.ads.SvtaInterstitialParser.html#.StandalonePod">shaka.ads.SvtaInterstitialParser.StandalonePod</a>&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>interstitials</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array&lt;<a href="shaka.extern.html#.AdInterstitial">shaka.extern.AdInterstitial</a>&gt;</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line107">line 107</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1006,7 +1754,7 @@ slot again (e.g. after seeking back) is not a new ad view.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line66">line 66</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line94">line 94</a>
     </li></ul></dd>
     
 
@@ -1101,7 +1849,7 @@ even if the network abort arrives late.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line54">line 54</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line79">line 79</a>
     </li></ul></dd>
     
 
@@ -1294,7 +2042,7 @@ replace the field rather than appending to its inline fallback.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line130">line 130</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line242">line 242</a>
     </li></ul></dd>
     
 
@@ -1354,6 +2102,80 @@ replace the field rather than appending to its inline fallback.
                 
 <div class="access-container access-public">
 
+<h4 class="name" id=".PodEntry">PodEntry</h4>
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">{pod: !<a href="shaka.extern.AdCreativeSignaling.html#.Pod">shaka.extern.AdCreativeSignaling.Pod</a>, startTime: number, endTime: number, slots: !Array&lt;<a href="shaka.extern.html#.AdInterstitial">shaka.extern.AdInterstitial</a>&gt;}</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line392">line 392</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+</div>
+
+            
+                
+<div class="access-container access-public">
+
 <h4 class="name" id=".PodState">PodState</h4>
 
 
@@ -1406,7 +2228,7 @@ replace the field rather than appending to its inline fallback.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line269">line 269</a>
+        <a href="lib_ads_svta_interstitial_tracker.js.html">lib/ads/svta_interstitial_tracker.js</a>, <a href="lib_ads_svta_interstitial_tracker.js.html#line381">line 381</a>
     </li></ul></dd>
     
 
@@ -1452,7 +2274,7 @@ replace the field rather than appending to its inline fallback.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 23 2026 08:28:28 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Thu Oct 29 2026 15:43:53 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>

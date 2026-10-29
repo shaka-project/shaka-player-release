@@ -1106,7 +1106,7 @@ array.  Used to create stable positions in the find/get APIs.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line517">line 517</a>
+        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line565">line 565</a>
     </li></ul></dd>
     
 
@@ -1784,7 +1784,7 @@ duration is known and another period has been added.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line338">line 338</a>
+        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line386">line 386</a>
     </li></ul></dd>
     
 
@@ -2301,7 +2301,7 @@ Playlist will contain at least one independent frame."
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line455">line 455</a>
+        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line503">line 503</a>
     </li></ul></dd>
     
 
@@ -2344,6 +2344,164 @@ Playlist will contain at least one independent frame."
 </dl>
 
     
+
+
+
+
+
+</div>
+
+        
+            
+<div class="access-container access-public">
+
+
+    
+
+    
+    <h4 class="name" id="insert"><span class="type-signature"></span>insert<span class="signature">(reference<span class="signature-attributes">non-null</span>)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Inserts a single SegmentReference where its start time belongs.  Unlike
+merge(), it never removes the references that follow it, so references
+can arrive out of order.  One with the same start time as an existing
+reference replaces it.
+
+Used by the MSF parser, where every MoQT object becomes a reference as
+soon as it is complete, and the objects of consecutive groups are read
+from different streams, so they can complete in any order.
+
+A reference that starts before the first one in the index is ignored: the
+index never grows at the beginning, as in mergeAndEvict().
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>reference</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="shaka.media.SegmentReference.html">shaka.media.SegmentReference</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-overrides">Overrides:</dt>
+    <dd class="tag-overrides"><ul class="dummy"><li>
+        <a href="shaka.media.SegmentIndex.html#insert">shaka.media.SegmentIndex#insert</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line317">line 317</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2414,7 +2572,7 @@ Playlist will contain at least one independent frame."
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line508">line 508</a>
+        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line556">line 556</a>
     </li></ul></dd>
     
 
@@ -3191,7 +3349,7 @@ returned by the callback is null.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line404">line 404</a>
+        <a href="lib_media_segment_index.js.html">lib/media/segment_index.js</a>, <a href="lib_media_segment_index.js.html#line452">line 452</a>
     </li></ul></dd>
     
 
@@ -3253,7 +3411,7 @@ returned by the callback is null.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Oct 23 2026 08:28:29 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Thu Oct 29 2026 15:43:55 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> initShowWidget(); </script>
