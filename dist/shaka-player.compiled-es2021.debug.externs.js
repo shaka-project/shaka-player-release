@@ -4577,6 +4577,13 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   getBufferedInfo() {}
   /**
+   * Get latency in milliseconds between the live edge and what's currently
+   * playing.
+   * @return {?number} The latency in milliseconds, or null if nothing
+   * is playing.
+   */
+  getLiveLatency() {}
+  /**
    * Get statistics for the current playback session. If the player is not
    * playing content, this will return an empty stats object.
    * @return {shaka.extern.Stats}

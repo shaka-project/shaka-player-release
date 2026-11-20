@@ -233,6 +233,11 @@ declare namespace shaka {
      */
     getKeyStatuses ( ) : { [ key: string ]: string } ;
     /**
+     * Get latency in milliseconds between the live edge and what's currently
+     * playing.
+     */
+    getLiveLatency ( ) : number | null ;
+    /**
      * Get the current load mode.
      */
     getLoadMode ( ) : shaka.Player.LoadMode ;
@@ -3427,7 +3432,7 @@ declare namespace shaka.ui {
      */
     getVRFieldOfView ( ) : number | null ;
     /**
-     * Get the angle of the north.
+     * Get the angle of the north, which is the direction of the initial view.
      */
     getVRNorth ( ) : number | null ;
     getVideo ( ) : HTMLMediaElement | null ;
@@ -3487,7 +3492,7 @@ declare namespace shaka.ui {
      * part of the video will be seen, but with more detail. If the field of view
      * is increased, a larger part of the video will be seen, but with less
      * detail.
-     * @param fieldOfView In degrees
+     * @param fieldOfView In degrees, from 20 to 100.  Values out of this range are clamped.
      */
     setVRFieldOfView (fieldOfView : number ) : void ;
     showAdUI ( ) : any ;

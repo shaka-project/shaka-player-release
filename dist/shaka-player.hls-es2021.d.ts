@@ -233,6 +233,11 @@ declare namespace shaka {
      */
     getKeyStatuses ( ) : { [ key: string ]: string } ;
     /**
+     * Get latency in milliseconds between the live edge and what's currently
+     * playing.
+     */
+    getLiveLatency ( ) : number | null ;
+    /**
      * Get the current load mode.
      */
     getLoadMode ( ) : shaka.Player.LoadMode ;

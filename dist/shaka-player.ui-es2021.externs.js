@@ -4692,6 +4692,13 @@ shaka.Player = class extends shaka.util.FakeEventTarget {
    */
   getBufferedInfo() {}
   /**
+   * Get latency in milliseconds between the live edge and what's currently
+   * playing.
+   * @return {?number} The latency in milliseconds, or null if nothing
+   * is playing.
+   */
+  getLiveLatency() {}
+  /**
    * Get statistics for the current playback session. If the player is not
    * playing content, this will return an empty stats object.
    * @return {shaka.extern.Stats}
@@ -7000,8 +7007,9 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    */
   isPlayingVR() {}
   /**
-   * Get the angle of the north.
-   * @return {?number}
+   * Get the angle of the north, which is the direction of the initial view.
+   * @return {?number} In degrees, from 0 to 360, increasing as the view turns
+   *   to the right.  Null if not playing VR content.
    */
   getVRNorth() {}
   /**
@@ -7015,7 +7023,8 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    * part of the video will be seen, but with more detail. If the field of view
    * is increased, a larger part of the video will be seen, but with less
    * detail.
-   * @param {number} fieldOfView In degrees
+   * @param {number} fieldOfView In degrees, from 20 to 100.  Values out of
+   *   this range are clamped.
    * @return {undefined}
    */
   setVRFieldOfView(fieldOfView) {}
